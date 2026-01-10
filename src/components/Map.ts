@@ -1150,9 +1150,10 @@ export class MapComponent {
       });
     }
 
-    // AI Data Centers
+    // AI Data Centers (filter to significant clusters only: ≥50k GPUs)
+    const MIN_GPU_COUNT = 50000;
     if (this.state.layers.datacenters) {
-      AI_DATA_CENTERS.forEach((dc) => {
+      AI_DATA_CENTERS.filter(dc => (dc.chipCount || 0) >= MIN_GPU_COUNT).forEach((dc) => {
         const pos = projection([dc.lon, dc.lat]);
         if (!pos) return;
 
