@@ -196,6 +196,7 @@ export class DeckGLMap {
 
   private timestampIntervalId: ReturnType<typeof setInterval> | null = null;
   private renderScheduled = false;
+  private resizeObserver: ResizeObserver | null = null;
 
   constructor(container: HTMLElement, initialState: DeckMapState) {
     this.container = container;
@@ -209,6 +210,9 @@ export class DeckGLMap {
     // Initialize deck.gl and MapLibre
     this.initMapLibre();
     this.initDeck();
+
+    // Setup resize handling to prevent canvas corruption during zoom/resize
+    this.setupResizeObserver();
 
     // Create controls
     this.createControls();
@@ -307,6 +311,23 @@ export class DeckGLMap {
     // Update cluster overlays when map moves/zooms
     this.maplibreMap.on('move', () => this.renderClusterOverlays());
     this.maplibreMap.on('zoom', () => this.renderClusterOverlays());
+
+    // Trigger resize after zoom to prevent canvas corruption
+    this.maplibreMap.on('zoomend', () => {
+      // Small delay to let the zoom animation complete
+      setTimeout(() => this.maplibreMap?.resize(), 50);
+    });
+  }
+
+  private setupResizeObserver(): void {
+    // Watch container for size changes and trigger MapLibre resize
+    this.resizeObserver = new ResizeObserver(() => {
+      if (this.maplibreMap) {
+        this.maplibreMap.resize();
+        this.renderClusterOverlays();
+      }
+    });
+    this.resizeObserver.observe(this.container);
   }
 
   // Generic marker clustering - groups markers within pixelRadius into clusters
@@ -2442,6 +2463,12 @@ export class DeckGLMap {
   public destroy(): void {
     if (this.timestampIntervalId) {
       clearInterval(this.timestampIntervalId);
+    }
+
+    // Clean up resize observer
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
     }
 
     this.deckOverlay?.finalize();
