@@ -1,6 +1,7 @@
 import { Panel } from './Panel';
 import { escapeHtml } from '@/utils/sanitize';
 import { fetchCachedTheaterPosture, type CachedTheaterPosture } from '@/services/cached-theater-posture';
+import { fetchMilitaryVessels, isMilitaryVesselTrackingConfigured } from '@/services/military-vessels';
 import type { TheaterPostureSummary } from '@/services/military-surge';
 
 export class StrategicPosturePanel extends Panel {
@@ -16,7 +17,7 @@ export class StrategicPosturePanel extends Panel {
       showCount: false,
       trackActivity: true,
       infoTooltip: `<strong>Methodology</strong>
-        <p>Aggregates military aircraft by theater using ADS-B data.</p>
+        <p>Aggregates military aircraft and naval vessels by theater.</p>
         <ul>
           <li><strong>Normal:</strong> Baseline activity</li>
           <li><strong>Elevated:</strong> Above threshold (50+ aircraft)</li>
@@ -53,18 +54,71 @@ export class StrategicPosturePanel extends Panel {
 
   private async fetchAndRender(): Promise<void> {
     try {
+      // Fetch aircraft data from server
       const data = await fetchCachedTheaterPosture();
       if (!data || data.postures.length === 0) {
         this.showNoData();
         return;
       }
+
+      // Start with aircraft-only postures
       this.postures = data.postures;
       this.lastTimestamp = data.timestamp;
+
+      // Try to augment with vessel data (client-side)
+      await this.augmentWithVessels();
+
       this.updateBadges();
       this.render();
     } catch (error) {
       console.error('[StrategicPosturePanel] Fetch error:', error);
       this.showFetchError();
+    }
+  }
+
+  private async augmentWithVessels(): Promise<void> {
+    if (!isMilitaryVesselTrackingConfigured()) {
+      return;
+    }
+
+    try {
+      const { vessels } = await fetchMilitaryVessels();
+      if (vessels.length === 0) return;
+
+      // Merge vessel counts into each theater
+      for (const posture of this.postures) {
+        if (!posture.bounds) continue;
+
+        // Filter vessels within theater bounds
+        const theaterVessels = vessels.filter(
+          (v) =>
+            v.lat >= posture.bounds!.south &&
+            v.lat <= posture.bounds!.north &&
+            v.lon >= posture.bounds!.west &&
+            v.lon <= posture.bounds!.east
+        );
+
+        // Count by type
+        posture.destroyers = theaterVessels.filter((v) => v.vesselType === 'destroyer').length;
+        posture.frigates = theaterVessels.filter((v) => v.vesselType === 'frigate').length;
+        posture.carriers = theaterVessels.filter((v) => v.vesselType === 'carrier').length;
+        posture.submarines = theaterVessels.filter((v) => v.vesselType === 'submarine').length;
+        posture.patrol = theaterVessels.filter((v) => v.vesselType === 'patrol').length;
+        posture.auxiliaryVessels = theaterVessels.filter(
+          (v) => v.vesselType === 'special' || v.vesselType === 'amphibious' || v.vesselType === 'icebreaker' || v.vesselType === 'research'
+        ).length;
+        posture.totalVessels = theaterVessels.length;
+
+        // Add vessel operators to byOperator
+        for (const v of theaterVessels) {
+          const op = v.operator || 'unknown';
+          posture.byOperator[op] = (posture.byOperator[op] || 0) + 1;
+        }
+      }
+
+      console.log('[StrategicPosturePanel] Augmented with', vessels.length, 'vessels');
+    } catch (error) {
+      console.warn('[StrategicPosturePanel] Failed to fetch vessels:', error);
     }
   }
 
@@ -75,8 +129,10 @@ export class StrategicPosturePanel extends Panel {
     }
     this.postures = data.postures;
     this.lastTimestamp = data.timestamp;
-    this.updateBadges();
-    this.render();
+    this.augmentWithVessels().then(() => {
+      this.updateBadges();
+      this.render();
+    });
   }
 
   private updateBadges(): void {
@@ -149,16 +205,38 @@ export class StrategicPosturePanel extends Panel {
     const isExpanded = p.postureLevel !== 'normal';
 
     if (!isExpanded) {
+      const summary = p.totalVessels > 0
+        ? `${p.totalAircraft} aircraft, ${p.totalVessels} vessels`
+        : `${p.totalAircraft} aircraft`;
       return `
         <div class="posture-theater posture-compact" data-lat="${p.centerLat}" data-lon="${p.centerLon}">
           <div class="posture-theater-header">
             <span class="posture-name">${escapeHtml(p.shortName)}</span>
             ${this.getPostureBadge(p.postureLevel)}
           </div>
-          <div class="posture-summary-mini">${p.totalAircraft} aircraft</div>
+          <div class="posture-summary-mini">${summary}</div>
         </div>
       `;
     }
+
+    // Build aircraft rows
+    const aircraftRows = [
+      p.fighters > 0 ? `<div class="posture-row"><span class="posture-icon">✈️</span><span class="posture-count">${p.fighters}</span><span class="posture-label">Fighters</span></div>` : '',
+      p.tankers > 0 ? `<div class="posture-row"><span class="posture-icon">⛽</span><span class="posture-count">${p.tankers}</span><span class="posture-label">Tankers</span></div>` : '',
+      p.awacs > 0 ? `<div class="posture-row"><span class="posture-icon">📡</span><span class="posture-count">${p.awacs}</span><span class="posture-label">AWACS</span></div>` : '',
+      p.reconnaissance > 0 ? `<div class="posture-row"><span class="posture-icon">🔍</span><span class="posture-count">${p.reconnaissance}</span><span class="posture-label">Recon</span></div>` : '',
+      p.transport > 0 ? `<div class="posture-row"><span class="posture-icon">📦</span><span class="posture-count">${p.transport}</span><span class="posture-label">Transport</span></div>` : '',
+      p.bombers > 0 ? `<div class="posture-row"><span class="posture-icon">💣</span><span class="posture-count">${p.bombers}</span><span class="posture-label">Bombers</span></div>` : '',
+    ].filter(Boolean).join('');
+
+    // Build vessel rows
+    const vesselRows = [
+      p.carriers > 0 ? `<div class="posture-row"><span class="posture-icon">🚢</span><span class="posture-count">${p.carriers}</span><span class="posture-label">Carriers</span></div>` : '',
+      p.destroyers > 0 ? `<div class="posture-row"><span class="posture-icon">⚓</span><span class="posture-count">${p.destroyers}</span><span class="posture-label">Destroyers</span></div>` : '',
+      p.frigates > 0 ? `<div class="posture-row"><span class="posture-icon">🛥️</span><span class="posture-count">${p.frigates}</span><span class="posture-label">Frigates</span></div>` : '',
+      p.submarines > 0 ? `<div class="posture-row"><span class="posture-icon">🦈</span><span class="posture-count">${p.submarines}</span><span class="posture-label">Submarines</span></div>` : '',
+      p.patrol > 0 ? `<div class="posture-row"><span class="posture-icon">🚤</span><span class="posture-count">${p.patrol}</span><span class="posture-label">Patrol</span></div>` : '',
+    ].filter(Boolean).join('');
 
     return `
       <div class="posture-theater posture-expanded ${p.postureLevel}" data-lat="${p.centerLat}" data-lon="${p.centerLon}">
@@ -167,14 +245,15 @@ export class StrategicPosturePanel extends Panel {
           ${this.getPostureBadge(p.postureLevel)}
         </div>
 
-        <div class="posture-breakdown">
-          ${p.fighters > 0 ? `<div class="posture-row"><span class="posture-icon">✈️</span><span class="posture-count">${p.fighters}</span><span class="posture-label">Fighters</span></div>` : ''}
-          ${p.tankers > 0 ? `<div class="posture-row"><span class="posture-icon">⛽</span><span class="posture-count">${p.tankers}</span><span class="posture-label">Tankers</span></div>` : ''}
-          ${p.awacs > 0 ? `<div class="posture-row"><span class="posture-icon">📡</span><span class="posture-count">${p.awacs}</span><span class="posture-label">AWACS</span></div>` : ''}
-          ${p.reconnaissance > 0 ? `<div class="posture-row"><span class="posture-icon">🔍</span><span class="posture-count">${p.reconnaissance}</span><span class="posture-label">Recon</span></div>` : ''}
-          ${p.transport > 0 ? `<div class="posture-row"><span class="posture-icon">📦</span><span class="posture-count">${p.transport}</span><span class="posture-label">Transport</span></div>` : ''}
-          ${p.bombers > 0 ? `<div class="posture-row"><span class="posture-icon">💣</span><span class="posture-count">${p.bombers}</span><span class="posture-label">Bombers</span></div>` : ''}
-        </div>
+        ${aircraftRows ? `
+        <div class="posture-section-label">AIR</div>
+        <div class="posture-breakdown">${aircraftRows}</div>
+        ` : ''}
+
+        ${vesselRows ? `
+        <div class="posture-section-label">NAVAL</div>
+        <div class="posture-breakdown">${vesselRows}</div>
+        ` : ''}
 
         <div class="posture-meta">
           ${p.strikeCapable ? '<span class="posture-strike">⚡ STRIKE CAPABLE</span>' : ''}

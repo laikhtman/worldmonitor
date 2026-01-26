@@ -10041,11 +10041,21 @@ body.has-critical-banner .panels-grid {
   color: #44aa44;
 }
 
+.posture-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
 .posture-breakdown {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 6px;
-  margin: 10px 0;
+  margin-bottom: 6px;
 }
 
 .posture-row {

@@ -727,6 +727,7 @@ export interface TheaterPostureSummary {
   theaterName: string;
   shortName: string;
   targetNation: string | null;
+  // Aircraft counts
   fighters: number;
   tankers: number;
   awacs: number;
@@ -735,6 +736,15 @@ export interface TheaterPostureSummary {
   bombers: number;
   drones: number;
   totalAircraft: number;
+  // Naval vessel counts (added client-side)
+  destroyers: number;
+  frigates: number;
+  carriers: number;
+  submarines: number;
+  patrol: number;
+  auxiliaryVessels: number;
+  totalVessels: number;
+  // Combined
   byOperator: Record<string, number>;
   postureLevel: 'normal' | 'elevated' | 'critical';
   strikeCapable: boolean;
@@ -744,6 +754,8 @@ export interface TheaterPostureSummary {
   headline: string;
   centerLat: number;
   centerLon: number;
+  // Theater bounds for vessel matching
+  bounds?: { north: number; south: number; east: number; west: number };
 }
 
 export function getTheaterPostureSummaries(flights: MilitaryFlight[]): TheaterPostureSummary[] {
@@ -817,6 +829,7 @@ export function getTheaterPostureSummaries(flights: MilitaryFlight[]): TheaterPo
       theaterName: theater.name,
       shortName: theater.shortName,
       targetNation: theater.targetNation,
+      // Aircraft
       fighters: byType.fighters,
       tankers: byType.tankers,
       awacs: byType.awacs,
@@ -825,6 +838,15 @@ export function getTheaterPostureSummaries(flights: MilitaryFlight[]): TheaterPo
       bombers: byType.bombers,
       drones: byType.drones,
       totalAircraft: total,
+      // Vessels (populated client-side)
+      destroyers: 0,
+      frigates: 0,
+      carriers: 0,
+      submarines: 0,
+      patrol: 0,
+      auxiliaryVessels: 0,
+      totalVessels: 0,
+      // Metadata
       byOperator,
       postureLevel,
       strikeCapable,
@@ -834,6 +856,7 @@ export function getTheaterPostureSummaries(flights: MilitaryFlight[]): TheaterPo
       headline,
       centerLat: (theater.bounds.north + theater.bounds.south) / 2,
       centerLon: (theater.bounds.east + theater.bounds.west) / 2,
+      bounds: theater.bounds,
     });
   }
 

@@ -248,6 +248,7 @@ function calculatePostures(flights) {
       theaterName: theater.name,
       shortName: theater.shortName,
       targetNation: theater.targetNation,
+      // Aircraft
       fighters: byType.fighters,
       tankers: byType.tankers,
       awacs: byType.awacs,
@@ -256,14 +257,24 @@ function calculatePostures(flights) {
       bombers: byType.bombers,
       drones: byType.drones,
       totalAircraft: total,
+      // Vessels (populated client-side)
+      destroyers: 0,
+      frigates: 0,
+      carriers: 0,
+      submarines: 0,
+      patrol: 0,
+      auxiliaryVessels: 0,
+      totalVessels: 0,
+      // Metadata
       postureLevel,
       strikeCapable,
-      trend: 'stable', // Server doesn't track history
+      trend: 'stable',
       changePercent: 0,
       summary,
       headline,
       centerLat: (theater.bounds.north + theater.bounds.south) / 2,
       centerLon: (theater.bounds.east + theater.bounds.west) / 2,
+      bounds: theater.bounds,
     });
   }
 
