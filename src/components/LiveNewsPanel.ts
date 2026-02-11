@@ -129,17 +129,19 @@ export class LiveNewsPanel extends Panel {
   }
 
   private setupIdleDetection(): void {
-    // Pause when tab becomes hidden
+    // Suspend idle timer when hidden, resume when visible
     this.boundVisibilityHandler = () => {
       if (document.hidden) {
-        this.pauseForIdle();
+        // Suspend idle timer so background playback isn't killed
+        if (this.idleTimeout) clearTimeout(this.idleTimeout);
       } else {
         this.resumeFromIdle();
+        this.boundIdleResetHandler();
       }
     };
     document.addEventListener('visibilitychange', this.boundVisibilityHandler);
 
-    // Track user activity to detect idle
+    // Track user activity to detect idle (pauses after 5 min inactivity)
     this.boundIdleResetHandler = () => {
       if (this.idleTimeout) clearTimeout(this.idleTimeout);
       this.idleTimeout = setTimeout(() => this.pauseForIdle(), this.IDLE_PAUSE_MS);
