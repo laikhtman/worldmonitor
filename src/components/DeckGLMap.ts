@@ -29,6 +29,7 @@ import type {
 } from '@/types';
 import type { WeatherAlert } from '@/services/weather';
 import { escapeHtml } from '@/utils/sanitize';
+import { throttle, debounce, rafSchedule } from '@/utils/index';
 import {
   INTEL_HOTSPOTS,
   CONFLICT_ZONES,
@@ -181,10 +182,9 @@ export class DeckGLMap {
   private firmsFireData: Array<{ lat: number; lon: number; brightness: number; frp: number; confidence: number; region: string; acq_date: string; daynight: string }> = [];
   private techEvents: TechEventMarker[] = [];
   private flightDelays: AirportDelayAlert[] = [];
-  private news: NewsItem[] = []; // Store news for related news lookup
+  private news: NewsItem[] = [];
   private newsLocations: Array<{ lat: number; lon: number; title: string; threatLevel: string }> = [];
-  private newsLocationFirstSeen = new Map<string, number>(); // title → timestamp
-  private newsPulseTimer: ReturnType<typeof setInterval> | null = null;
+  private newsLocationFirstSeen = new Map<string, number>();
 
   // Country highlight state
   private countryGeoJsonLoaded = false;
@@ -211,31 +211,45 @@ export class DeckGLMap {
   private renderPending = false;
   private resizeObserver: ResizeObserver | null = null;
 
+  private layerCache: Map<string, Layer> = new Map();
+  private lastZoomThreshold = 0;
+  private clusterElementCache: Map<string, HTMLElement> = new Map();
+  private lastClusterState: Map<string, { x: number; y: number; count: number }> = new Map();
+  private clusterResultCache: Map<string, Array<{ items: unknown[]; center: [number, number]; screenPos: [number, number] }>> = new Map();
+  private lastClusterZoom = -1;
+  private newsPulseFrameId: number | null = null;
+  private lastPulseUpdateTime = 0;
+  private throttledRenderClusters: () => void;
+  private debouncedRebuildLayers: () => void;
+  private rafUpdateLayers: () => void;
+
   constructor(container: HTMLElement, initialState: DeckMapState) {
     this.container = container;
     this.state = initialState;
     this.hotspots = [...INTEL_HOTSPOTS];
 
-    // Create wrapper structure
+    this.throttledRenderClusters = throttle(() => this.renderClusterOverlays(), 16);
+    this.debouncedRebuildLayers = debounce(() => {
+      this.maplibreMap?.resize();
+      this.deckOverlay?.setProps({ layers: this.buildLayers() });
+    }, 150);
+    this.rafUpdateLayers = rafSchedule(() => {
+      this.deckOverlay?.setProps({ layers: this.buildLayers() });
+    });
+
     this.setupDOM();
     this.popup = new MapPopup(container);
 
-    // Initialize MapLibre first
     this.initMapLibre();
 
-    // Wait for map to fully load before initializing deck.gl overlay
-    // This prevents layer projection issues on initial render
     this.maplibreMap?.on('load', () => {
       this.initDeck();
       this.loadCountryBoundaries();
-      // Initial render after deck is ready
       this.render();
     });
 
-    // Setup resize handling to prevent canvas corruption during zoom/resize
     this.setupResizeObserver();
 
-    // Create controls
     this.createControls();
     this.createTimeSlider();
     this.createLayerToggles();
@@ -289,7 +303,6 @@ export class DeckGLMap {
         },
         layers: [
           {
-            // Background layer to prevent transparent gaps while tiles load
             id: 'background',
             type: 'background',
             paint: {
@@ -310,35 +323,54 @@ export class DeckGLMap {
       zoom: preset.zoom,
       attributionControl: false,
       interactive: true,
+      maxPitch: 0,
+      pitchWithRotate: false,
+      dragRotate: false,
+      touchPitch: false,
     });
-    // MapboxOverlay handles all view state sync automatically
   }
 
   private initDeck(): void {
     if (!this.maplibreMap) return;
 
-    // Use MapboxOverlay for proper integration with MapLibre
-    // This renders deck.gl layers directly into MapLibre's WebGL context
-    // No manual view state sync needed - it's handled automatically
     this.deckOverlay = new MapboxOverlay({
-      interleaved: true,
+      interleaved: false,
       layers: this.buildLayers(),
-      getTooltip: (info: PickingInfo) => this.getTooltip(info),
       onClick: (info: PickingInfo) => this.handleClick(info),
+      pickingRadius: 10,
+      useDevicePixels: false,
     });
 
     this.maplibreMap.addControl(this.deckOverlay as unknown as maplibregl.IControl);
 
-    // Update cluster overlays when map moves/zooms
-    this.maplibreMap.on('move', () => this.renderClusterOverlays());
-    this.maplibreMap.on('zoom', () => this.renderClusterOverlays());
+    let moveTimeout: ReturnType<typeof setTimeout> | null = null;
+    this.maplibreMap.on('movestart', () => {
+      if (moveTimeout) clearTimeout(moveTimeout);
+      this.clusterOverlay!.style.opacity = '0.7';
+    });
 
-    // Rebuild deck.gl layers on zoom change for progressive disclosure & opacity
+    this.maplibreMap.on('moveend', () => {
+      this.clusterOverlay!.style.opacity = '1';
+      this.throttledRenderClusters();
+    });
+
+    this.maplibreMap.on('move', () => {
+      if (moveTimeout) clearTimeout(moveTimeout);
+      moveTimeout = setTimeout(() => this.throttledRenderClusters(), 100);
+    });
+
+    this.maplibreMap.on('zoom', () => {
+      if (moveTimeout) clearTimeout(moveTimeout);
+      moveTimeout = setTimeout(() => this.throttledRenderClusters(), 100);
+    });
+
     this.maplibreMap.on('zoomend', () => {
-      setTimeout(() => {
-        this.maplibreMap?.resize();
-        this.deckOverlay?.setProps({ layers: this.buildLayers() });
-      }, 50);
+      const currentZoom = Math.floor(this.maplibreMap?.getZoom() || 2);
+      const thresholdCrossed = Math.abs(currentZoom - this.lastZoomThreshold) >= 1;
+      if (thresholdCrossed) {
+        this.lastZoomThreshold = currentZoom;
+        this.debouncedRebuildLayers();
+      }
     });
   }
 
@@ -421,51 +453,158 @@ export class DeckGLMap {
     return clusters;
   }
 
-  // Render HTML cluster overlays on top of deck.gl
+  private getClusterKey(type: string, center: [number, number], count: number): string {
+    return `${type}-${center[0].toFixed(4)}-${center[1].toFixed(4)}-${count}`;
+  }
+
+  private updateClusterElement(
+    key: string,
+    screenPos: [number, number],
+    renderFn: () => HTMLElement
+  ): HTMLElement {
+    const existing = this.clusterElementCache.get(key);
+    const x = Math.round(screenPos[0]);
+    const y = Math.round(screenPos[1]);
+
+    if (existing) {
+      existing.style.transform = `translate(${x - 16}px, ${y - 16}px)`;
+      return existing;
+    }
+
+    const element = renderFn();
+    element.style.position = 'absolute';
+    element.style.left = '0';
+    element.style.top = '0';
+    element.style.transform = `translate(${x - 16}px, ${y - 16}px)`;
+    element.dataset.clusterKey = key;
+    this.clusterElementCache.set(key, element);
+    return element;
+  }
+
+  private pruneClusterCache(activeKeys: Set<string>): void {
+    for (const [key, element] of this.clusterElementCache) {
+      if (!activeKeys.has(key)) {
+        element.remove();
+        this.clusterElementCache.delete(key);
+      }
+    }
+  }
+
   private renderClusterOverlays(): void {
     if (!this.clusterOverlay || !this.maplibreMap) return;
-    this.clusterOverlay.innerHTML = '';
 
+    const startTime = performance.now();
     const zoom = this.maplibreMap.getZoom();
+    const zoomChanged = Math.abs(zoom - this.lastClusterZoom) > 0.1;
+    if (zoomChanged) {
+      this.clusterResultCache.clear();
+      this.lastClusterZoom = zoom;
+    }
 
-    // Only cluster in tech variant
+    const activeKeys = new Set<string>();
+
     if (SITE_VARIANT === 'tech') {
-      // Tech HQs clustering
       if (this.state.layers.techHQs) {
         const clusterRadius = zoom >= 4 ? 15 : zoom >= 3 ? 25 : 40;
-        const clusters = this.clusterMarkers(TECH_HQS, clusterRadius, hq => hq.city);
-        this.renderTechHQClusters(clusters);
+        const cacheKey = `hq-${clusterRadius}`;
+        let clusters = this.clusterResultCache.get(cacheKey) as Array<{ items: typeof TECH_HQS; center: [number, number]; screenPos: [number, number] }> | undefined;
+        if (!clusters || zoomChanged) {
+          clusters = this.clusterMarkers(TECH_HQS, clusterRadius, hq => hq.city);
+          this.clusterResultCache.set(cacheKey, clusters);
+        }
+        clusters.forEach((cluster) => {
+          const key = this.getClusterKey('hq', cluster.center, cluster.items.length);
+          activeKeys.add(key);
+          if (!this.lastClusterState.has(key) || this.hasClusterMoved(key, cluster.screenPos, cluster.items.length)) {
+            const element = this.updateClusterElement(key, cluster.screenPos, () => this.createTechHQClusterElement(cluster));
+            if (!element.parentElement) this.clusterOverlay!.appendChild(element);
+          }
+        });
       }
 
-      // Tech Events clustering
       if (this.state.layers.techEvents && this.techEvents.length > 0) {
         const clusterRadius = zoom >= 4 ? 15 : zoom >= 3 ? 25 : 40;
-        const eventsWithLon = this.techEvents.map(e => ({ ...e, lon: e.lng }));
-        const clusters = this.clusterMarkers(eventsWithLon, clusterRadius, e => e.location);
-        this.renderTechEventClusters(clusters);
+        const cacheKey = `event-${clusterRadius}-${this.techEvents.length}`;
+        let clusters = this.clusterResultCache.get(cacheKey) as Array<{ items: Array<TechEventMarker & { lon: number }>; center: [number, number]; screenPos: [number, number] }> | undefined;
+        if (!clusters || zoomChanged) {
+          const eventsWithLon = this.techEvents.map(e => ({ ...e, lon: e.lng }));
+          clusters = this.clusterMarkers(eventsWithLon, clusterRadius, e => e.location);
+          this.clusterResultCache.set(cacheKey, clusters);
+        }
+        clusters.forEach((cluster) => {
+          const key = this.getClusterKey('event', cluster.center, cluster.items.length);
+          activeKeys.add(key);
+          if (!this.lastClusterState.has(key) || this.hasClusterMoved(key, cluster.screenPos, cluster.items.length)) {
+            const element = this.updateClusterElement(key, cluster.screenPos, () => this.createTechEventClusterElement(cluster));
+            if (!element.parentElement) this.clusterOverlay!.appendChild(element);
+          }
+        });
       }
     }
 
-    // Protests clustering (both variants)
     if (this.state.layers.protests && this.protests.length > 0) {
       const clusterRadius = zoom >= 4 ? 12 : zoom >= 3 ? 20 : 35;
-      const significantProtests = this.protests.filter(p => p.severity === 'high' || p.eventType === 'riot');
-      const clusters = this.clusterMarkers(significantProtests, clusterRadius, p => p.country);
-      this.renderProtestClusters(clusters);
+      const cacheKey = `protest-${clusterRadius}-${this.protests.length}`;
+      let clusters = this.clusterResultCache.get(cacheKey) as Array<{ items: SocialUnrestEvent[]; center: [number, number]; screenPos: [number, number] }> | undefined;
+      if (!clusters || zoomChanged) {
+        const significantProtests = this.protests.filter(p => p.severity === 'high' || p.eventType === 'riot');
+        clusters = this.clusterMarkers(significantProtests, clusterRadius, p => p.country);
+        this.clusterResultCache.set(cacheKey, clusters);
+      }
+      clusters.forEach((cluster) => {
+        const key = this.getClusterKey('protest', cluster.center, cluster.items.length);
+        activeKeys.add(key);
+        if (!this.lastClusterState.has(key) || this.hasClusterMoved(key, cluster.screenPos, cluster.items.length)) {
+          const element = this.updateClusterElement(key, cluster.screenPos, () => this.createProtestClusterElement(cluster));
+          if (!element.parentElement) this.clusterOverlay!.appendChild(element);
+        }
+      });
     }
 
-    // Datacenters clustering (both variants) - only at low zoom levels
     if (this.state.layers.datacenters && zoom < 5) {
       const clusterRadius = zoom >= 3 ? 30 : zoom >= 2 ? 50 : 70;
-      const activeDCs = AI_DATA_CENTERS.filter(dc => dc.status !== 'decommissioned');
-      const clusters = this.clusterMarkers(activeDCs, clusterRadius, dc => dc.country);
-      this.renderDatacenterClusters(clusters);
+      const cacheKey = `dc-${clusterRadius}`;
+      let clusters = this.clusterResultCache.get(cacheKey) as Array<{ items: typeof AI_DATA_CENTERS; center: [number, number]; screenPos: [number, number] }> | undefined;
+      if (!clusters || zoomChanged) {
+        const activeDCs = AI_DATA_CENTERS.filter(dc => dc.status !== 'decommissioned');
+        clusters = this.clusterMarkers(activeDCs, clusterRadius, dc => dc.country);
+        this.clusterResultCache.set(cacheKey, clusters);
+      }
+      clusters.forEach((cluster) => {
+        const key = this.getClusterKey('dc', cluster.center, cluster.items.length);
+        activeKeys.add(key);
+        if (!this.lastClusterState.has(key) || this.hasClusterMoved(key, cluster.screenPos, cluster.items.length)) {
+          const element = this.updateClusterElement(key, cluster.screenPos, () => this.createDatacenterClusterElement(cluster));
+          if (!element.parentElement) this.clusterOverlay!.appendChild(element);
+        }
+      });
     }
 
-    // Hotspot HTML overlays for high-activity hotspots (pulsating animation)
     if (this.state.layers.hotspots) {
       this.renderHotspotOverlays();
     }
+
+    this.pruneClusterCache(activeKeys);
+
+    const elapsed = performance.now() - startTime;
+    if (elapsed > 16) {
+      console.warn(`[DeckGLMap] renderClusterOverlays took ${elapsed.toFixed(2)}ms (>16ms budget)`);
+    }
+  }
+
+  private hasClusterMoved(key: string, screenPos: [number, number], count: number): boolean {
+    const last = this.lastClusterState.get(key);
+    if (!last) {
+      this.lastClusterState.set(key, { x: screenPos[0], y: screenPos[1], count });
+      return true;
+    }
+    const dx = Math.abs(last.x - screenPos[0]);
+    const dy = Math.abs(last.y - screenPos[1]);
+    const moved = dx > 5 || dy > 5 || last.count !== count;
+    if (moved) {
+      this.lastClusterState.set(key, { x: screenPos[0], y: screenPos[1], count });
+    }
+    return moved;
   }
 
   /** Render HTML overlays for high-activity hotspots with CSS pulsating animation */
@@ -479,16 +618,25 @@ export class DeckGLMap {
       (a, b) => (b.escalationScore || 0) - (a.escalationScore || 0)
     );
 
-    // B: At low zoom, scale down hotspot markers
     const markerScale = zoom < 2.5 ? 0.7 : zoom < 4 ? 0.85 : 1.0;
 
     sorted.forEach(hotspot => {
       const pos = this.maplibreMap!.project([hotspot.lon, hotspot.lat]);
       if (!pos) return;
 
+      const key = this.getClusterKey('hotspot', [hotspot.lon, hotspot.lat], 1);
+      const existing = this.clusterElementCache.get(key);
+
+      if (existing) {
+        existing.style.transform = `translate(${pos.x - 16}px, ${pos.y - 16}px) scale(${markerScale})`;
+        if (!existing.parentElement) this.clusterOverlay!.appendChild(existing);
+        return;
+      }
+
       const div = document.createElement('div');
       div.className = 'hotspot';
-      div.style.cssText = `position: absolute; left: ${pos.x}px; top: ${pos.y}px; transform: translate(-50%, -50%) scale(${markerScale}); pointer-events: auto; cursor: pointer; z-index: 100;`;
+      div.style.cssText = `position: absolute; left: 0; top: 0; transform: translate(${pos.x - 16}px, ${pos.y - 16}px) scale(${markerScale}); pointer-events: auto; cursor: pointer; z-index: 100;`;
+      div.dataset.clusterKey = key;
 
       div.innerHTML = `
         <div class="hotspot-marker ${escapeHtml(hotspot.level || 'low')}"></div>
@@ -509,239 +657,220 @@ export class DeckGLMap {
         this.onHotspotClick?.(hotspot);
       });
 
+      this.clusterElementCache.set(key, div);
       this.clusterOverlay!.appendChild(div);
     });
   }
 
-  private renderTechHQClusters(clusters: Array<{ items: typeof TECH_HQS; center: [number, number]; screenPos: [number, number] }>): void {
+  private createTechHQClusterElement(cluster: { items: typeof TECH_HQS; center: [number, number]; screenPos: [number, number] }): HTMLElement {
     const zoom = this.maplibreMap?.getZoom() || 2;
+    const primaryItem = cluster.items[0]!;
+    const isCluster = cluster.items.length > 1;
+    const unicornCount = cluster.items.filter(h => h.type === 'unicorn').length;
+    const faangCount = cluster.items.filter(h => h.type === 'faang').length;
 
-    clusters.forEach(cluster => {
-      if (cluster.items.length === 0) return;
+    const div = document.createElement('div');
+    div.className = `tech-hq-marker ${primaryItem.type} ${isCluster ? 'cluster' : ''}`;
+    div.style.cssText = 'pointer-events: auto; cursor: pointer;';
 
-      const div = document.createElement('div');
-      const primaryItem = cluster.items[0]!;
-      const isCluster = cluster.items.length > 1;
-      const unicornCount = cluster.items.filter(h => h.type === 'unicorn').length;
-      const faangCount = cluster.items.filter(h => h.type === 'faang').length;
+    const icon = document.createElement('div');
+    icon.className = 'tech-hq-icon';
+    icon.textContent = faangCount > 0 ? '🏛️' : unicornCount > 0 ? '🦄' : '🏢';
+    div.appendChild(icon);
 
-      div.className = `tech-hq-marker ${primaryItem.type} ${isCluster ? 'cluster' : ''}`;
-      div.style.cssText = `position: absolute; left: ${cluster.screenPos[0]}px; top: ${cluster.screenPos[1]}px; transform: translate(-50%, -50%); pointer-events: auto; cursor: pointer;`;
-
-      const icon = document.createElement('div');
-      icon.className = 'tech-hq-icon';
-      icon.textContent = faangCount > 0 ? '🏛️' : unicornCount > 0 ? '🦄' : '🏢';
-      div.appendChild(icon);
-
-      if (isCluster) {
-        const badge = document.createElement('div');
-        badge.className = 'cluster-badge';
-        badge.textContent = String(cluster.items.length);
-        div.appendChild(badge);
-        div.title = cluster.items.map(h => h.company).join(', ');
-      } else {
-        // Single item - show label at higher zoom
-        if (zoom >= 3 || primaryItem.type === 'faang') {
-          const label = document.createElement('div');
-          label.className = 'tech-hq-label';
-          label.textContent = primaryItem.company;
-          div.appendChild(label);
-        }
-        div.title = primaryItem.company;
+    if (isCluster) {
+      const badge = document.createElement('div');
+      badge.className = 'cluster-badge';
+      badge.textContent = String(cluster.items.length);
+      div.appendChild(badge);
+      div.title = cluster.items.map(h => h.company).join(', ');
+    } else {
+      if (zoom >= 3 || primaryItem.type === 'faang') {
+        const label = document.createElement('div');
+        label.className = 'tech-hq-label';
+        label.textContent = primaryItem.company;
+        div.appendChild(label);
       }
+      div.title = primaryItem.company;
+    }
 
-      div.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const rect = this.container.getBoundingClientRect();
-        if (isCluster) {
-          this.popup.show({
-            type: 'techHQCluster',
-            data: { items: cluster.items, city: primaryItem.city, country: primaryItem.country },
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
-          });
-        } else {
-          this.popup.show({
-            type: 'techHQ',
-            data: primaryItem,
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
-          });
-        }
-      });
-
-      this.clusterOverlay?.appendChild(div);
+    div.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const rect = this.container.getBoundingClientRect();
+      if (isCluster) {
+        this.popup.show({
+          type: 'techHQCluster',
+          data: { items: cluster.items, city: primaryItem.city, country: primaryItem.country },
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        });
+      } else {
+        this.popup.show({
+          type: 'techHQ',
+          data: primaryItem,
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        });
+      }
     });
+
+    return div;
   }
 
-  private renderTechEventClusters(clusters: Array<{ items: Array<TechEventMarker & { lon: number }>; center: [number, number]; screenPos: [number, number] }>): void {
-    clusters.forEach(cluster => {
-      if (cluster.items.length === 0) return;
+  private createTechEventClusterElement(cluster: { items: Array<TechEventMarker & { lon: number }>; center: [number, number]; screenPos: [number, number] }): HTMLElement {
+    const primaryEvent = cluster.items[0]!;
+    const isCluster = cluster.items.length > 1;
+    const hasUpcomingSoon = cluster.items.some(e => e.daysUntil <= 14);
 
-      const div = document.createElement('div');
-      const primaryEvent = cluster.items[0]!;
-      const isCluster = cluster.items.length > 1;
-      const hasUpcomingSoon = cluster.items.some(e => e.daysUntil <= 14);
+    const div = document.createElement('div');
+    div.className = `tech-event-marker ${hasUpcomingSoon ? 'upcoming-soon' : ''} ${isCluster ? 'cluster' : ''}`;
+    div.style.cssText = 'pointer-events: auto; cursor: pointer;';
 
-      div.className = `tech-event-marker ${hasUpcomingSoon ? 'upcoming-soon' : ''} ${isCluster ? 'cluster' : ''}`;
-      div.style.cssText = `position: absolute; left: ${cluster.screenPos[0]}px; top: ${cluster.screenPos[1]}px; transform: translate(-50%, -50%); pointer-events: auto; cursor: pointer;`;
+    const icon = document.createElement('div');
+    icon.className = 'tech-event-icon';
+    icon.textContent = '📅';
+    div.appendChild(icon);
 
-      // Calendar icon
-      const icon = document.createElement('div');
-      icon.className = 'tech-event-icon';
-      icon.textContent = '📅';
-      div.appendChild(icon);
+    if (isCluster) {
+      const badge = document.createElement('div');
+      badge.className = 'cluster-badge';
+      badge.textContent = String(cluster.items.length);
+      div.appendChild(badge);
+      div.title = cluster.items.map(e => e.title).join(', ');
+    } else {
+      div.title = primaryEvent.title;
+    }
 
+    div.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const rect = this.container.getBoundingClientRect();
       if (isCluster) {
-        const badge = document.createElement('div');
-        badge.className = 'cluster-badge';
-        badge.textContent = String(cluster.items.length);
-        div.appendChild(badge);
-        div.title = cluster.items.map(e => e.title).join(', ');
+        this.popup.show({
+          type: 'techEventCluster',
+          data: { items: cluster.items.map(({ lon, ...rest }) => rest), location: primaryEvent.location, country: primaryEvent.country },
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        });
       } else {
-        div.title = primaryEvent.title;
+        this.popup.show({
+          type: 'techEvent',
+          data: primaryEvent,
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        });
       }
-
-      div.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const rect = this.container.getBoundingClientRect();
-        if (isCluster) {
-          this.popup.show({
-            type: 'techEventCluster',
-            data: { items: cluster.items.map(({ lon, ...rest }) => rest), location: primaryEvent.location, country: primaryEvent.country },
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
-          });
-        } else {
-          this.popup.show({
-            type: 'techEvent',
-            data: primaryEvent,
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
-          });
-        }
-      });
-
-      this.clusterOverlay?.appendChild(div);
     });
+
+    return div;
   }
 
-  private renderProtestClusters(clusters: Array<{ items: SocialUnrestEvent[]; center: [number, number]; screenPos: [number, number] }>): void {
-    clusters.forEach(cluster => {
-      if (cluster.items.length === 0) return;
+  private createProtestClusterElement(cluster: { items: SocialUnrestEvent[]; center: [number, number]; screenPos: [number, number] }): HTMLElement {
+    const primaryEvent = cluster.items[0]!;
+    const isCluster = cluster.items.length > 1;
+    const hasRiot = cluster.items.some(e => e.eventType === 'riot');
+    const hasHighSeverity = cluster.items.some(e => e.severity === 'high');
 
-      const div = document.createElement('div');
-      const primaryEvent = cluster.items[0]!;
-      const isCluster = cluster.items.length > 1;
-      const hasRiot = cluster.items.some(e => e.eventType === 'riot');
-      const hasHighSeverity = cluster.items.some(e => e.severity === 'high');
+    const div = document.createElement('div');
+    div.className = `protest-marker ${hasHighSeverity ? 'high' : primaryEvent.severity} ${hasRiot ? 'riot' : primaryEvent.eventType} ${isCluster ? 'cluster' : ''}`;
+    div.style.cssText = 'pointer-events: auto; cursor: pointer;';
 
-      div.className = `protest-marker ${hasHighSeverity ? 'high' : primaryEvent.severity} ${hasRiot ? 'riot' : primaryEvent.eventType} ${isCluster ? 'cluster' : ''}`;
-      div.style.cssText = `position: absolute; left: ${cluster.screenPos[0]}px; top: ${cluster.screenPos[1]}px; transform: translate(-50%, -50%); pointer-events: auto; cursor: pointer;`;
+    const icon = document.createElement('div');
+    icon.className = 'protest-icon';
+    icon.textContent = hasRiot ? '🔥' : primaryEvent.eventType === 'strike' ? '✊' : '✦';
+    div.appendChild(icon);
 
-      const icon = document.createElement('div');
-      icon.className = 'protest-icon';
-      icon.textContent = hasRiot ? '🔥' : primaryEvent.eventType === 'strike' ? '✊' : '✦';
-      div.appendChild(icon);
-
-      if (isCluster) {
-        const badge = document.createElement('div');
-        badge.className = 'cluster-badge';
-        badge.textContent = String(cluster.items.length);
-        div.appendChild(badge);
-        div.title = `${primaryEvent.country}: ${cluster.items.length} events`;
-      } else {
-        div.title = `${primaryEvent.city || primaryEvent.country} - ${primaryEvent.eventType} (${primaryEvent.severity})`;
-        if (primaryEvent.validated) {
-          div.classList.add('validated');
-        }
+    if (isCluster) {
+      const badge = document.createElement('div');
+      badge.className = 'cluster-badge';
+      badge.textContent = String(cluster.items.length);
+      div.appendChild(badge);
+      div.title = `${primaryEvent.country}: ${cluster.items.length} events`;
+    } else {
+      div.title = `${primaryEvent.city || primaryEvent.country} - ${primaryEvent.eventType} (${primaryEvent.severity})`;
+      if (primaryEvent.validated) {
+        div.classList.add('validated');
       }
+    }
 
-      div.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const rect = this.container.getBoundingClientRect();
-        if (isCluster) {
-          this.popup.show({
-            type: 'protestCluster',
-            data: { items: cluster.items, country: primaryEvent.country },
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
-          });
-        } else {
-          this.popup.show({
-            type: 'protest',
-            data: primaryEvent,
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
-          });
-        }
-      });
-
-      this.clusterOverlay?.appendChild(div);
+    div.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const rect = this.container.getBoundingClientRect();
+      if (isCluster) {
+        this.popup.show({
+          type: 'protestCluster',
+          data: { items: cluster.items, country: primaryEvent.country },
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        });
+      } else {
+        this.popup.show({
+          type: 'protest',
+          data: primaryEvent,
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        });
+      }
     });
+
+    return div;
   }
 
-  private renderDatacenterClusters(clusters: Array<{ items: typeof AI_DATA_CENTERS; center: [number, number]; screenPos: [number, number] }>): void {
+  private createDatacenterClusterElement(cluster: { items: typeof AI_DATA_CENTERS; center: [number, number]; screenPos: [number, number] }): HTMLElement {
     const zoom = this.maplibreMap?.getZoom() || 2;
+    const primaryDC = cluster.items[0]!;
+    const isCluster = cluster.items.length > 1;
+    const totalChips = cluster.items.reduce((sum, dc) => sum + dc.chipCount, 0);
+    const hasPlanned = cluster.items.some(dc => dc.status === 'planned');
+    const hasExisting = cluster.items.some(dc => dc.status === 'existing');
 
-    clusters.forEach(cluster => {
-      if (cluster.items.length === 0) return;
+    const div = document.createElement('div');
+    div.className = `datacenter-marker ${hasPlanned && !hasExisting ? 'planned' : 'existing'} ${isCluster ? 'cluster' : ''}`;
+    div.style.cssText = 'pointer-events: auto; cursor: pointer;';
 
-      const div = document.createElement('div');
-      const primaryDC = cluster.items[0]!;
-      const isCluster = cluster.items.length > 1;
-      const totalChips = cluster.items.reduce((sum, dc) => sum + dc.chipCount, 0);
-      const hasPlanned = cluster.items.some(dc => dc.status === 'planned');
-      const hasExisting = cluster.items.some(dc => dc.status === 'existing');
+    const icon = document.createElement('div');
+    icon.className = 'datacenter-icon';
+    icon.textContent = '🖥️';
+    div.appendChild(icon);
 
-      div.className = `datacenter-marker ${hasPlanned && !hasExisting ? 'planned' : 'existing'} ${isCluster ? 'cluster' : ''}`;
-      div.style.cssText = `position: absolute; left: ${cluster.screenPos[0]}px; top: ${cluster.screenPos[1]}px; transform: translate(-50%, -50%); pointer-events: auto; cursor: pointer;`;
+    if (isCluster) {
+      const badge = document.createElement('div');
+      badge.className = 'cluster-badge';
+      badge.textContent = String(cluster.items.length);
+      div.appendChild(badge);
 
-      const icon = document.createElement('div');
-      icon.className = 'datacenter-icon';
-      icon.textContent = '🖥️';
-      div.appendChild(icon);
-
-      if (isCluster) {
-        const badge = document.createElement('div');
-        badge.className = 'cluster-badge';
-        badge.textContent = String(cluster.items.length);
-        div.appendChild(badge);
-
-        const formatNum = (n: number) => n >= 1000000 ? `${(n / 1000000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(0)}K` : String(n);
-        div.title = `${cluster.items.length} data centers • ${formatNum(totalChips)} chips`;
-      } else {
-        if (zoom >= 4) {
-          const label = document.createElement('div');
-          label.className = 'datacenter-label';
-          label.textContent = primaryDC.owner.split(',')[0] || primaryDC.name.slice(0, 15);
-          div.appendChild(label);
-        }
-        div.title = primaryDC.name;
+      const formatNum = (n: number) => n >= 1000000 ? `${(n / 1000000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(0)}K` : String(n);
+      div.title = `${cluster.items.length} data centers • ${formatNum(totalChips)} chips`;
+    } else {
+      if (zoom >= 4) {
+        const label = document.createElement('div');
+        label.className = 'datacenter-label';
+        label.textContent = primaryDC.owner.split(',')[0] || primaryDC.name.slice(0, 15);
+        div.appendChild(label);
       }
+      div.title = primaryDC.name;
+    }
 
-      div.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const rect = this.container.getBoundingClientRect();
-        if (isCluster) {
-          this.popup.show({
-            type: 'datacenterCluster',
-            data: { items: cluster.items, region: primaryDC.country, country: primaryDC.country },
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
-          });
-        } else {
-          this.popup.show({
-            type: 'datacenter',
-            data: primaryDC,
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
-          });
-        }
-      });
-
-      this.clusterOverlay?.appendChild(div);
+    div.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const rect = this.container.getBoundingClientRect();
+      if (isCluster) {
+        this.popup.show({
+          type: 'datacenterCluster',
+          data: { items: cluster.items, region: primaryDC.country, country: primaryDC.country },
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        });
+      } else {
+        this.popup.show({
+          type: 'datacenter',
+          data: primaryDC,
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        });
+      }
     });
+
+    return div;
   }
 
   private isLayerVisible(layerKey: keyof MapLayers): boolean {
@@ -752,6 +881,7 @@ export class DeckGLMap {
   }
 
   private buildLayers(): LayersList {
+    const startTime = performance.now();
     const layers: (Layer | null | false)[] = [];
     const { layers: mapLayers } = this.state;
 
@@ -919,34 +1049,55 @@ export class DeckGLMap {
       layers.push(...this.createNewsLocationsLayer());
     }
 
-    return layers.filter(Boolean) as LayersList;
+    const result = layers.filter(Boolean) as LayersList;
+    const elapsed = performance.now() - startTime;
+    if (elapsed > 16) {
+      console.warn(`[DeckGLMap] buildLayers took ${elapsed.toFixed(2)}ms (>16ms budget), ${result.length} layers`);
+    }
+    return result;
   }
 
   // Layer creation methods
   private createCablesLayer(): PathLayer {
     const highlightedCables = this.highlightedAssets.cable;
+    const cacheKey = 'cables-layer';
+    const cached = this.layerCache.get(cacheKey) as PathLayer | undefined;
 
-    return new PathLayer({
-      id: 'cables-layer',
+    const needsUpdate = !cached ||
+      (highlightedCables.size > 0) !== ((cached.props.updateTriggers as Record<string, unknown>)?.highlighted as boolean);
+
+    if (!needsUpdate) return cached!;
+
+    const layer = new PathLayer({
+      id: cacheKey,
       data: UNDERSEA_CABLES,
-      // Points are already [lon, lat] which is what deck.gl expects
       getPath: (d) => d.points,
       getColor: (d) =>
         highlightedCables.has(d.id) ? COLORS.cableHighlight : COLORS.cable,
       getWidth: (d) => highlightedCables.has(d.id) ? 3 : 1,
       widthMinPixels: 1,
       widthMaxPixels: 5,
-      pickable: true,
+      pickable: false,
+      updateTriggers: { highlighted: highlightedCables.size > 0 },
     });
+
+    this.layerCache.set(cacheKey, layer);
+    return layer;
   }
 
   private createPipelinesLayer(): PathLayer {
     const highlightedPipelines = this.highlightedAssets.pipeline;
+    const cacheKey = 'pipelines-layer';
+    const cached = this.layerCache.get(cacheKey) as PathLayer | undefined;
 
-    return new PathLayer({
-      id: 'pipelines-layer',
+    const needsUpdate = !cached ||
+      (highlightedPipelines.size > 0) !== ((cached.props.updateTriggers as Record<string, unknown>)?.highlighted as boolean);
+
+    if (!needsUpdate) return cached!;
+
+    const layer = new PathLayer({
+      id: cacheKey,
       data: PIPELINES,
-      // Points are already [lon, lat] which is what deck.gl expects
       getPath: (d) => d.points,
       getColor: (d) => {
         if (highlightedPipelines.has(d.id)) {
@@ -959,11 +1110,19 @@ export class DeckGLMap {
       getWidth: (d) => highlightedPipelines.has(d.id) ? 3 : 1.5,
       widthMinPixels: 1,
       widthMaxPixels: 4,
-      pickable: true,
+      pickable: false,
+      updateTriggers: { highlighted: highlightedPipelines.size > 0 },
     });
+
+    this.layerCache.set(cacheKey, layer);
+    return layer;
   }
 
   private createConflictZonesLayer(): GeoJsonLayer {
+    const cacheKey = 'conflict-zones-layer';
+    const cached = this.layerCache.get(cacheKey) as GeoJsonLayer | undefined;
+    if (cached) return cached;
+
     const geojsonData = {
       type: 'FeatureCollection' as const,
       features: CONFLICT_ZONES.map(zone => ({
@@ -971,14 +1130,13 @@ export class DeckGLMap {
         properties: { id: zone.id, name: zone.name, intensity: zone.intensity },
         geometry: {
           type: 'Polygon' as const,
-          // Coords are already [lon, lat] which is GeoJSON standard
           coordinates: [zone.coords],
         },
       })),
     };
 
-    return new GeoJsonLayer({
-      id: 'conflict-zones-layer',
+    const layer = new GeoJsonLayer({
+      id: cacheKey,
       data: geojsonData,
       filled: true,
       stroked: true,
@@ -986,8 +1144,11 @@ export class DeckGLMap {
       getLineColor: () => [255, 0, 0, 180] as [number, number, number, number],
       getLineWidth: 2,
       lineWidthMinPixels: 1,
-      pickable: true,
+      pickable: false,
     });
+
+    this.layerCache.set(cacheKey, layer);
+    return layer;
   }
 
   private createBasesLayer(): IconLayer {
@@ -1539,6 +1700,30 @@ export class DeckGLMap {
     });
   }
 
+  private pulseTime = 0;
+
+  private startNewsPulseAnimation(): void {
+    if (this.newsPulseFrameId !== null) return;
+
+    const animate = (): void => {
+      const now = Date.now();
+      if (now - this.lastPulseUpdateTime > 16) {
+        this.pulseTime = now;
+        this.lastPulseUpdateTime = now;
+        this.rafUpdateLayers();
+      }
+      this.newsPulseFrameId = requestAnimationFrame(animate);
+    };
+    this.newsPulseFrameId = requestAnimationFrame(animate);
+  }
+
+  private stopNewsPulseAnimation(): void {
+    if (this.newsPulseFrameId !== null) {
+      cancelAnimationFrame(this.newsPulseFrameId);
+      this.newsPulseFrameId = null;
+    }
+  }
+
   private createNewsLocationsLayer(): ScatterplotLayer[] {
     const zoom = this.maplibreMap?.getZoom() || 2;
     const alphaScale = zoom < 2.5 ? 0.4 : zoom < 4 ? 0.7 : 1.0;
@@ -1557,7 +1742,7 @@ export class DeckGLMap {
       info: 80,
     };
 
-    const now = Date.now();
+    const now = this.pulseTime || Date.now();
     const PULSE_DURATION = 30_000;
 
     const layers: ScatterplotLayer[] = [
@@ -1577,14 +1762,12 @@ export class DeckGLMap {
       }),
     ];
 
-    // Pulse ring for recent news items (< 30s old)
     const recentNews = this.newsLocations.filter(d => {
       const firstSeen = this.newsLocationFirstSeen.get(d.title);
       return firstSeen && (now - firstSeen) < PULSE_DURATION;
     });
 
     if (recentNews.length > 0) {
-      // Oscillating pulse: cycles every 2s between 1.0x and 2.5x radius
       const pulse = 1.0 + 1.5 * (0.5 + 0.5 * Math.sin(now / 318));
 
       layers.push(new ScatterplotLayer({
@@ -1607,163 +1790,11 @@ export class DeckGLMap {
           return [...rgb, a] as [number, number, number, number];
         },
         lineWidthMinPixels: 1.5,
+        updateTriggers: { pulseTime: now },
       }));
     }
 
     return layers;
-  }
-
-  // Note: Tech Events layer now rendered via HTML overlays in renderTechEventClusters()
-
-  // Tooltip and click handlers
-  private getTooltip(info: PickingInfo): { html: string } | null {
-    if (!info.object) return null;
-
-    const layerId = info.layer?.id || '';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const obj = info.object as any;
-
-    if (layerId === 'hotspots-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.name || ''}</strong><br/>${obj.subtext || ''}</div>` };
-    }
-
-    if (layerId === 'earthquakes-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>M${(obj.magnitude || 0).toFixed(1)} Earthquake</strong><br/>${obj.place || ''}</div>` };
-    }
-
-    if (layerId === 'military-vessels-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.name || ''}</strong><br/>${obj.operatorCountry || ''}</div>` };
-    }
-
-    if (layerId === 'military-flights-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.callsign || obj.registration || 'Military Aircraft'}</strong><br/>${obj.type || ''}</div>` };
-    }
-
-    if (layerId === 'military-vessel-clusters-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.name || 'Vessel Cluster'}</strong><br/>${obj.vesselCount || 0} vessels<br/>${obj.activityType || ''}</div>` };
-    }
-
-    if (layerId === 'military-flight-clusters-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.name || 'Flight Cluster'}</strong><br/>${obj.flightCount || 0} aircraft<br/>${obj.activityType || ''}</div>` };
-    }
-
-    if (layerId === 'protests-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.title || ''}</strong><br/>${obj.country || ''}</div>` };
-    }
-
-    if (layerId === 'bases-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.name || ''}</strong><br/>${obj.country || ''}</div>` };
-    }
-
-    if (layerId === 'nuclear-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.name || ''}</strong><br/>${obj.type || ''}</div>` };
-    }
-
-    if (layerId === 'datacenters-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.name || ''}</strong><br/>${obj.owner || ''}</div>` };
-    }
-
-    if (layerId === 'cables-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.name || ''}</strong><br/>Undersea Cable</div>` };
-    }
-
-    if (layerId === 'pipelines-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.name || ''}</strong><br/>${obj.type || ''} Pipeline</div>` };
-    }
-
-    if (layerId === 'conflict-zones-layer') {
-      const props = obj.properties || obj;
-      return { html: `<div class="deckgl-tooltip"><strong>${props.name || ''}</strong><br/>Conflict Zone</div>` };
-    }
-
-    if (layerId === 'natural-events-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.title || ''}</strong><br/>${obj.category || 'Natural Event'}</div>` };
-    }
-
-    if (layerId === 'weather-layer') {
-      const area = obj.areaDesc ? `<br/><small>${obj.areaDesc.slice(0, 50)}${obj.areaDesc.length > 50 ? '...' : ''}</small>` : '';
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.event || 'Weather Alert'}</strong><br/>${obj.severity || ''}${area}</div>` };
-    }
-
-    if (layerId === 'outages-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.asn || 'Internet Outage'}</strong><br/>${obj.country || ''}</div>` };
-    }
-
-    if (layerId === 'ais-density-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>Ship Traffic</strong><br/>Intensity: ${obj.intensity || ''}</div>` };
-    }
-
-    if (layerId === 'waterways-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.name || ''}</strong><br/>Strategic Waterway</div>` };
-    }
-
-    if (layerId === 'economic-centers-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.name || ''}</strong><br/>${obj.country || ''}</div>` };
-    }
-
-    if (layerId === 'startup-hubs-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.city || ''}</strong><br/>${obj.country || ''}</div>` };
-    }
-
-    if (layerId === 'tech-hqs-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.company || ''}</strong><br/>${obj.city || ''}</div>` };
-    }
-
-    if (layerId === 'accelerators-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.name || ''}</strong><br/>${obj.city || ''}</div>` };
-    }
-
-    if (layerId === 'cloud-regions-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.provider || ''}</strong><br/>${obj.region || ''}</div>` };
-    }
-
-    if (layerId === 'tech-events-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.title || ''}</strong><br/>${obj.location || ''}</div>` };
-    }
-
-    if (layerId === 'news-locations-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>📰 News</strong><br/>${escapeHtml(obj.title?.slice(0, 80) || '')}</div>` };
-    }
-
-    if (layerId === 'irradiators-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.name || ''}</strong><br/>${obj.type || 'Gamma Irradiator'}</div>` };
-    }
-
-    if (layerId === 'spaceports-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.name || ''}</strong><br/>${obj.country || 'Spaceport'}</div>` };
-    }
-
-    if (layerId === 'ports-layer') {
-      const typeIcon = obj.type === 'naval' ? '⚓' : obj.type === 'oil' || obj.type === 'lng' ? '🛢️' : '🏭';
-      return { html: `<div class="deckgl-tooltip"><strong>${typeIcon} ${obj.name || ''}</strong><br/>${obj.type || 'Port'} - ${obj.country || ''}</div>` };
-    }
-
-    if (layerId === 'flight-delays-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.airport || ''}</strong><br/>${obj.severity || ''}: ${obj.reason || ''}</div>` };
-    }
-
-    if (layerId === 'apt-groups-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.name || ''}</strong><br/>${obj.aka || ''}<br/>Sponsor: ${obj.sponsor || ''}</div>` };
-    }
-
-    if (layerId === 'minerals-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.name || ''}</strong><br/>${obj.mineral || ''} - ${obj.country || ''}<br/>${obj.operator || ''}</div>` };
-    }
-
-    if (layerId === 'ais-disruptions-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>AIS ${obj.type || 'Disruption'}</strong><br/>${obj.severity || ''} severity<br/>${obj.description || ''}</div>` };
-    }
-
-    if (layerId === 'cable-advisories-layer') {
-      const cableName = UNDERSEA_CABLES.find(c => c.id === obj.cableId)?.name || obj.cableId;
-      return { html: `<div class="deckgl-tooltip"><strong>${cableName}</strong><br/>${obj.severity || 'Advisory'}<br/>${obj.description || ''}</div>` };
-    }
-
-    if (layerId === 'repair-ships-layer') {
-      return { html: `<div class="deckgl-tooltip"><strong>${obj.name || 'Repair Ship'}</strong><br/>${obj.status || ''}</div>` };
-    }
-
-    return null;
   }
 
   private handleClick(info: PickingInfo): void {
@@ -2215,11 +2246,15 @@ export class DeckGLMap {
   }
 
   private updateLayers(): void {
+    const startTime = performance.now();
     if (this.deckOverlay) {
       this.deckOverlay.setProps({ layers: this.buildLayers() });
     }
-    // Update cluster overlays as well
     this.renderClusterOverlays();
+    const elapsed = performance.now() - startTime;
+    if (elapsed > 16) {
+      console.warn(`[DeckGLMap] updateLayers took ${elapsed.toFixed(2)}ms (>16ms budget)`);
+    }
   }
 
   public setView(view: DeckMapView): void {
@@ -2376,31 +2411,22 @@ export class DeckGLMap {
 
   public setNewsLocations(data: Array<{ lat: number; lon: number; title: string; threatLevel: string }>): void {
     const now = Date.now();
-    // Track first-seen time for new items
     for (const d of data) {
       if (!this.newsLocationFirstSeen.has(d.title)) {
         this.newsLocationFirstSeen.set(d.title, now);
       }
     }
-    // Prune old entries (> 60s)
     for (const [key, ts] of this.newsLocationFirstSeen) {
       if (now - ts > 60_000) this.newsLocationFirstSeen.delete(key);
     }
     this.newsLocations = data;
     this.render();
 
-    // Start pulse timer if not running — rebuilds layers every 2s so pulse ring animates
-    if (!this.newsPulseTimer && this.newsLocationFirstSeen.size > 0) {
-      this.newsPulseTimer = setInterval(() => {
-        const hasRecent = [...this.newsLocationFirstSeen.values()].some(t => Date.now() - t < 30_000);
-        if (hasRecent) {
-          this.deckOverlay?.setProps({ layers: this.buildLayers() });
-        } else {
-          clearInterval(this.newsPulseTimer!);
-          this.newsPulseTimer = null;
-          this.deckOverlay?.setProps({ layers: this.buildLayers() });
-        }
-      }, 2000);
+    const hasRecent = [...this.newsLocationFirstSeen.values()].some(t => Date.now() - t < 30_000);
+    if (hasRecent && this.newsPulseFrameId === null) {
+      this.startNewsPulseAnimation();
+    } else if (!hasRecent) {
+      this.stopNewsPulseAnimation();
     }
   }
 
@@ -2872,11 +2898,17 @@ export class DeckGLMap {
       clearInterval(this.timestampIntervalId);
     }
 
-    // Clean up resize observer
+    this.stopNewsPulseAnimation();
+
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
     }
+
+    this.layerCache.clear();
+    this.clusterElementCache.clear();
+    this.lastClusterState.clear();
+    this.clusterResultCache.clear();
 
     this.deckOverlay?.finalize();
     this.maplibreMap?.remove();
