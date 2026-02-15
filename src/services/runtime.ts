@@ -213,17 +213,24 @@ export function installRuntimeFetchPatch(): void {
     const localUrl = `${localBase}${target}`;
     if (debug) console.log(`[fetch] intercept → ${target}`);
 
+    const cloudFallback = async () => {
+      const cloudUrl = `${getRemoteApiBaseUrl()}${target}`;
+      if (debug) console.log(`[fetch] cloud fallback → ${cloudUrl}`);
+      return nativeFetch(cloudUrl, init);
+    };
+
     try {
       const t0 = performance.now();
       const response = await fetchLocalWithStartupRetry(nativeFetch, localUrl, localInit);
       if (debug) console.log(`[fetch] ${target} → ${response.status} (${Math.round(performance.now() - t0)}ms)`);
+      if (!response.ok) {
+        if (debug) console.log(`[fetch] local ${response.status}, falling back to cloud`);
+        return cloudFallback();
+      }
       return response;
     } catch (error) {
-      console.warn(`[runtime] Local API unavailable for ${target}`, error);
-      return new Response(JSON.stringify({ error: 'Local API unavailable' }), {
-        status: 503,
-        headers: { 'content-type': 'application/json' },
-      });
+      if (debug) console.warn(`[runtime] Local API unavailable for ${target}`, error);
+      return cloudFallback();
     }
   };
 
