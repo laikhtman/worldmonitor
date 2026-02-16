@@ -33,7 +33,6 @@ import { fetchUnhcrPopulation } from '@/services/unhcr';
 import { fetchClimateAnomalies } from '@/services/climate';
 import { enrichEventsWithExposure } from '@/services/population-exposure';
 import { buildMapUrl, debounce, loadFromStorage, parseMapUrlState, saveToStorage, ExportPanel, getCircuitBreakerCooldownInfo, isMobileDevice, setTheme, getCurrentTheme } from '@/utils';
-import type { Theme } from '@/utils';
 import { reverseGeocode } from '@/utils/reverse-geocode';
 import { CountryBriefPage } from '@/components/CountryBriefPage';
 import { maybeShowDownloadBanner } from '@/components/DownloadBanner';
