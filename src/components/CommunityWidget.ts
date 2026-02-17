@@ -36,7 +36,7 @@ function build(): HTMLElement {
     <div class="cw-pill">
       <div class="cw-dot"></div>
       <span class="cw-text">Join the Discussion</span>
-      <a class="cw-cta" href="https://github.com/koala73/worldmonitor/discussions/94" target="_blank" rel="noopener">Open</a>
+      <a class="cw-cta" href="https://github.com/koala73/worldmonitor/discussions" target="_blank" rel="noopener">Open</a>
       <button class="cw-close" aria-label="Close">&times;</button>
     </div>
     <button class="cw-dismiss">Don't show again</button>
