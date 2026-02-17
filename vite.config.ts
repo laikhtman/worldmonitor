@@ -3,6 +3,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { resolve } from 'path';
 import pkg from './package.json';
 
+const isE2E = process.env.VITE_E2E === '1';
+
 const VARIANT_META: Record<string, {
   title: string;
   description: string;
@@ -304,7 +306,15 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    open: true,
+    open: !isE2E,
+    hmr: isE2E ? false : undefined,
+    watch: {
+      ignored: [
+        '**/test-results/**',
+        '**/playwright-report/**',
+        '**/.playwright-mcp/**',
+      ],
+    },
     proxy: {
       // Yahoo Finance API
       '/api/yahoo': {

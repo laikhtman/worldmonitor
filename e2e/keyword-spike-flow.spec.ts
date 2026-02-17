@@ -104,4 +104,94 @@ test.describe('keyword spike modal/badge flow', () => {
       delete (window as unknown as Record<string, unknown>).__keywordSpikeTest;
     });
   });
+
+  test('does not emit spikes from source-attribution suffixes', async ({ page }) => {
+    await page.goto('/tests/runtime-harness.html');
+
+    const result = await page.evaluate(async () => {
+      const trending = await import('/src/services/trending-keywords.ts');
+      const previousConfig = trending.getTrendingConfig();
+
+      try {
+        trending.updateTrendingConfig({
+          blockedTerms: [],
+          minSpikeCount: 4,
+          spikeMultiplier: 3,
+          autoSummarize: false,
+        });
+
+        const now = new Date();
+        const headlines = [
+          { source: 'Reuters', title: 'Qzxalpha ventures stabilize - WireDesk' },
+          { source: 'AP', title: 'Bravotango liquidity trims - WireDesk' },
+          { source: 'BBC', title: 'Cindelta refinery expands - WireDesk' },
+          { source: 'Bloomberg', title: 'Dorion transit reroutes - WireDesk' },
+          { source: 'WSJ', title: 'Epsiluna lending reprices - WireDesk' },
+        ].map((item) => ({ ...item, pubDate: now }));
+
+        trending.ingestHeadlines(headlines);
+
+        let spikes = trending.drainTrendingSignals();
+        for (let i = 0; i < 20 && spikes.length === 0; i += 1) {
+          await new Promise((resolve) => setTimeout(resolve, 40));
+          spikes = trending.drainTrendingSignals();
+        }
+
+        return {
+          emittedTitles: spikes.map((signal) => signal.title),
+          hasWireDeskSpike: spikes.some((signal) => /wiredesk/i.test(signal.title)),
+        };
+      } finally {
+        trending.updateTrendingConfig(previousConfig);
+      }
+    });
+
+    expect(result.hasWireDeskSpike).toBe(false);
+    expect(result.emittedTitles.length).toBe(0);
+  });
+
+  test('suppresses month-name token spikes', async ({ page }) => {
+    await page.goto('/tests/runtime-harness.html');
+
+    const result = await page.evaluate(async () => {
+      const trending = await import('/src/services/trending-keywords.ts');
+      const previousConfig = trending.getTrendingConfig();
+
+      try {
+        trending.updateTrendingConfig({
+          blockedTerms: [],
+          minSpikeCount: 4,
+          spikeMultiplier: 3,
+          autoSummarize: false,
+        });
+
+        const now = new Date();
+        const headlines = [
+          { source: 'Reuters', title: 'January qxavon ledger shift' },
+          { source: 'AP', title: 'January brivon routing update' },
+          { source: 'BBC', title: 'January caldren supply note' },
+          { source: 'Bloomberg', title: 'January dernix cargo brief' },
+          { source: 'WSJ', title: 'January eptara policy digest' },
+        ].map((item) => ({ ...item, pubDate: now }));
+
+        trending.ingestHeadlines(headlines);
+
+        let spikes = trending.drainTrendingSignals();
+        for (let i = 0; i < 20 && spikes.length === 0; i += 1) {
+          await new Promise((resolve) => setTimeout(resolve, 40));
+          spikes = trending.drainTrendingSignals();
+        }
+
+        return {
+          emittedTitles: spikes.map((signal) => signal.title),
+          hasJanuarySpike: spikes.some((signal) => /january/i.test(signal.title)),
+        };
+      } finally {
+        trending.updateTrendingConfig(previousConfig);
+      }
+    });
+
+    expect(result.hasJanuarySpike).toBe(false);
+    expect(result.emittedTitles.length).toBe(0);
+  });
 });

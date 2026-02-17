@@ -25,6 +25,7 @@ import { analyzeFlightsForSurge, surgeAlertToSignal, detectForeignMilitaryPresen
 import { fetchCachedTheaterPosture } from '@/services/cached-theater-posture';
 import { ingestProtestsForCII, ingestMilitaryForCII, ingestNewsForCII, ingestOutagesForCII, ingestConflictsForCII, ingestUcdpForCII, ingestHapiForCII, ingestDisplacementForCII, ingestClimateForCII, startLearning, isInLearningMode, calculateCII, getCountryData, TIER1_COUNTRIES } from '@/services/country-instability';
 import { dataFreshness, type DataSourceId } from '@/services/data-freshness';
+import { focusInvestmentOnMap } from '@/services/investments-focus';
 import { fetchConflictEvents } from '@/services/conflicts';
 import { fetchUcdpClassifications } from '@/services/ucdp';
 import { fetchHapiSummary } from '@/services/hapi';
@@ -2149,9 +2150,7 @@ export class App {
     // GCC Investments Panel (finance variant)
     if (SITE_VARIANT === 'finance') {
       const investmentsPanel = new InvestmentsPanel((inv) => {
-        this.map?.enableLayer('gulfInvestments');
-        this.mapLayers.gulfInvestments = true;
-        this.map?.setCenter(inv.lat, inv.lon, 6);
+        focusInvestmentOnMap(this.map, this.mapLayers, inv.lat, inv.lon);
       });
       this.panels['gcc-investments'] = investmentsPanel;
     }

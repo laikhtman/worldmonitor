@@ -152,6 +152,79 @@ test.describe('desktop runtime routing guardrails', () => {
     expect(result.calls.some((url) => url.includes('worldmonitor.app/api/stablecoin-markets'))).toBe(true);
   });
 
+  test('chunk preload reload guard is one-shot until app boot clears it', async ({ page }) => {
+    await page.goto('/tests/runtime-harness.html');
+
+    const result = await page.evaluate(async () => {
+      const {
+        buildChunkReloadStorageKey,
+        installChunkReloadGuard,
+        clearChunkReloadGuard,
+      } = await import('/src/bootstrap/chunk-reload.ts');
+
+      const listeners = new Map<string, Array<() => void>>();
+      const eventTarget = {
+        addEventListener: (type: string, listener: EventListenerOrEventListenerObject) => {
+          const list = listeners.get(type) ?? [];
+          list.push(() => {
+            if (typeof listener === 'function') {
+              listener(new Event(type));
+            } else {
+              listener.handleEvent(new Event(type));
+            }
+          });
+          listeners.set(type, list);
+        },
+      };
+
+      const storageMap = new Map<string, string>();
+      const storage = {
+        getItem: (key: string) => storageMap.get(key) ?? null,
+        setItem: (key: string, value: string) => {
+          storageMap.set(key, value);
+        },
+        removeItem: (key: string) => {
+          storageMap.delete(key);
+        },
+      };
+
+      const emit = (eventName: string) => {
+        const handlers = listeners.get(eventName) ?? [];
+        handlers.forEach((handler) => handler());
+      };
+
+      let reloadCount = 0;
+      const storageKey = installChunkReloadGuard('9.9.9', {
+        eventTarget,
+        storage,
+        eventName: 'preload-error',
+        reload: () => {
+          reloadCount += 1;
+        },
+      });
+
+      emit('preload-error');
+      emit('preload-error');
+      const reloadCountBeforeClear = reloadCount;
+
+      clearChunkReloadGuard(storageKey, storage);
+      emit('preload-error');
+
+      return {
+        storageKey,
+        expectedKey: buildChunkReloadStorageKey('9.9.9'),
+        reloadCountBeforeClear,
+        reloadCountAfterClear: reloadCount,
+        storedValue: storageMap.get(storageKey) ?? null,
+      };
+    });
+
+    expect(result.storageKey).toBe(result.expectedKey);
+    expect(result.reloadCountBeforeClear).toBe(1);
+    expect(result.reloadCountAfterClear).toBe(2);
+    expect(result.storedValue).toBe('1');
+  });
+
   test('update badge picks architecture-correct desktop download url', async ({ page }) => {
     await page.goto('/tests/runtime-harness.html');
 

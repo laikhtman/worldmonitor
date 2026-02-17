@@ -7,16 +7,10 @@ import { initMetaTags } from '@/services/meta-tags';
 import { installRuntimeFetchPatch } from '@/services/runtime';
 import { loadDesktopSecrets } from '@/services/runtime-config';
 import { applyStoredTheme } from '@/utils/theme-manager';
+import { clearChunkReloadGuard, installChunkReloadGuard } from '@/bootstrap/chunk-reload';
 
-const chunkReloadStorageKey = `wm-chunk-reload:${__APP_VERSION__}`;
-
-// Auto-reload on stale chunk 404s after deployment (Vite fires this for modulepreload failures)
-window.addEventListener('vite:preloadError', () => {
-  if (!sessionStorage.getItem(chunkReloadStorageKey)) {
-    sessionStorage.setItem(chunkReloadStorageKey, '1');
-    window.location.reload();
-  }
-});
+// Auto-reload on stale chunk 404s after deployment (Vite fires this for modulepreload failures).
+const chunkReloadStorageKey = installChunkReloadGuard(__APP_VERSION__);
 
 // Initialize Vercel Analytics
 inject();
@@ -41,7 +35,7 @@ app
   .init()
   .then(() => {
     // Clear the one-shot guard after a successful boot so future stale-chunk incidents can recover.
-    sessionStorage.removeItem(chunkReloadStorageKey);
+    clearChunkReloadGuard(chunkReloadStorageKey);
   })
   .catch(console.error);
 
