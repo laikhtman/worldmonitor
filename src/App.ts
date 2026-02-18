@@ -63,6 +63,7 @@ import {
   PizzIntIndicator,
   GdeltIntelPanel,
   LiveNewsPanel,
+  LiveWebcamsPanel,
   CIIPanel,
   CascadePanel,
   StrategicRiskPanel,
@@ -2179,6 +2180,9 @@ export class App {
 
     const liveNewsPanel = new LiveNewsPanel();
     this.panels['live-news'] = liveNewsPanel;
+
+    const liveWebcamsPanel = new LiveWebcamsPanel();
+    this.panels['live-webcams'] = liveWebcamsPanel;
 
     // Tech Events Panel (tech variant only - but create for all to allow toggling)
     this.panels['events'] = new TechEventsPanel('events');

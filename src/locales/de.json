@@ -127,7 +127,8 @@
     "techReadiness": "Tech-Bereitschaftsindex",
     "techHubs": "Heiße Tech-Hubs",
     "gccInvestments": "GCC-Investitionen",
-    "geoHubs": "Geopolitical Hotspots"
+    "geoHubs": "Geopolitical Hotspots",
+    "liveWebcams": "Live-Webcams"
   },
   "modals": {
     "search": {

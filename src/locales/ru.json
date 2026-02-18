@@ -127,7 +127,8 @@
     "serviceStatus": "Статус сервисов",
     "techReadiness": "Индекс технологической готовности",
     "gccInvestments": "Инвестиции стран Залива",
-    "geoHubs": "Геополитические хабы"
+    "geoHubs": "Геополитические хабы",
+    "liveWebcams": "Веб-камеры"
   },
   "modals": {
     "search": {

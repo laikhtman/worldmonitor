@@ -127,7 +127,8 @@
     "serviceStatus": "サービス状態",
     "techReadiness": "テック準備度指数",
     "gccInvestments": "GCC投資",
-    "geoHubs": "地政学ハブ"
+    "geoHubs": "地政学ハブ",
+    "liveWebcams": "ライブカメラ"
   },
   "modals": {
     "search": {

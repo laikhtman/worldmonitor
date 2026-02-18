@@ -127,7 +127,8 @@
         "techReadiness": "Indice de maturité technologique",
         "techHubs": "Pôles Technologiques",
         "gccInvestments": "Investissements du CCG",
-        "geoHubs": "Centres géopolitiques"
+        "geoHubs": "Centres géopolitiques",
+        "liveWebcams": "Webcams en Direct"
     },
     "modals": {
         "search": {

@@ -127,7 +127,8 @@
     "serviceStatus": "حالة الخدمات",
     "techReadiness": "مؤشر الجاهزية التقنية",
     "gccInvestments": "استثمارات دول الخليج",
-    "geoHubs": "مراكز جيوسياسية"
+    "geoHubs": "مراكز جيوسياسية",
+    "liveWebcams": "كاميرات مباشرة"
   },
   "modals": {
     "search": {

@@ -127,7 +127,8 @@
     "serviceStatus": "服务状态",
     "techReadiness": "科技就绪指数",
     "gccInvestments": "GCC投资",
-    "geoHubs": "地缘政治枢纽"
+    "geoHubs": "地缘政治枢纽",
+    "liveWebcams": "实时摄像头"
   },
   "modals": {
     "search": {

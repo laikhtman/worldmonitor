@@ -127,7 +127,8 @@
     "serviceStatus": "Service Status",
     "techReadiness": "Tech Readiness Index",
     "gccInvestments": "GCC Investments",
-    "geoHubs": "Geopolitical Hubs"
+    "geoHubs": "Geopolitical Hubs",
+    "liveWebcams": "Live Webcams"
   },
   "modals": {
     "search": {
