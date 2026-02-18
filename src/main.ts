@@ -31,6 +31,9 @@ Sentry.init({
     /^Object captured as promise rejection with keys:/,
     /Unable to load image/,
     /Non-Error promise rejection captured with value:/,
+    /Connection to Indexed Database server lost/,
+    /webkit\.messageHandlers/,
+    /unsafe-eval.*Content Security Policy/,
   ],
   beforeSend(event) {
     const msg = event.exception?.values?.[0]?.value ?? '';
