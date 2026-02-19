@@ -323,3 +323,50 @@ export async function fetchCategoryFeeds(
 
   return ensureSortedDescending();
 }
+
+// ── /api/news aggregation endpoint ────────────────────────────────────────
+// Fetches the pre-aggregated, server-cached news feed from the /api/news
+// edge function (see api/news.js).  Items returned are raw (no threat
+// classification) so callers should apply classifyByKeyword themselves.
+
+interface NewsApiItem {
+  source: string;
+  title: string;
+  link: string;
+  pubDate: string;
+  lang: string;
+}
+
+interface NewsApiResponse {
+  items: NewsApiItem[];
+  variant: string;
+  cachedAt: string;
+}
+
+export async function fetchAllFromNewsApi(variant: string = SITE_VARIANT): Promise<NewsItem[]> {
+  try {
+    const response = await fetchWithProxy(`/api/news?variant=${encodeURIComponent(variant)}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data: NewsApiResponse = await response.json();
+    return data.items.map((item) => {
+      const pubDate = new Date(item.pubDate);
+      const threat = classifyByKeyword(item.title, SITE_VARIANT);
+      const isAlert = threat.level === 'critical' || threat.level === 'high';
+      const geoMatches = inferGeoHubsFromTitle(item.title);
+      const topGeo = geoMatches[0];
+      return {
+        source: item.source,
+        title: item.title,
+        link: item.link,
+        pubDate: Number.isNaN(pubDate.getTime()) ? new Date() : pubDate,
+        isAlert,
+        threat,
+        lang: item.lang,
+        ...(topGeo && { lat: topGeo.hub.lat, lon: topGeo.hub.lon, locationName: topGeo.hub.name }),
+      };
+    });
+  } catch (e) {
+    console.warn('[RSS] /api/news fetch failed, falling back to per-feed mode:', e);
+    return [];
+  }
+}
