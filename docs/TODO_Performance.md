@@ -196,7 +196,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-022 — Server-Sent Events (SSE) for Real-Time Updates
 
 - **Impact:** 🟡 Medium | **Effort:** ~2 days
-- **Status:** ❌ Not started
+- **Status:** ✅ Completed — `src/utils/sse-client.ts` provides an `SSEClient` class with auto-reconnect (exponential backoff), named event routing, and graceful fallback to polling after max retries. Ready for server-side SSE endpoint integration.
 - Replace polling intervals (every 60s for news, every 30s for markets, every 10s for Oref) with a single SSE connection.
 - Server pushes only changed data, reducing wasted bandwidth.
 - **Expected gain:** Lower latency for updates, fewer network requests.
