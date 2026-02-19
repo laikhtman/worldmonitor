@@ -1,5 +1,6 @@
 import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { compression } from 'vite-plugin-compression2';
 import { resolve } from 'path';
 import pkg from './package.json';
 
@@ -270,6 +271,11 @@ export default defineConfig({
       devOptions: {
         enabled: false,
       },
+    }),
+    compression({
+      algorithm: 'brotliCompress',
+      exclude: [/\.(br|gz)$/],
+      threshold: 1024,
     }),
   ],
   resolve: {

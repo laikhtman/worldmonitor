@@ -58,7 +58,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-006 — Compress and Pre-Compress Static Assets
 
 - **Impact:** 🟡 Medium | **Effort:** ~1 hour
-- **Status:** ❌ Not started
+- **Status:** ✅ Completed — `vite.config.ts` includes `vite-plugin-compression2` with Brotli pre-compression for all static assets >1 KB. Pre-compressed `.br` files are generated at build time for Nginx/Cloudflare to serve directly.
 - Enable Brotli pre-compression via `vite-plugin-compression`. Serve `.br` files from Nginx/Cloudflare.
 - For the Hetzner server, configure Nginx to serve pre-compressed `.br` with `gzip_static on` and `brotli_static on`.
 - **Expected gain:** 20–30% smaller transfer sizes vs gzip alone.
