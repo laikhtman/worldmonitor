@@ -1,0 +1,29 @@
+[Unit]
+Description=World Monitor API Server
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/worldmonitor
+ExecStart=/usr/bin/node src-tauri/sidecar/local-api-server.mjs
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=worldmonitor-api
+
+# Environment
+Environment=NODE_ENV=production
+Environment=PORT=3001
+Environment=API_ROOT=/opt/worldmonitor/api
+EnvironmentFile=-/opt/worldmonitor/.env
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/worldmonitor
+
+[Install]
+WantedBy=multi-user.target
