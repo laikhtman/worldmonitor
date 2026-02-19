@@ -8,6 +8,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Last commit](https://img.shields.io/github/last-commit/koala73/worldmonitor)](https://github.com/koala73/worldmonitor/commits/main)
 [![Latest release](https://img.shields.io/github/v/release/koala73/worldmonitor?style=flat)](https://github.com/koala73/worldmonitor/releases/latest)
+[![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-black?style=flat&logo=vercel)](https://worldmonitor.app)
 
 <p align="center">
   <a href="https://worldmonitor.app"><img src="https://img.shields.io/badge/Web_App-worldmonitor.app-blue?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Web App"></a>&nbsp;
@@ -49,11 +50,11 @@
 
 ## Live Demos
 
-| Variant             | URL                                                          | Focus                                            |
-| ------------------- | ------------------------------------------------------------ | ------------------------------------------------ |
-| **World Monitor**   | [worldmonitor.app](https://worldmonitor.app)                 | Geopolitics, military, conflicts, infrastructure |
-| **Tech Monitor**    | [tech.worldmonitor.app](https://tech.worldmonitor.app)       | Startups, AI/ML, cloud, cybersecurity            |
-| **Finance Monitor** | [finance.worldmonitor.app](https://finance.worldmonitor.app) | Global markets, trading, central banks, Gulf FDI |
+| Variant             | URL                                                    | Focus                                            |
+| ------------------- | ------------------------------------------------------ | ------------------------------------------------ |
+| **World Monitor**   | [intelhq.io](https://intelhq.io)                       | Geopolitics, military, conflicts, infrastructure |
+| **Tech Monitor**    | [tech.intelhq.io](https://tech.intelhq.io)             | Startups, AI/ML, cloud, cybersecurity            |
+| **Finance Monitor** | [finance.intelhq.io](https://finance.intelhq.io)       | Global markets, trading, central banks, Gulf FDI |
 
 All three variants run from a single codebase — switch between them with one click via the header bar (🌍 WORLD | 💻 TECH | 📈 FINANCE).
 
@@ -967,6 +968,12 @@ Transactions are sampled at 10% to balance observability with cost. Release trac
 
 ## Quick Start
 
+### Prerequisites
+
+- **Node.js 18+** (Vercel Edge Functions target)
+- **npm** (ships with Node.js — no pnpm/yarn required)
+- **Vercel CLI** (`npm i -g vercel`) — required for local API development
+
 ```bash
 # Clone and run
 git clone https://github.com/koala73/worldmonitor.git
@@ -1001,6 +1008,35 @@ The `.env.example` file documents every variable with descriptions and registrat
 | **Observability** | `VITE_SENTRY_DSN` (optional, empty disables reporting)                     | N/A                                        |
 
 See [`.env.example`](./.env.example) for the complete list with registration links.
+
+---
+
+## Repository Structure
+
+```
+worldmonitor/
+├── api/                  # 60+ Vercel Edge Functions (data proxying, caching, AI pipeline)
+├── data/                 # Static data files (gamma irradiators)
+├── deploy/               # Deployment configs (nginx, systemd)
+├── docs/                 # Project documentation
+├── e2e/                  # Playwright E2E test specs
+├── public/               # Static assets, favicons, offline fallback
+├── scripts/              # Build and packaging scripts (AIS relay, desktop packaging)
+├── src/                  # Application source code
+│   ├── bootstrap/        #   App initialization, chunk reload strategies
+│   ├── components/       #   50+ UI components (Panel base class, DeckGLMap, panels)
+│   ├── config/           #   Variant configs, entity registry, feeds, geo data, panels
+│   ├── e2e/              #   E2E test harness utilities
+│   ├── locales/          #   14 language translations (en, fr, de, es, it, pt, nl, sv, pl, ru, ar, zh, ja, he)
+│   ├── services/         #   70+ service modules (data fetching, ML, analysis, caching)
+│   ├── styles/           #   CSS files (main styles, RTL overrides)
+│   ├── types/            #   TypeScript interfaces (1,300+ lines)
+│   ├── utils/            #   Utility functions (circuit breaker, caching, geo, HTML escape)
+│   └── workers/          #   Web Workers (ML pipeline)
+├── src-tauri/            # Tauri desktop app (Rust source, sidecar, icons, capabilities)
+├── tests/                # Unit and data tests
+└── vite.config.ts        # Vite build configuration with variant transforms
+```
 
 ---
 
@@ -1083,11 +1119,51 @@ Set `WS_RELAY_URL` (server-side, HTTPS) and `VITE_WS_RELAY_URL` (client-side, WS
 
 ---
 
+## For AI Agents
+
+A concise guide for AI coding agents navigating this codebase.
+
+### Key Entry Points
+
+- **`src/App.ts`** — Main orchestrator (4,300+ lines). Wires together all services, panels, and map layers.
+- **`src/types/index.ts`** — All TypeScript interfaces (1,300+ lines).
+- **`src/config/`** — Variant configs, entity registry (600+ entities), feeds, geo data, panel definitions.
+- **`vite.config.ts`** — Build configuration (734 lines) with variant transforms and HTML plugin.
+
+### Architecture Notes
+
+- **Import alias**: `@/` maps to `src/`.
+- **No framework** — vanilla TypeScript with class-based components extending the `Panel` base class.
+- **Service layer**: `src/services/` exports stateless fetcher functions; `App.ts` wires them together.
+- **Variant system**: The `VITE_VARIANT` env var (`full` | `tech` | `finance`) controls config tree-shaking at build time.
+
+### Build & Test
+
+```bash
+# Verify all three variants compile
+npm run build:full && npm run build:tech && npm run build:finance
+
+# E2E tests (all variants)
+npm run test:e2e
+
+# Type checking
+npm run typecheck
+```
+
+### Critical Files (Handle Carefully)
+
+| File | Lines | Notes |
+|------|-------|-------|
+| `src/App.ts` | 4,300+ | Main orchestrator — edits here affect everything |
+| `src/types/index.ts` | 1,300+ | Shared interfaces — changes cascade widely |
+| `src/config/entities.ts` | 600+ entities | Entity registry — alias/keyword maps |
+| `vite.config.ts` | 734 | Build pipeline — variant transforms, plugins |
+
 ---
 
 ## Contributing
 
-Contributions welcome! See [CONTRIBUTING](./docs/DOCUMENTATION.md#contributing) for guidelines.
+Contributions welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide — code style, branching, PR process, and step-by-step instructions for adding panels, API endpoints, map layers, and more.
 
 ```bash
 # Development
