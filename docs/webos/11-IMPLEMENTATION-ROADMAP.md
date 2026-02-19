@@ -19,38 +19,40 @@ Phase 4 (Polish & Ship)   →  Published on LG Content Store
 
 ### Tasks
 
-| # | Task | Est. | Priority | Dependencies |
-|---|------|------|----------|-------------|
-| 1.1 | Create `src/config/variants/tv.ts` with TV panels, map layers, feature flags | 3h | P0 | — |
-| 1.2 | Create `src/utils/tv-detection.ts` — webOS detection, `IS_TV` / `IS_WEBOS` exports | 2h | P0 | — |
-| 1.3 | Update `src/config/variant.ts` to accept `'tv'` variant | 1h | P0 | 1.1 |
-| 1.4 | Add `VARIANT_META.tv` to `vite.config.ts` | 1h | P0 | — |
-| 1.5 | Add npm scripts: `dev:tv`, `build:tv`, `preview:tv` | 0.5h | P0 | 1.4 |
-| 1.6 | Create `src/styles/tv.css` — safe zones, typography scale, layout grid | 6h | P0 | — |
-| 1.7 | Conditionally inject `tv.css` in `main.ts` when `IS_TV` | 1h | P0 | 1.2, 1.6 |
-| 1.8 | Add `body.tv-mode` class to document when TV variant | 0.5h | P0 | 1.2 |
-| 1.9 | Disable ML on TV — short-circuit `detectMLCapabilities()` | 1h | P1 | 1.2 |
-| 1.10 | Disable Service Worker registration for TV variant | 0.5h | P1 | 1.2 |
-| 1.11 | Disable panel drag-drop and resize on TV | 1h | P1 | 1.2 |
-| 1.12 | Disable MobileWarningModal and DownloadBanner on TV | 0.5h | P1 | 1.2 |
-| 1.13 | Adjust refresh intervals for TV (`TV_REFRESH_INTERVALS`) | 1h | P1 | 1.1 |
-| 1.14 | Add TV API limits (`appendTVLimits` function) | 2h | P1 | 1.2 |
-| 1.15 | Create TV layout (60/40 map/panels, 2-panel max) | 4h | P0 | 1.6 |
-| 1.16 | TypeScript strict mode passes: `npm run typecheck` | 1h | P0 | all above |
-| 1.17 | All 3 existing variants still build: `build:full`, `build:tech`, `build:finance` | 1h | P0 | all above |
-| 1.18 | TV variant builds successfully: `npm run build:tv` | 1h | P0 | all above |
-| 1.19 | Visual smoke test at 1920×1080 in Chrome | 2h | P0 | 1.18 |
+| # | Task | Est. | Priority | Dependencies | Status |
+|---|------|------|----------|-------------|--------|
+| 1.1 | Create `src/config/variants/tv.ts` with TV panels, map layers, feature flags | 3h | P0 | — | ✅ Done |
+| 1.2 | Create `src/utils/tv-detection.ts` — webOS detection, `IS_TV` / `IS_WEBOS` exports | 2h | P0 | — | ✅ Done |
+| 1.3 | Update `src/config/variant.ts` to accept `'tv'` variant | 1h | P0 | 1.1 | ✅ Done |
+| 1.4 | Add `VARIANT_META.tv` to `vite.config.ts` | 1h | P0 | — | ✅ Done |
+| 1.5 | Add npm scripts: `dev:tv`, `build:tv`, `preview:tv` | 0.5h | P0 | 1.4 | ✅ Done |
+| 1.6 | Create `src/styles/tv.css` — safe zones, typography scale, layout grid | 6h | P0 | — | ✅ Done |
+| 1.7 | Conditionally inject `tv.css` in `main.ts` when `IS_TV` | 1h | P0 | 1.2, 1.6 | ✅ Done |
+| 1.8 | Add `body.tv-mode` class to document when TV variant | 0.5h | P0 | 1.2 | ✅ Done |
+| 1.9 | Disable ML on TV — short-circuit `detectMLCapabilities()` | 1h | P1 | 1.2 | ✅ Done |
+| 1.10 | Disable Service Worker registration for TV variant | 0.5h | P1 | 1.2 | ✅ Done |
+| 1.11 | Disable panel drag-drop and resize on TV | 1h | P1 | 1.2 | ✅ Done |
+| 1.12 | Disable MobileWarningModal and DownloadBanner on TV | 0.5h | P1 | 1.2 | ✅ Done |
+| 1.13 | Adjust refresh intervals for TV (`TV_REFRESH_INTERVALS`) | 1h | P1 | 1.1 | ✅ Done |
+| 1.14 | Add TV API limits (`appendTVLimits` function) | 2h | P1 | 1.2 | ⬜ Open |
+| 1.15 | Create TV layout (60/40 map/panels, 2-panel max) | 4h | P0 | 1.6 | ✅ Done |
+| 1.16 | TypeScript strict mode passes: `npm run typecheck` | 1h | P0 | all above | ✅ Done |
+| 1.17 | All 3 existing variants still build: `build:full`, `build:tech`, `build:finance` | 1h | P0 | all above | ✅ Done |
+| 1.18 | TV variant builds successfully: `npm run build:tv` | 1h | P0 | all above | ✅ Done |
+| 1.19 | Visual smoke test at 1920×1080 in Chrome | 2h | P0 | 1.18 | ⬜ Open |
+
+**Phase 1 Progress: 17/19 tasks complete.** Committed `a367d90` on `feature/webos-phase1`.
 
 ### Phase 1 Acceptance Criteria
-- [ ] `npm run build:tv` succeeds with zero errors
-- [ ] `npm run build:full && npm run build:tech && npm run build:finance` still work
-- [ ] `npm run typecheck` passes
+- [x] `npm run build:tv` succeeds with zero errors
+- [x] `npm run build:full && npm run build:tech && npm run build:finance` still work
+- [x] `npm run typecheck` passes
 - [ ] Opening `http://localhost:3000?variant=tv` shows TV layout
 - [ ] Map renders (MapLibre + basic hotspots)
 - [ ] News panel shows live data
-- [ ] ML is skipped (no transformers.js loaded)
-- [ ] TV CSS applied (larger fonts, safe zone padding)
-- [ ] No regressions in existing variants
+- [x] ML is skipped (no transformers.js loaded)
+- [x] TV CSS applied (larger fonts, safe zone padding)
+- [x] No regressions in existing variants
 
 ---
 
@@ -207,42 +209,47 @@ Phase 4 (Polish & Ship)   →  Published on LG Content Store
 
 ### New Files (17)
 
-| File | Phase | Purpose |
-|------|-------|---------|
-| `src/config/variants/tv.ts` | 1 | TV variant config |
-| `src/utils/tv-detection.ts` | 1 | webOS detection + helpers |
-| `src/utils/tv-focus.ts` | 2 | Spatial navigation engine |
-| `src/utils/tv-remote.ts` | 2 | Remote control key handler |
-| `src/styles/tv.css` | 1 | TV-specific CSS |
-| `src/components/TVOverlay.ts` | 2 | Footer hints + status |
-| `src/components/TVSettingsPanel.ts` | 4 | Simplified settings |
-| `scripts/webos-package.mjs` | 4 | IPK packaging script |
-| `scripts/webos-icons/icon.png` | 4 | App icon 80×80 |
-| `scripts/webos-icons/largeIcon.png` | 4 | App icon 130×130 |
-| `scripts/webos-icons/splash.png` | 4 | Splash screen |
-| `public/webos/appinfo.json` | 4 | webOS manifest |
-| `public/styles/tv-dark.json` | 3 | Minimal map style |
-| `e2e/tv-navigation.spec.ts` | 2 | Navigation E2E tests |
-| `e2e/tv-visual.spec.ts` | 2 | Visual regression tests |
-| `e2e/tv-performance.spec.ts` | 3 | Performance tests |
-| `.github/workflows/tv-build.yml` | 4 | CI pipeline |
+| File | Phase | Purpose | Status |
+|------|-------|---------|--------|
+| `src/config/variants/tv.ts` | 1 | TV variant config | ✅ Created |
+| `src/utils/tv-detection.ts` | 1 | webOS detection + helpers | ✅ Created |
+| `src/utils/tv-focus.ts` | 2 | Spatial navigation engine | ⬜ |
+| `src/utils/tv-remote.ts` | 2 | Remote control key handler | ⬜ |
+| `src/styles/tv.css` | 1 | TV-specific CSS | ✅ Created |
+| `src/components/TVOverlay.ts` | 2 | Footer hints + status | ⬜ |
+| `src/components/TVSettingsPanel.ts` | 4 | Simplified settings | ⬜ |
+| `scripts/webos-package.mjs` | 4 | IPK packaging script | ⬜ |
+| `scripts/webos-icons/icon.png` | 4 | App icon 80×80 | ⬜ |
+| `scripts/webos-icons/largeIcon.png` | 4 | App icon 130×130 | ⬜ |
+| `scripts/webos-icons/splash.png` | 4 | Splash screen | ⬜ |
+| `public/webos/appinfo.json` | 4 | webOS manifest | ⬜ |
+| `public/styles/tv-dark.json` | 3 | Minimal map style | ⬜ |
+| `e2e/tv-navigation.spec.ts` | 2 | Navigation E2E tests | ⬜ |
+| `e2e/tv-visual.spec.ts` | 2 | Visual regression tests | ⬜ |
+| `e2e/tv-performance.spec.ts` | 3 | Performance tests | ⬜ |
+| `.github/workflows/tv-build.yml` | 4 | CI pipeline | ⬜ |
 
 ### Modified Files (12)
 
-| File | Phase | Change |
-|------|-------|--------|
-| `src/config/variant.ts` | 1 | Accept `'tv'` variant |
-| `src/main.ts` | 1 | TV-specific init, disable SW |
-| `vite.config.ts` | 1 | Add TV variant meta, conditional PWA |
-| `package.json` | 1 | Add TV scripts |
-| `src/services/ml-capabilities.ts` | 1 | Short-circuit on TV |
-| `src/components/Panel.ts` | 1 | Disable drag/resize on TV |
-| `src/components/MapContainer.ts` | 3 | TV render tier selection |
-| `src/components/DeckGLMap.ts` | 3 | TV quality settings |
-| `src/components/MapPopup.ts` | 2 | TV centered popup |
-| `src/controllers/ui-setup.ts` | 2 | TV keyboard integration |
-| `src/services/storage.ts` | 1 | TV IDB limits |
-| `index.html` | 1 | TV CSP policy |
+| File | Phase | Change | Status |
+|------|-------|--------|--------|
+| `src/config/variant.ts` | 1 | Accept `'tv'` variant | ✅ Done |
+| `src/main.ts` | 1 | TV-specific init, disable SW | ✅ Done |
+| `vite.config.ts` | 1 | Add TV variant meta, conditional PWA | ✅ Done |
+| `package.json` | 1 | Add TV scripts | ✅ Done |
+| `src/services/ml-capabilities.ts` | 1 | Short-circuit on TV | ✅ Done |
+| `src/components/Panel.ts` | 1 | Disable drag/resize on TV | ✅ Done |
+| `src/components/MapContainer.ts` | 3 | TV render tier selection | ⬜ |
+| `src/components/DeckGLMap.ts` | 3 | TV quality settings | ⬜ |
+| `src/components/MapPopup.ts` | 2 | TV centered popup | ⬜ |
+| `src/controllers/ui-setup.ts` | 2 | TV keyboard integration | ⬜ |
+| `src/services/storage.ts` | 1 | TV IDB limits | ⬜ |
+| `index.html` | 1 | TV CSP policy | ⬜ |
+| `src/config/panels.ts` | 1 | TV panels/layers + `selectVariant()` helper | ✅ Done |
+| `src/controllers/panel-manager.ts` | 1 | Skip `makeDraggable()` on TV | ✅ Done |
+| `src/controllers/refresh-scheduler.ts` | 1 | 2× refresh multiplier for TV | ✅ Done |
+| `src/components/DownloadBanner.ts` | 1 | Early return if `IS_TV` | ✅ Done |
+| `src/components/MobileWarningModal.ts` | 1 | `shouldShow()` returns false on TV | ✅ Done |
 
 ## 11.6 Definition of Done
 
