@@ -162,8 +162,27 @@ function youtubeLivePlugin(): Plugin {
 }
 
 export default defineConfig({
+  /* PERF-046: Persistent filesystem cache for faster dev-server restarts */
+  cacheDir: '.vite',
+  /* PERF-047: Pre-bundle heavy dependencies for faster dev cold starts */
+  optimizeDeps: {
+    include: [
+      'deck.gl',
+      '@deck.gl/core',
+      '@deck.gl/layers',
+      '@deck.gl/geo-layers',
+      '@deck.gl/aggregation-layers',
+      '@deck.gl/mapbox',
+      'maplibre-gl',
+      'd3',
+      'i18next',
+      'topojson-client',
+    ],
+  },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    /* PERF-050: Compile-time flag for desktop vs web builds */
+    __DESKTOP__: JSON.stringify(!!process.env.VITE_DESKTOP_RUNTIME),
   },
   plugins: [
     htmlVariantPlugin(),
