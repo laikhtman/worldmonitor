@@ -144,11 +144,36 @@ function youtubeLivePlugin(): Plugin {
         }
 
         try {
-          // Use YouTube's oEmbed to check if a video is valid/live
-          // For now, return null to use fallback - will implement proper detection later
+          // Same logic as api/youtube/live.js edge function
+          const channelHandle = channel.startsWith('@') ? channel : `@${channel}`;
+          const liveUrl = `https://www.youtube.com/${channelHandle}/live`;
+
+          const response = await fetch(liveUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            },
+            redirect: 'follow',
+          });
+
+          if (!response.ok) {
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Cache-Control', 'public, max-age=300');
+            res.end(JSON.stringify({ videoId: null, channel }));
+            return;
+          }
+
+          const html = await response.text();
+          const videoIdMatch = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
+          const isLiveMatch = html.match(/"isLive":\s*true/);
+
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Cache-Control', 'public, max-age=300');
-          res.end(JSON.stringify({ videoId: null, channel }));
+
+          if (videoIdMatch && isLiveMatch) {
+            res.end(JSON.stringify({ videoId: videoIdMatch[1], isLive: true, channel }));
+          } else {
+            res.end(JSON.stringify({ videoId: null, isLive: false, channel }));
+          }
         } catch (error) {
           console.error(`[YouTube Live] Error:`, error);
           res.statusCode = 500;

@@ -13,12 +13,12 @@ Each entry includes severity, description, affected files, and dependencies on o
 |---|---|
 | **Severity** | Critical (architectural) |
 | **Affected** | `src/App.ts` |
-| **Status** | 🟡 Phase 1 complete — controllers extracted |
+| **Status** | ✅ Resolved — Phase 1 + Phase 2 complete |
 | **Depends on** | — |
 
 **Description**
-`App.ts` holds the entire application orchestration in a single 4 357-line class with 136 methods.
-Any change risks regressions elsewhere; HMR is fragile because the whole class must reload after every edit.
+`App.ts` held the entire application orchestration in a single 4 461-line class with 136 methods.
+Any change risked regressions elsewhere; HMR was fragile because the whole class had to reload after every edit.
 
 **AI instructions**
 Split `App.ts` into focused controllers (e.g., `DataLoader`, `PanelManager`, `MapController`, `RefreshScheduler`, `DeepLinkHandler`), each in a separate file under `src/controllers/`.
@@ -36,7 +36,14 @@ Keep the `App` class as a thin composition root that wires controllers together.
   - `panel-manager.ts` (1 028 lines) — panel creation, layout, drag-and-drop, toggles
   - `index.ts` — barrel export
   - **All files pass TypeScript strict-mode compilation with zero errors.**
-- **Phase 2 ⬜** — Refactor `App.ts` into thin composition root (~400–500 lines) that instantiates controllers and delegates. This phase must be done incrementally, method-by-method, to avoid regressions.
+- **Phase 2 ✅** — `App.ts` refactored into thin composition root (531 lines, 88% reduction):
+  - All method bodies replaced with direct controller delegation in `init()`
+  - 32 DataLoader, 17 UISetup, 12 CountryIntel, 10 PanelManager, 8 DeepLinkHandler, 8 DesktopUpdater, 2 RefreshScheduler methods removed from App.ts
+  - Typed callback interfaces (`RefreshCallbacks`, `DeepLinkCallbacks`, `DataLoaderCallbacks`, `PanelManagerCallbacks`, `UICallbacks`) wire controllers without circular deps
+  - Dead-code private wrappers removed (`noUnusedLocals` compliance)
+  - Remaining in App.ts: constructor (~150 lines), `init()` (~80 lines), `syncDataFreshnessWithLayers()`, `setupMapLayerHandlers()`, `destroy()`, public API
+  - `npx tsc --noEmit` — zero errors; `npx vite build` — passes
+  - Branch `refactor/app-ts-phase2` merged to `main`
 
 ---
 
@@ -59,17 +66,19 @@ Add an ESLint rule or grep pre-commit hook to flag new `innerHTML` usage.
 
 ---
 
-### BUG-003 — `youtube/live` Dev Endpoint Always Returns `null` Video
+### BUG-003 — `youtube/live` Dev Endpoint Always Returns `null` Video ✅ Resolved
 
 | Field | Value |
 |---|---|
 | **Severity** | Critical (feature broken in dev) |
 | **Affected** | `vite.config.ts` (line ~148-151) |
 | **Depends on** | — |
+| **Status** | ✅ Resolved |
+| **Resolution** | Ported the HTML-scraping live detection logic from the production edge function (`api/youtube/live.js`) into the `youtubeLivePlugin()` Vite dev middleware. The dev endpoint now fetches `youtube.com/@channel/live`, extracts `videoId` via regex, and checks `isLive` status — matching production behavior exactly. |
 
 **Description**
-The `youtubeLivePlugin()` Vite middleware hardcodes `{ videoId: null, channel }` with a TODO comment: *"will implement proper detection later"*.
-This means the LiveNewsPanel falls back to static channel-level video IDs during local development, never resolving the actual live stream.
+The `youtubeLivePlugin()` Vite middleware hardcoded `{ videoId: null, channel }` with a TODO comment: *"will implement proper detection later"*.
+This meant the LiveNewsPanel fell back to static channel-level video IDs during local development, never resolving the actual live stream.
 
 **AI instructions**
 Implement the pending live-stream detection using the `youtubei.js` library already in `package.json`, or remove the dev plugin and proxy to the production API route (`/api/youtube/live.js`).

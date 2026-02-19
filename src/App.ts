@@ -14,7 +14,8 @@ import { loadFromStorage, parseMapUrlState, saveToStorage, isMobileDevice } from
 import type { ParsedMapUrlState } from '@/utils';
 import {
   MapContainer,
-  type anel,
+  type TimeRange,
+  NewsPanel,
   Panel,
   SignalModal,
   SearchModal,
