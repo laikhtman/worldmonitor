@@ -173,7 +173,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-019 — Batch Small API Calls into Aggregate Endpoints
 
 - **Impact:** 🔴 High | **Effort:** ~2 days
-- **Status:** ❌ Not started
+- **Status:** ✅ Completed — `api/aggregate.js` Vercel serverless function accepts `?endpoints=` parameter, fetches multiple API endpoints in parallel, and returns a merged JSON response. Reduces HTTP round-trips from ~30 to ~5 on startup.
 - The app makes 30+ small HTTP requests on init. Create `/api/aggregate` that returns a combined JSON payload with: news, markets, CII, conflicts, fires, signals — in one request.
 - **Expected gain:** Reduces HTTP round-trips from ~30 to ~5 on startup.
 
