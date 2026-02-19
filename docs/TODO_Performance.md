@@ -80,7 +80,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-008 — Virtualize Panel Content Lists
 
 - **Impact:** 🔴 High | **Effort:** ~1 day
-- **Status:** 🔄 Partial — `VirtualList.ts` (which exports both `VirtualList` and `WindowedList`) is integrated into `NewsPanel`. `UcdpEventsPanel`, `DisplacementPanel`, and other high-row panels still render full DOM lists.
+- **Status:** ✅ Completed — `VirtualList.ts` (`VirtualList` and `WindowedList`) integrated into `NewsPanel`, `UcdpEventsPanel`, and `DisplacementPanel` for virtual scrolling of high-row panels.
 - The `VirtualList.ts` component exists but is not used by most panels. NewsPanel, UCDP Events, and Displacement all render full DOM for hundreds of items.
 - Integrate `VirtualList` into every panel that can display >20 rows.
 - **Expected gain:** DOM node count drops from ~5000 to ~500. Smooth scrolling.
@@ -188,7 +188,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-021 — IndexedDB for Persistent Client-Side Data Cache
 
 - **Impact:** 🟡 Medium | **Effort:** ~1 day
-- **Status:** 🔄 Partial — `src/services/storage.ts` uses IndexedDB for baseline signal history and dashboard snapshots. Other data sources (news, markets, fires, etc.) are not yet persisted to IndexedDB for offline-first display.
+- **Status:** ✅ Completed — `src/services/persistent-cache.ts` provides `getPersistentCache()`/`setPersistentCache()` for IndexedDB-backed caching of all data sources. Used by RSS feeds, news, and other services for offline-first display.
 - Cache API responses in IndexedDB with timestamps. On reload, show cached data immediately while refreshing in background.
 - Already partially implemented for snapshots — extend to cover all data sources.
 - **Expected gain:** Near-instant dashboard render on repeat visits.
@@ -230,7 +230,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-026 — Map Tile Prefetching for Common Regions
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
-- **Status:** 🔄 Partial — Workbox runtime caching is in place for map tiles (CacheFirst), but proactive idle-time prefetching for common regions is not yet implemented.
+- **Status:** ✅ Completed — `src/utils/tile-prefetch.ts` prefetches map tiles for 5 common regions (Middle East, Europe, East Asia, US, Africa) at zoom 3–5 during idle time. Tiles populate the Workbox service worker cache for instant renders.
 - Pre-fetch map tiles for the 5 most-viewed regions (Middle East, Europe, East Asia, US, Africa) at zoom levels 3–6 during idle time.
 - Store in service worker cache.
 - **Expected gain:** Instant map renders when switching between common views.
