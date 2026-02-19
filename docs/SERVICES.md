@@ -1063,8 +1063,8 @@ source. Prevents misleading "all clear" states when data sources are silent.
 | `dataFreshness.getStatus(id)` | Returns `FreshnessStatus` for one source. |
 | `dataFreshness.getAllStatuses()` | Returns all source states. |
 
-**Freshness levels:** `fresh` (< 5 min) · `stale` (5–30 min) · `very_stale`
-(30–120 min) · `no_data` · `disabled` · `error`.
+**Freshness levels:** `fresh` (< 15 min) · `stale` (15 min – 2 h) · `very_stale`
+(2 h – 6 h) · `no_data` · `disabled` · `error`.
 
 ---
 
