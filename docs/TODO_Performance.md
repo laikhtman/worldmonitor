@@ -31,7 +31,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-003 — Defer Non-Critical API Calls
 
 - **Impact:** 🔴 High | **Effort:** ~1 day
-- **Status:** ❌ Not started
+- **Status:** ✅ Completed — `src/utils/index.ts` provides `deferToIdle()` using `requestIdleCallback` with `setTimeout` fallback. `App.loadAllData()` defers non-critical fetches (UCDP, displacement, climate, fires, stablecoins, cable activity) by 5 seconds, keeping news/markets/conflicts/CII as priority.
 - `App.init()` fires ~30 fetch calls simultaneously on startup. Most are background data (UCDP, displacement, climate, fires, stablecoins).
 - Prioritize: map tiles + conflicts + news + CII. Defer everything else by 5–10 seconds using `requestIdleCallback`.
 - **Expected gain:** Reduce Time to Interactive by 2–3 seconds on slow connections.
