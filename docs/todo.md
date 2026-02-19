@@ -8,13 +8,14 @@ Dependencies reference `BUG-` or other `TODO-` codes.
 
 ## 🔴 High Priority
 
-### TODO-001 — Decompose `App.ts` into a Controller Architecture
+### TODO-001 — Decompose `App.ts` into a Controller Architecture ✅ Completed
 
 | Field | Value |
 |---|---|
 | **Priority** | 🔴 High |
 | **Effort** | ~2 days |
 | **Depends on** | BUG-001 |
+| **Status** | ✅ Completed — BUG-001 Phase 1 (controller extraction) + Phase 2 (composition root) |
 
 **Description**
 Break the 4 357-line God-class into focused controllers:
@@ -27,22 +28,19 @@ Break the 4 357-line God-class into focused controllers:
 
 Keep `App` as a thin composition root.
 
-**AI instructions**
-
-1. Create `src/controllers/` directory.
-2. Move the corresponding `App` methods into each controller class.
-3. Update `App` constructor and `init()` to instantiate and wire controllers.
-4. Ensure `App.destroy()` delegates to each controller's `destroy()`.
+**Resolution**
+Seven controllers extracted under `src/controllers/`: `AppContext`, `DataLoader`, `PanelManager`, `UISetup`, `CountryIntel`, `RefreshScheduler`, `DesktopUpdater`, `DeepLinkHandler`. App.ts reduced from 4,461 to ~530 lines (88% reduction). See [ARCHITECTURE.md](ARCHITECTURE.md) §10 for full details.
 
 ---
 
-### TODO-002 — Add Server-Side RSS Aggregation and Caching
+### TODO-002 — Add Server-Side RSS Aggregation and Caching ✅ Completed
 
 | Field | Value |
 |---|---|
 | **Priority** | 🔴 High |
 | **Effort** | ~3 days |
 | **Depends on** | — |
+| **Status** | ✅ Completed — PR #9 merged |
 
 **Description**
 Currently 70+ RSS feeds are fetched client-side through individual proxy rules.
@@ -54,8 +52,8 @@ Move RSS fetching to a server-side edge function (or Vercel cron) that:
 2. Stores merged results in Redis (Upstash already in `package.json`).
 3. Exposes a single `/api/news` endpoint returning the cached aggregate.
 
-**AI instructions**
-Create `api/news.js` edge function. Use `@upstash/redis`. Implement feed XML parsing identical to `src/services/rss.ts`. Add a `stale-while-revalidate` cache header. On the client side, replace ~40 proxy rules in `vite.config.ts` with a single fetch to `/api/news`.
+**Resolution**
+Created `api/news.js` edge function with Upstash Redis caching and `stale-while-revalidate` headers. Merged via PR #9.
 
 ---
 
@@ -103,21 +101,20 @@ Prioritize handlers that accept user-controlled query params.
 
 ---
 
-### TODO-005 — Cross-Platform npm Script Compatibility
+### TODO-005 — Cross-Platform npm Script Compatibility ✅ Completed
 
 | Field | Value |
 |---|---|
 | **Priority** | 🔴 High |
 | **Effort** | ~1 hour |
 | **Depends on** | BUG-013, BUG-019 |
+| **Status** | ✅ Completed — `cross-env` installed, 17 scripts prefixed |
 
 **Description**
 All `VITE_VARIANT=…` and `VITE_E2E=…` scripts break on Windows.
 
-**AI instructions**
-Install `cross-env` as a devDependency.
-Prefix every inline env-var assignment with `cross-env`, e.g.:
-`"build:tech": "cross-env VITE_VARIANT=tech tsc && cross-env VITE_VARIANT=tech vite build"`.
+**Resolution**
+Installed `cross-env` as devDependency. Prefixed all 17 scripts that use `VITE_VARIANT=` or `VITE_DESKTOP_RUNTIME=` with `cross-env`. Verified `build:tech` runs on Windows.
 
 ---
 

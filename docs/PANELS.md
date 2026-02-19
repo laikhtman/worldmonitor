@@ -2,7 +2,7 @@
 
 > **World Monitor** — Config-driven panel architecture powering three site variants.
 >
-> Source of truth: [`src/config/panels.ts`](../src/config/panels.ts) · Panel base class: [`src/components/Panel.ts`](../src/components/Panel.ts) · App wiring: [`src/App.ts`](../src/App.ts)
+> Source of truth: [`src/config/panels.ts`](../src/config/panels.ts) · Panel base class: [`src/components/Panel.ts`](../src/components/Panel.ts) · Panel wiring: [`src/controllers/panel-manager.ts`](../src/controllers/panel-manager.ts) · Composition root: [`src/App.ts`](../src/App.ts)
 
 ---
 
@@ -50,7 +50,9 @@ World Monitor uses a **config-driven panel system** where every dashboard tile �
 | [`src/config/variants/finance.ts`](../src/config/variants/finance.ts) | Finance variant config |
 | [`src/components/Panel.ts`](../src/components/Panel.ts) | Base `Panel` class (440 lines) — DOM, resize, badges, lifecycle |
 | [`src/components/NewsPanel.ts`](../src/components/NewsPanel.ts) | `NewsPanel` extending `Panel` — RSS-driven news tiles |
-| [`src/App.ts`](../src/App.ts) | Application shell — panel instantiation, data loading, settings modal |
+| [`src/App.ts`](../src/App.ts) | Thin composition root (~530 lines) — wires controllers, delegates panel instantiation to `PanelManager` |
+| [`src/controllers/panel-manager.ts`](../src/controllers/panel-manager.ts) | Panel instantiation, layout, drag-and-drop, toggles (1,028 lines) |
+| [`src/controllers/data-loader.ts`](../src/controllers/data-loader.ts) | Data loading and panel content updates (1,540 lines) |
 | [`src/types/index.ts`](../src/types/index.ts) | `PanelConfig`, `MapLayers`, `AppState` type definitions |
 
 ---
@@ -631,7 +633,7 @@ When the application adds new panels (in a code update), the saved panel order i
 
 ### 10.1 Initialization Flow
 
-The panel lifecycle begins in `App.ts` constructor and flows through these phases:
+The panel lifecycle begins in the `PanelManager` controller (`src/controllers/panel-manager.ts`), which is wired by `App.ts` during initialization:
 
 1. **Config Loading** — `panelSettings` loaded from localStorage (or `DEFAULT_PANELS` on first visit / variant change)
 2. **DOM Scaffolding** — `render()` builds the page shell including `#panelsGrid` container and settings modal
@@ -772,9 +774,9 @@ export class MyPanel extends Panel {
 
 For RSS-based panels, use `NewsPanel` directly instead of creating a new class — just add feeds to the variant's `FEEDS` object and the panel will be auto-generated.
 
-### Step 3: Register in App.ts
+### Step 3: Register in PanelManager
 
-Import and instantiate the panel in the `createPanels()` method of [`src/App.ts`](../src/App.ts):
+Import and instantiate the panel in the `createPanels()` method of [`src/controllers/panel-manager.ts`](../src/controllers/panel-manager.ts):
 
 ```typescript
 import { MyPanel } from '@/components/MyPanel';

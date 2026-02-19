@@ -22,7 +22,9 @@ This document is the canonical reference for how state is stored, updated, and p
 
 ## 1. Application State Flow
 
-There is no framework — the entire app is a single `App` class in `src/App.ts` (~4,300 lines) that orchestrates every service, component, and piece of state. State changes flow through direct method calls and property writes. Components extend a `Panel` base class defined in `src/components/Panel.ts`.
+> **Note (v2.4.1):** As of BUG-001 Phase 2, `App.ts` has been refactored from a ~4,300-line monolith into a thin ~530-line composition root. State properties are now distributed across seven controllers in `src/controllers/`, accessed via the `AppContext` interface. The data flow pattern below remains the same, but "App method" now means a controller method. See [ARCHITECTURE.md](ARCHITECTURE.md) §10 for the full controller breakdown.
+
+There is no framework — the app is orchestrated by `App.ts` as a **composition root** that wires seven focused controllers (`DataLoader`, `PanelManager`, `UISetup`, `CountryIntel`, `RefreshScheduler`, `DesktopUpdater`, `DeepLinkHandler`). State changes flow through direct method calls and property writes on the `AppContext` interface. Components extend a `Panel` base class defined in `src/components/Panel.ts`.
 
 ### Initialization Sequence
 
@@ -77,7 +79,9 @@ There are no observables, signals, or virtual DOM — every update is an explici
 
 ## 2. App.ts State Properties & Lifecycle
 
-All state lives as private properties on the `App` class. Grouped by purpose:
+> **Note (v2.4.1):** These properties are now distributed across controllers. `DataLoader` owns data state (`allNews`, `latestMarkets`, etc.), `PanelManager` owns component references and panel settings, `UISetup` owns UI state, and `DeepLinkHandler` owns URL state. The `AppContext` interface in `src/controllers/app-context.ts` defines the shared mutable state surface.
+
+All state lives as properties on controller classes, accessed through the `AppContext` interface. Grouped by purpose:
 
 ### Data State
 

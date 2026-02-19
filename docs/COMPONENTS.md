@@ -47,6 +47,7 @@ communicates through method calls, callbacks, and a handful of
 | **No framework** | Components create and manage DOM imperatively. |
 | **Class-based** | Each component is a standalone class (or, rarely, a set of exported functions). |
 | **Panel inheritance** | Most dashboard tiles extend the shared `Panel` base class. |
+| **Controller-wired** | Components are instantiated and managed by controllers in `src/controllers/` (see [ARCHITECTURE.md](ARCHITECTURE.md) §10). `App.ts` is a thin composition root that delegates to `DataLoader`, `PanelManager`, `UISetup`, `CountryIntel`, etc. |
 | **Variant-aware** | Components check `SITE_VARIANT` (`world` / `tech` / `finance`) to show/hide themselves or swap data sources. |
 | **Theme-aware** | Components listen for `theme-changed` events and adapt colours accordingly. |
 | **Desktop-aware** | Tauri bridge detection via `isDesktopRuntime()` unlocks native features. |
