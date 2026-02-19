@@ -43,6 +43,10 @@
     "desktop:package:macos:tech:sign": "node scripts/desktop-package.mjs --os macos --variant tech --sign",
     "desktop:package:windows:full:sign": "node scripts/desktop-package.mjs --os windows --variant full --sign",
     "desktop:package:windows:tech:sign": "node scripts/desktop-package.mjs --os windows --variant tech --sign",
+    "desktop:package:macos:finance": "node scripts/desktop-package.mjs --os macos --variant finance",
+    "desktop:package:windows:finance": "node scripts/desktop-package.mjs --os windows --variant finance",
+    "desktop:package:macos:finance:sign": "node scripts/desktop-package.mjs --os macos --variant finance --sign",
+    "desktop:package:windows:finance:sign": "node scripts/desktop-package.mjs --os windows --variant finance --sign",
     "desktop:package": "node scripts/desktop-package.mjs"
   },
   "devDependencies": {

@@ -477,6 +477,9 @@ export class App implements AppContext {
   public destroy(): void {
     this.isDestroyed = true;
 
+    // Clear header clock interval (BUG-008 fix)
+    this.uiSetup.clearClockInterval();
+
     // Clear snapshot saving interval
     if (this.snapshotIntervalId) {
       clearInterval(this.snapshotIntervalId);

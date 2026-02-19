@@ -3,6 +3,33 @@
 Bugs are prefixed with `BUG-` and a three-digit number.
 Each entry includes severity, description, affected files, and dependencies on other items.
 
+## Estimation Summary
+
+| Bug | Severity | Complexity | Est. Hours | Status |
+|-----|----------|------------|------------|--------|
+| BUG-001 | Critical | 🔴 Very High | 24–32 h | ✅ Resolved |
+| BUG-002 | Critical | 🔴 High | 8–12 h | Open |
+| BUG-003 | Critical | 🟢 Low | 1 h | ✅ Resolved |
+| BUG-004 | High | 🟢 Trivial | 0.25 h | Open |
+| BUG-005 | High | 🟢 Low | 1 h | Open |
+| BUG-006 | High | 🟡 Medium | 2–3 h | Open |
+| BUG-007 | High | 🟡 Medium | 2 h | Open |
+| BUG-008 | High | 🟢 Low | 0.5 h | ✅ Resolved |
+| BUG-009 | High | 🟢 Low | 1–2 h | ✅ Resolved |
+| BUG-010 | High | 🟢 Low | 1 h | ✅ Resolved |
+| BUG-011 | Medium | 🟢 Low | 1 h | Open |
+| BUG-012 | Medium | 🟡 Medium | 3–4 h | Open |
+| BUG-013 | Medium | 🟢 Low | 1–2 h | Open |
+| BUG-014 | Medium | 🔴 Very High | 24–32 h | Open |
+| BUG-015 | Medium | 🟢 Low | 1 h | Open |
+| BUG-016 | Medium | 🔴 High | 12–16 h | Open |
+| BUG-017 | Low | 🟡 Medium | 3–4 h | Open |
+| BUG-018 | Low | 🔴 High | 10–16 h | Open |
+| BUG-019 | Low | 🟢 Trivial | 0.5 h | Open |
+| BUG-020 | Low | 🔴 Very High | 16–24 h | Open |
+
+**Total open backlog: ~84–131 h** (excluding 5 resolved bugs: BUG-001, BUG-003, BUG-008, BUG-009, BUG-010)
+
 ---
 
 ## Critical
@@ -15,6 +42,8 @@ Each entry includes severity, description, affected files, and dependencies on o
 | **Affected** | `src/App.ts` |
 | **Status** | ✅ Resolved — Phase 1 + Phase 2 complete |
 | **Depends on** | — |
+| **Complexity** | 🔴 Very High — major architectural refactoring across entire codebase |
+| **Est. Hours** | 24–32 h (completed in two phases) |
 
 **Description**
 `App.ts` held the entire application orchestration in a single 4 461-line class with 136 methods.
@@ -54,6 +83,8 @@ Keep the `App` class as a thin composition root that wires controllers together.
 | **Severity** | Critical (security) |
 | **Affected** | `src/components/MapPopup.ts`, `src/components/DeckGLMap.ts`, `src/components/CascadePanel.ts`, `src/components/CountryBriefPage.ts`, `src/components/CountryIntelModal.ts`, `src/components/InsightsPanel.ts`, `src/App.ts` (lines ~2763, ~2817) |
 | **Depends on** | — |
+| **Complexity** | 🔴 High — requires full audit of every `innerHTML` site across 7+ components, careful escaping without breaking HTML structure |
+| **Est. Hours** | 8–12 h |
 
 **Description**
 Despite documentation claiming all external data passes through `escapeHtml()`, many `innerHTML` assignments interpolate feed-sourced strings (headlines, source names, tension labels) without escaping.
@@ -75,6 +106,8 @@ Add an ESLint rule or grep pre-commit hook to flag new `innerHTML` usage.
 | **Depends on** | — |
 | **Status** | ✅ Resolved |
 | **Resolution** | Ported the HTML-scraping live detection logic from the production edge function (`api/youtube/live.js`) into the `youtubeLivePlugin()` Vite dev middleware. The dev endpoint now fetches `youtube.com/@channel/live`, extracts `videoId` via regex, and checks `isLive` status — matching production behavior exactly. |
+| **Complexity** | 🟢 Low — porting existing logic from production edge function |
+| **Est. Hours** | 1 h (completed) |
 
 **Description**
 The `youtubeLivePlugin()` Vite middleware hardcoded `{ videoId: null, channel }` with a TODO comment: *"will implement proper detection later"*.
@@ -94,6 +127,8 @@ Implement the pending live-stream detection using the `youtubei.js` library alre
 | **Severity** | High (data inconsistency) |
 | **Affected** | `src/App.ts` (line ~237) |
 | **Depends on** | — |
+| **Complexity** | 🟢 Trivial — single string change |
+| **Est. Hours** | 0.25 h |
 
 **Description**
 `PANEL_ORDER_MIGRATION_KEY` is `worldmonitor-panel-order-v1.9` but the `console.log` says `"Migrated panel order to v1.8 layout"`.
@@ -111,6 +146,8 @@ Change the log message to `v1.9`.
 | **Severity** | High (maintenance risk) |
 | **Affected** | `src/App.ts` — `syncDataFreshnessWithLayers()` (line ~606) and `setupMapLayerHandlers()` (line ~643) |
 | **Depends on** | BUG-001 (Phase 2) |
+| **Complexity** | 🟢 Low — extract constant to config, update two import sites |
+| **Est. Hours** | 1 h |
 
 **Description**
 The `layerToSource` map is copy-pasted in two places. If a new layer is added to one and not the other, freshness tracking silently breaks for that layer.
@@ -128,6 +165,8 @@ Extract `layerToSource` to a shared constant (e.g., in `src/config/panels.ts`), 
 | **Severity** | High (reliability / circular dependency) |
 | **Affected** | `vite.config.ts` (line ~348) |
 | **Depends on** | — |
+| **Complexity** | 🟡 Medium — need to understand Polymarket API auth/shape, implement or repoint proxy |
+| **Est. Hours** | 2–3 h |
 
 **Description**
 The Polymarket dev proxy targets `https://worldmonitor.app` (the live production site).
@@ -145,6 +184,8 @@ Proxy directly to `gamma-api.polymarket.com` or implement the same edge-function
 | **Severity** | High |
 | **Affected** | `src/components/NewsPanel.ts`, `src/services/clustering.ts` |
 | **Depends on** | — |
+| **Complexity** | 🟡 Medium — identify all render loops, add try/catch with fallback UI |
+| **Est. Hours** | 2 h |
 
 **Description**
 If the clustering worker returns malformed data (e.g., a cluster with `undefined` headline), the `NewsPanel` render loop throws, leaving the panel blank.
@@ -155,18 +196,21 @@ Wrap each cluster card render in a try/catch. Log the bad cluster and render a "
 
 ---
 
-### BUG-008 — `setInterval` Clock Leak in `startHeaderClock()`
+### BUG-008 — `setInterval` Clock Leak in `startHeaderClock()` ✅ Resolved
 
 | Field | Value |
 |---|---|
 | **Severity** | High (memory leak on HMR) |
-| **Affected** | `src/App.ts` (line ~523), `src/controllers/ui-setup.ts` |
-| **Status** | 🟡 Fixed in extracted controller; original `App.ts` still has the bug until Phase 2 wiring |
+| **Affected** | `src/App.ts`, `src/controllers/ui-setup.ts` |
+| **Status** | ✅ Resolved |
 | **Depends on** | — |
+| **Complexity** | 🟢 Low — store interval ID, clear in `destroy()` |
+| **Est. Hours** | 0.5 h (completed) |
+| **Resolution** | `UISetupController` stores interval in `clockIntervalId` and exposes `clearClockInterval()`. `App.destroy()` now calls `this.uiSetup.clearClockInterval()` to clean up on HMR reload. |
 
 **Description**
-`setInterval(tick, 1000)` in `startHeaderClock()` is never stored or cleared.
-On Vite HMR reload the old interval keeps ticking, doubling DOM writes each hot reload until the page is hard-refreshed.
+`setInterval(tick, 1000)` in `startHeaderClock()` was never stored or cleared.
+On Vite HMR reload the old interval kept ticking, doubling DOM writes each hot reload until the page was hard-refreshed.
 
 **AI instructions**
 Store the interval ID and clear it in `App.destroy()`.
@@ -174,33 +218,41 @@ Note: The extracted `UISetupController` already stores the interval in `clockInt
 
 ---
 
-### BUG-009 — `deepLinkCountry` Polling Has No Maximum Retry
+### BUG-009 — `deepLinkCountry` Polling Has No Maximum Retry ✅ Resolved
 
 | Field | Value |
 |---|---|
 | **Severity** | High |
-| **Affected** | `src/App.ts` — `handleDeepLinks()` (lines ~392-400, ~413-419) |
+| **Affected** | `src/controllers/deep-link-handler.ts` — `handleDeepLinks()` |
 | **Depends on** | — |
+| **Complexity** | 🟢 Low — add counter + ceiling + user-facing error toast |
+| **Est. Hours** | 1–2 h (completed) |
+| **Status** | ✅ Resolved |
+| **Resolution** | Added `MAX_DEEP_LINK_RETRIES = 60` (30 s) static constant. Both `checkAndOpen()` and `checkAndOpenBrief()` now increment a retry counter and stop with a `console.warn` when the limit is reached, preventing infinite polling. |
 
 **Description**
-`checkAndOpen()` and `checkAndOpenBrief()` use `setTimeout(…, 500)` recursively with no cap. If the data source is permanently down, the browser spins polling forever.
+`checkAndOpen()` and `checkAndOpenBrief()` used `setTimeout(…, 500)` recursively with no cap. If the data source was permanently down, the browser spun polling forever.
 
 **AI instructions**
 Add a max retry counter (e.g., 60 attempts = 30 seconds) and show a user-facing error ("Data not available") if exceeded.
 
 ---
 
-### BUG-010 — Finance Variant Missing Desktop Packaging Scripts
+### BUG-010 — Finance Variant Missing Desktop Packaging Scripts ✅ Resolved
 
 | Field | Value |
 |---|---|
 | **Severity** | High |
 | **Affected** | `package.json` |
 | **Depends on** | — |
+| **Complexity** | 🟢 Low — copy existing tech variant scripts, adjust config path |
+| **Est. Hours** | 1 h (completed) |
+| **Status** | ✅ Resolved |
+| **Resolution** | Added 4 scripts to `package.json`: `desktop:package:macos:finance`, `desktop:package:windows:finance`, `desktop:package:macos:finance:sign`, `desktop:package:windows:finance:sign` — all using `--variant finance` flag with the existing `desktop-package.mjs` script. |
 
 **Description**
-The `finance` variant has `dev:finance`, `build:finance`, and `desktop:build:finance` scripts, but there are no `desktop:package:*:finance` scripts.
-Running `desktop:package` for the finance variant will fail silently or produce the wrong build.
+The `finance` variant had `dev:finance`, `build:finance`, and `desktop:build:finance` scripts, but there were no `desktop:package:*:finance` scripts.
+Running `desktop:package` for the finance variant would fail silently or produce the wrong build.
 
 **AI instructions**
 Add `desktop:package:macos:finance`, `desktop:package:windows:finance`, and their `:sign` variants, pointing to a `tauri.finance.conf.json` config.
@@ -216,6 +268,8 @@ Add `desktop:package:macos:finance`, `desktop:package:windows:finance`, and thei
 | **Severity** | Medium |
 | **Affected** | `src/App.ts` (2 min), `src/components/LiveNewsPanel.ts` (5 min), `src/components/LiveWebcamsPanel.ts` (5 min) |
 | **Depends on** | — |
+| **Complexity** | 🟢 Low — unify constant or document intentional difference |
+| **Est. Hours** | 1 h |
 
 **Description**
 Documentation says "5 min idle" pauses the stream, but `App.ts` uses a 2-minute `IDLE_PAUSE_MS`.
@@ -233,6 +287,8 @@ Unify idle timeouts via a shared constant in config, or document the intentional
 | **Severity** | Medium |
 | **Affected** | `src/services/data-freshness.ts`, `src/App.ts` — `syncDataFreshnessWithLayers()` |
 | **Depends on** | BUG-005 |
+| **Complexity** | 🟡 Medium — register all untracked sources, add `recordUpdate()` calls after each fetch |
+| **Est. Hours** | 3–4 h |
 
 **Description**
 `layerToSource` maps layers to freshness source IDs, but several API-backed data sources (GDELT Doc intelligence feed, FRED, EIA oil, USASpending, PizzINT, Polymarket, Predictions) are not tracked in the freshness system.
@@ -250,6 +306,8 @@ Register all backend data sources in `data-freshness.ts` and call `dataFreshness
 | **Severity** | Medium |
 | **Affected** | `package.json` (all `VITE_VARIANT=…` scripts) |
 | **Depends on** | — |
+| **Complexity** | 🟢 Low — add `cross-env` dependency, prefix all affected scripts |
+| **Est. Hours** | 1–2 h |
 
 **Description**
 Scripts like `"build:tech": "VITE_VARIANT=tech tsc && VITE_VARIANT=tech vite build"` use Unix shell syntax.
@@ -268,6 +326,8 @@ Alternatively, use `.env` file-based variant selection.
 | **Severity** | Medium |
 | **Affected** | `api/*.js` (55 handlers) |
 | **Depends on** | — |
+| **Complexity** | 🔴 Very High — 52 untested handlers, each needs mocked request/response, env vars, and edge-case coverage |
+| **Est. Hours** | 24–32 h |
 
 **Description**
 Only `api/_cors.test.mjs`, `api/cyber-threats.test.mjs`, and `api/youtube/embed.test.mjs` have unit tests.
@@ -285,6 +345,8 @@ Write unit tests for all API handlers using the node built-in test runner. Prior
 | **Severity** | Medium |
 | **Affected** | `vite.config.ts` (line ~200) |
 | **Depends on** | — |
+| **Complexity** | 🟢 Low — verify chunk output filename, adjust `globIgnores` pattern |
+| **Est. Hours** | 1 h |
 
 **Description**
 `globIgnores` excludes `**/onnx*.wasm` but the `ml` chunk (Xenova Transformers JS code) is still matched by `**/*.{js,…}` and will be precached by Workbox.
@@ -302,6 +364,8 @@ Add `**/ml-*.js` to `globPatterns` exclude (it's in `globIgnores` already — ve
 | **Severity** | Medium (maintainability) |
 | **Affected** | `src/components/MapPopup.ts` (113 133 bytes) |
 | **Depends on** | BUG-001 (Phase 2 — independent of `App.ts`, but same decomposition pattern applies) |
+| **Complexity** | 🔴 High — split 113 KB into ~10 per-layer popup renderers + dispatcher, extensive regression testing |
+| **Est. Hours** | 12–16 h |
 
 **Description**
 A single file handling popup rendering for every data layer type (conflicts, bases, cables, pipelines, ports, vessels, aircraft, protests, earthquakes, nuclear, datacenters, tech HQs, etc.).
@@ -321,6 +385,8 @@ Split into per-layer popup renderers (e.g., `popups/ConflictPopup.ts`, `popups/M
 | **Severity** | Low |
 | **Affected** | `src/services/country-instability.ts`, `src/services/hotspot-escalation.ts`, `src/services/military-surge.ts`, `src/services/geo-convergence.ts` |
 | **Depends on** | — |
+| **Complexity** | 🟡 Medium — audit 4 services, extract ~20-30 constants, verify scoring behavior unchanged |
+| **Est. Hours** | 3–4 h |
 
 **Description**
 Scoring thresholds (e.g., `0.35`, `0.25`, `0.15`, `min(50, count × 8)`) are scattered as raw numbers.
@@ -338,6 +404,8 @@ Extract all scoring weights and thresholds into `src/utils/analysis-constants.ts
 | **Severity** | Low |
 | **Affected** | `src/locales/` (22 locale files), various components |
 | **Depends on** | — |
+| **Complexity** | 🔴 High — full codebase audit for hardcoded strings, add keys to 22 locale files |
+| **Est. Hours** | 10–16 h |
 
 **Description**
 Several components use hardcoded English strings (e.g., `"No instability signals detected"` in `CIIPanel.ts` line 114, `"Hide Intelligence Findings"` in `IntelligenceGapBadge.ts` line 161).
@@ -355,6 +423,8 @@ Audit all user-facing strings for missing `t(…)` calls. Add keys to `en.json` 
 | **Severity** | Low |
 | **Affected** | `package.json` — all `test:e2e:*` scripts |
 | **Depends on** | BUG-013 |
+| **Complexity** | 🟢 Trivial — same `cross-env` fix as BUG-013, applied to test scripts |
+| **Est. Hours** | 0.5 h (done alongside BUG-013) |
 
 **Description**
 Same issue as BUG-013 — `VITE_VARIANT=full playwright test` is Unix-only.
@@ -372,6 +442,8 @@ Fix alongside BUG-013 using `cross-env`.
 | **Severity** | Low (maintainability) |
 | **Affected** | `src/components/DeckGLMap.ts` (156 750 bytes) |
 | **Depends on** | BUG-016 |
+| **Complexity** | 🔴 Very High — 156 KB file, split into 3–4 modules (layers, controls, interaction), heavy regression risk |
+| **Est. Hours** | 16–24 h |
 
 **Description**
 The WebGL map implementation handles all deck.gl layer construction, interaction, controls, and popups in one massive file.
