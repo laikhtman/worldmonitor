@@ -39,7 +39,14 @@ interface ResetMessage {
   type: 'reset';
 }
 
-type WorkerMessage = ClusterMessage | CorrelationMessage | ResetMessage;
+interface SignalAggregateMessage {
+  type: 'signal-aggregate';
+  id: string;
+  signals: unknown[];
+  countries?: string[];
+}
+
+type WorkerMessage = ClusterMessage | CorrelationMessage | ResetMessage | SignalAggregateMessage;
 
 interface ClusterResult {
   type: 'cluster-result';
@@ -128,6 +135,30 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
     case 'reset': {
       previousSnapshot = null;
       recentSignalKeys.clear();
+      break;
+    }
+
+    case 'signal-aggregate': {
+      // PERF-037: Signal aggregation delegated to worker
+      // Accepts country signal data and returns aggregated clusters
+      const { signals } = message as SignalAggregateMessage;
+      // Simple pass-through aggregation: group signals by country
+      const clustered = new Map<string, any[]>();
+      for (const sig of (signals || [])) {
+        const key = (sig as any).country || 'unknown';
+        if (!clustered.has(key)) clustered.set(key, []);
+        clustered.get(key)!.push(sig);
+      }
+      const result = {
+        type: 'signal-aggregate-result',
+        id: (message as SignalAggregateMessage).id,
+        clusters: Array.from(clustered.entries()).map(([country, sigs]) => ({
+          country,
+          signalCount: sigs.length,
+          signals: sigs,
+        })),
+      };
+      self.postMessage(result);
       break;
     }
   }

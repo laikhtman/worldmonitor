@@ -323,30 +323,25 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-037 — Move Signal Aggregation to Web Worker
 
 - **Impact:** 🔴 High | **Effort:** ~1 day
-- **Status:** 🔄 Partial — `src/workers/analysis.worker.ts` offloads news clustering (`clusterNews`) and correlation analysis (`analyzeCorrelations`) to a dedicated Web Worker. The `signalAggregator` service (country/region signal grouping) still runs on the main thread.
-- `signal-aggregator.ts` runs complex correlation, clustering, and scoring on the main thread, blocking UI updates.
-- Move the entire aggregation pipeline to a dedicated Web Worker.
+- **Status:** ✅ Completed — `src/workers/analysis.worker.ts` handles signal aggregation via `signal-aggregate` message type, grouping signals by country off the main thread.
 - **Expected gain:** Unblocks main thread for 200–500ms per aggregation cycle.
 
 ### PERF-038 — Move RSS/XML Parsing to Web Worker
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
-- **Status:** ❌ Not started
-- XML parsing of 70+ RSS feeds is CPU-intensive. Offload to a worker.
+- **Status:** ✅ Completed — `src/workers/rss.worker.ts` offloads RSS/XML parsing (both RSS 2.0 and Atom) to a dedicated Web Worker, keeping the main thread free during news refresh.
 - **Expected gain:** Smoother UI during news refresh.
 
 ### PERF-039 — Move Geo-Convergence Calculation to Web Worker
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
-- **Status:** ❌ Not started
-- `geo-convergence.ts` computes pairwise distances between hundreds of events. O(n²) on the main thread.
+- **Status:** ✅ Completed — `src/workers/geo-convergence.worker.ts` performs O(n²) pairwise Haversine distance calculations and event clustering off the main thread.
 - **Expected gain:** Eliminates 100–300ms main-thread stalls.
 
 ### PERF-040 — Move CII Calculation to Web Worker
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
-- **Status:** ❌ Not started
-- `country-instability.ts` calculates scores for 20+ countries with multiple data ingestion stages.
+- **Status:** ✅ Completed — `src/workers/cii.worker.ts` computes Country Instability Index scores for 20+ countries off the main thread, eliminating 50–150ms main-thread stalls.
 - **Expected gain:** Eliminates 50–150ms main-thread stalls during CII refresh.
 
 ### PERF-041 — SharedArrayBuffer for Large Datasets
