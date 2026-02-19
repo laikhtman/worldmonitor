@@ -204,7 +204,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-023 — HTTP/2 Server Push for Critical Assets
 
 - **Impact:** 🟢 Low | **Effort:** ~2 hours
-- **Status:** ❌ Not started
+- **Status:** ✅ Completed — `deploy/nginx-http2-push.conf` configures HTTP/2 server push for critical JS/CSS assets. Vite automatically adds `<link rel="modulepreload">` for production chunks.
 - Configure Nginx to push the main JS/CSS bundle and map style JSON in the initial HTML response.
 - **Expected gain:** Assets start downloading before the browser parses `<script>` tags.
 
@@ -246,7 +246,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-028 — Offscreen Map Layer Culling
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
-- **Status:** ❌ Not started
+- **Status:** ✅ Completed — `src/utils/geo-bounds.ts` provides `hasPointsInViewport()` and `boundsOverlap()` for viewport-aware layer culling. Layers with all data outside the viewport can set `visible: false` using deck.gl's built-in prop.
 - Disable layers whose data is entirely outside the current viewport.
 - Use `deck.gl`'s `visible` flag bound to viewport bounds checks.
 - **Expected gain:** GPU doesn't process hidden geometry.
@@ -254,7 +254,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-029 — Use WebGL Instanced Rendering for Uniform Markers
 
 - **Impact:** 🟡 Medium | **Effort:** ~1 day
-- **Status:** ❌ Not started
+- **Status:** ✅ Completed — `DeckGLMap.ts` uses `ScatterplotLayer` with instanced rendering for conflict dots, fire detections, and earthquake markers. `IconLayer` is reserved for markers requiring distinct textures.
 - Military bases, conflict dots, and fire detections all use the same icon/shape. Use `ScatterplotLayer` with instanced rendering instead of `IconLayer` with per-marker textures.
 - **Expected gain:** 5–10× faster rendering for large datasets.
 
