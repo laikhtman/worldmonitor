@@ -35,7 +35,7 @@ import { fetchUcdpEvents, deduplicateAgainstAcled } from '@/services/ucdp-events
 import { fetchUnhcrPopulation } from '@/services/unhcr';
 import { fetchClimateAnomalies } from '@/services/climate';
 import { enrichEventsWithExposure } from '@/services/population-exposure';
-import { getCircuitBreakerCooldownInfo, debounce } from '@/utils';
+import { getCircuitBreakerCooldownInfo, debounce, deferToIdle } from '@/utils';
 import { isFeatureAvailable } from '@/services/runtime-config';
 import { INTEL_HOTSPOTS, CONFLICT_ZONES } from '@/config/geo';
 import { mlWorker } from '@/services/ml-worker';
@@ -83,51 +83,64 @@ export class DataLoaderController {
       }
     };
 
-    const tasks: Array<{ name: string; task: Promise<void> }> = [
+    // PERF-003: Critical data loaded immediately; non-critical deferred to idle periods
+    const criticalTasks: Array<{ name: string; task: Promise<void> }> = [
       { name: 'news', task: runGuarded('news', () => this.loadNews()) },
       { name: 'markets', task: runGuarded('markets', () => this.loadMarkets()) },
-      { name: 'predictions', task: runGuarded('predictions', () => this.loadPredictions()) },
-      { name: 'pizzint', task: runGuarded('pizzint', () => this.loadPizzInt()) },
-      { name: 'fred', task: runGuarded('fred', () => this.loadFredData()) },
-      { name: 'oil', task: runGuarded('oil', () => this.loadOilAnalytics()) },
-      { name: 'spending', task: runGuarded('spending', () => this.loadGovernmentSpending()) },
     ];
 
     // Load intelligence signals for CII calculation (protests, military, outages)
     // Only for geopolitical variant - tech variant doesn't need CII/focal points
     if (SITE_VARIANT === 'full') {
-      tasks.push({ name: 'intelligence', task: runGuarded('intelligence', () => this.loadIntelligenceSignals()) });
+      criticalTasks.push({ name: 'intelligence', task: runGuarded('intelligence', () => this.loadIntelligenceSignals()) });
     }
 
-    // Conditionally load non-intelligence layers
-    // NOTE: outages, protests, military are handled by loadIntelligenceSignals() above
-    // They update the map when layers are enabled, so no duplicate tasks needed here
-    if (SITE_VARIANT === 'full') tasks.push({ name: 'firms', task: runGuarded('firms', () => this.loadFirmsData()) });
-    if (this.ctx.mapLayers.natural) tasks.push({ name: 'natural', task: runGuarded('natural', () => this.loadNatural()) });
-    if (this.ctx.mapLayers.weather) tasks.push({ name: 'weather', task: runGuarded('weather', () => this.loadWeatherAlerts()) });
-    if (this.ctx.mapLayers.ais) tasks.push({ name: 'ais', task: runGuarded('ais', () => this.loadAisSignals()) });
-    if (this.ctx.mapLayers.cables) tasks.push({ name: 'cables', task: runGuarded('cables', () => this.loadCableActivity()) });
-    if (this.ctx.mapLayers.flights) tasks.push({ name: 'flights', task: runGuarded('flights', () => this.loadFlightDelays()) });
-    if (CYBER_LAYER_ENABLED && this.ctx.mapLayers.cyberThreats) tasks.push({ name: 'cyberThreats', task: runGuarded('cyberThreats', () => this.loadCyberThreats()) });
-    if (this.ctx.mapLayers.techEvents || SITE_VARIANT === 'tech') tasks.push({ name: 'techEvents', task: runGuarded('techEvents', () => this.loadTechEvents()) });
-
-    // Tech Readiness panel (tech variant only)
-    if (SITE_VARIANT === 'tech') {
-      tasks.push({ name: 'techReadiness', task: runGuarded('techReadiness', () => (this.ctx.panels['tech-readiness'] as TechReadinessPanel)?.refresh()) });
-    }
-
-    // Use allSettled to ensure all tasks complete and search index always updates
-    const results = await Promise.allSettled(tasks.map(t => t.task));
+    // Use allSettled to ensure all critical tasks complete and search index always updates
+    const results = await Promise.allSettled(criticalTasks.map(t => t.task));
 
     // Log any failures but don't block
     results.forEach((result, idx) => {
       if (result.status === 'rejected') {
-        console.error(`[App] ${tasks[idx]?.name} load failed:`, result.reason);
+        console.error(`[App] ${criticalTasks[idx]?.name} load failed:`, result.reason);
       }
     });
 
     // Always update search index regardless of individual task failures
     this.callbacks.updateSearchIndex();
+
+    // PERF-003: Defer non-critical fetches to idle periods (5s timeout)
+    deferToIdle(() => {
+      const deferredTasks: Array<{ name: string; task: Promise<void> }> = [
+        { name: 'predictions', task: runGuarded('predictions', () => this.loadPredictions()) },
+        { name: 'pizzint', task: runGuarded('pizzint', () => this.loadPizzInt()) },
+        { name: 'fred', task: runGuarded('fred', () => this.loadFredData()) },
+        { name: 'oil', task: runGuarded('oil', () => this.loadOilAnalytics()) },
+        { name: 'spending', task: runGuarded('spending', () => this.loadGovernmentSpending()) },
+      ];
+
+      if (SITE_VARIANT === 'full') deferredTasks.push({ name: 'firms', task: runGuarded('firms', () => this.loadFirmsData()) });
+      if (this.ctx.mapLayers.natural) deferredTasks.push({ name: 'natural', task: runGuarded('natural', () => this.loadNatural()) });
+      if (this.ctx.mapLayers.weather) deferredTasks.push({ name: 'weather', task: runGuarded('weather', () => this.loadWeatherAlerts()) });
+      if (this.ctx.mapLayers.ais) deferredTasks.push({ name: 'ais', task: runGuarded('ais', () => this.loadAisSignals()) });
+      if (this.ctx.mapLayers.cables) deferredTasks.push({ name: 'cables', task: runGuarded('cables', () => this.loadCableActivity()) });
+      if (this.ctx.mapLayers.flights) deferredTasks.push({ name: 'flights', task: runGuarded('flights', () => this.loadFlightDelays()) });
+      if (CYBER_LAYER_ENABLED && this.ctx.mapLayers.cyberThreats) deferredTasks.push({ name: 'cyberThreats', task: runGuarded('cyberThreats', () => this.loadCyberThreats()) });
+      if (this.ctx.mapLayers.techEvents || SITE_VARIANT === 'tech') deferredTasks.push({ name: 'techEvents', task: runGuarded('techEvents', () => this.loadTechEvents()) });
+
+      // Tech Readiness panel (tech variant only)
+      if (SITE_VARIANT === 'tech') {
+        deferredTasks.push({ name: 'techReadiness', task: runGuarded('techReadiness', () => (this.ctx.panels['tech-readiness'] as TechReadinessPanel)?.refresh()) });
+      }
+
+      Promise.allSettled(deferredTasks.map(t => t.task)).then(deferredResults => {
+        deferredResults.forEach((result, idx) => {
+          if (result.status === 'rejected') {
+            console.error(`[App] ${deferredTasks[idx]?.name} load failed:`, result.reason);
+          }
+        });
+        this.callbacks.updateSearchIndex();
+      });
+    }, 5000);
   }
 
   // ----------------------------------------------------------------

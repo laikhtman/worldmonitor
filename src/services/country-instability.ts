@@ -7,6 +7,11 @@ import type { UcdpConflictStatus } from './ucdp';
 import type { HapiConflictSummary } from './hapi';
 import type { CountryDisplacement, ClimateAnomaly } from '@/types';
 import { getCountryAtCoordinates } from './country-geometry';
+import {
+  CII_COMPONENT_WEIGHTS, CII_BLEND, CII_UNREST, CII_CONFLICT, CII_SECURITY,
+  CII_INFORMATION, CII_LEVEL_THRESHOLDS, CII_TREND_THRESHOLD, CII_HIGH_VOLUME_THRESHOLD,
+  CII_BOOSTS, CII_PROXIMITY_KM, CII_LEARNING_DURATION_MS,
+} from '@/utils/analysis-constants';
 
 export interface CountryScore {
   code: string;
@@ -43,7 +48,6 @@ interface CountryData {
 export { TIER1_COUNTRIES } from '@/config/countries';
 
 // Learning Mode - warmup period for reliable data (bypassed when cached scores exist)
-const LEARNING_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 let learningStartTime: number | null = null;
 let isLearningComplete = false;
 let hasCachedScoresAvailable = false;
@@ -67,7 +71,7 @@ export function isInLearningMode(): boolean {
   if (learningStartTime === null) return true;
 
   const elapsed = Date.now() - learningStartTime;
-  if (elapsed >= LEARNING_DURATION_MS) {
+  if (elapsed >= CII_LEARNING_DURATION_MS) {
     isLearningComplete = true;
     return false;
   }
@@ -79,12 +83,12 @@ export function getLearningProgress(): { inLearning: boolean; remainingMinutes: 
     return { inLearning: false, remainingMinutes: 0, progress: 100 };
   }
   if (learningStartTime === null) {
-    return { inLearning: true, remainingMinutes: 15, progress: 0 };
+    return { inLearning: true, remainingMinutes: CII_LEARNING_DURATION_MS / 60000, progress: 0 };
   }
 
   const elapsed = Date.now() - learningStartTime;
-  const remaining = Math.max(0, LEARNING_DURATION_MS - elapsed);
-  const progress = Math.min(100, (elapsed / LEARNING_DURATION_MS) * 100);
+  const remaining = Math.max(0, CII_LEARNING_DURATION_MS - elapsed);
+  const progress = Math.min(100, (elapsed / CII_LEARNING_DURATION_MS) * 100);
 
   return {
     inLearning: remaining > 0,
@@ -292,7 +296,7 @@ export function ingestClimateForCII(anomalies: ClimateAnomaly[]): void {
     for (const code of codes) {
       if (!TIER1_COUNTRIES[code]) continue;
       if (!countryDataMap.has(code)) countryDataMap.set(code, initCountryData());
-      const stress = a.severity === 'extreme' ? 15 : 8;
+      const stress = a.severity === 'extreme' ? CII_BOOSTS.climateExtreme : CII_BOOSTS.climateModerate;
       countryDataMap.get(code)!.climateStress = Math.max(countryDataMap.get(code)!.climateStress, stress);
     }
   }
@@ -350,7 +354,7 @@ const hotspotActivityMap = new Map<string, number>();
 function trackHotspotActivity(lat: number, lon: number, weight: number = 1): void {
   for (const hotspot of INTEL_HOTSPOTS) {
     const dist = haversineKm(lat, lon, hotspot.lat, hotspot.lon);
-    if (dist < 150) {
+    if (dist < CII_PROXIMITY_KM.hotspot) {
       const countryCode = HOTSPOT_COUNTRY_MAP[hotspot.id];
       if (countryCode && TIER1_COUNTRIES[countryCode]) {
         const current = hotspotActivityMap.get(countryCode) || 0;
@@ -361,7 +365,7 @@ function trackHotspotActivity(lat: number, lon: number, weight: number = 1): voi
   for (const zone of CONFLICT_ZONES) {
     const [zoneLon, zoneLat] = zone.center;
     const dist = haversineKm(lat, lon, zoneLat, zoneLon);
-    if (dist < 300) {
+    if (dist < CII_PROXIMITY_KM.conflictZone) {
       const zoneCountries: Record<string, string[]> = {
         ukraine: ['UA', 'RU'], gaza: ['IL', 'IR'], sudan: ['SA'], myanmar: ['MM'],
       };
@@ -376,7 +380,7 @@ function trackHotspotActivity(lat: number, lon: number, weight: number = 1): voi
   }
   for (const waterway of STRATEGIC_WATERWAYS) {
     const dist = haversineKm(lat, lon, waterway.lat, waterway.lon);
-    if (dist < 200) {
+    if (dist < CII_PROXIMITY_KM.waterway) {
       const waterwayCountries: Record<string, string[]> = {
         taiwan_strait: ['TW', 'CN'], hormuz_strait: ['IR', 'SA'],
         bab_el_mandeb: ['YE', 'SA'], suez: ['IL'], bosphorus: ['TR'],
@@ -394,7 +398,7 @@ function trackHotspotActivity(lat: number, lon: number, weight: number = 1): voi
 
 function getHotspotBoost(countryCode: string): number {
   const activity = hotspotActivityMap.get(countryCode) || 0;
-  return Math.min(10, activity * 1.5);  // Reduced from 30 max to 10 max
+  return Math.min(CII_BOOSTS.hotspotBoostCap, activity * CII_BOOSTS.hotspotBoostMultiplier);
 }
 
 export function ingestMilitaryForCII(flights: MilitaryFlight[], vessels: MilitaryVessel[]): void {
@@ -490,16 +494,16 @@ function calcUnrestScore(data: CountryData, countryCode: string): number {
 
     // For democracies with frequent protests (low multiplier), use log scaling
     // This prevents routine protests from triggering instability alerts
-    const isHighVolume = multiplier < 0.7;
+    const isHighVolume = multiplier < CII_HIGH_VOLUME_THRESHOLD;
     const adjustedCount = isHighVolume
-      ? Math.log2(protestCount + 1) * multiplier * 5  // Log scale for democracies
+      ? Math.log2(protestCount + 1) * multiplier * CII_UNREST.logScaleMultiplier
       : protestCount * multiplier;
 
-    baseScore = Math.min(50, adjustedCount * 8);
+    baseScore = Math.min(CII_UNREST.baseScoreCap, adjustedCount * CII_UNREST.baseScoreMultiplier);
 
     // Fatalities and high severity always matter, but scaled by multiplier
-    fatalityBoost = Math.min(30, fatalities * 5 * multiplier);
-    severityBoost = Math.min(20, highSeverity * 10 * multiplier);
+    fatalityBoost = Math.min(CII_UNREST.fatalityBoostCap, fatalities * CII_UNREST.fatalityMultiplier * multiplier);
+    severityBoost = Math.min(CII_UNREST.severityBoostCap, highSeverity * CII_UNREST.severityMultiplier * multiplier);
   }
 
   // Internet outages are a MAJOR signal of instability
@@ -513,7 +517,8 @@ function calcUnrestScore(data: CountryData, countryCode: string): number {
     // Total blackout = major red flag (30 points)
     // Major outage = significant (15 points)
     // Partial = moderate (5 points)
-    outageBoost = Math.min(50, totalOutages * 30 + majorOutages * 15 + partialOutages * 5);
+    outageBoost = Math.min(CII_UNREST.outageBoostCap,
+      totalOutages * CII_UNREST.outageTotal + majorOutages * CII_UNREST.outageMajor + partialOutages * CII_UNREST.outagePartial);
   }
 
   return Math.min(100, baseScore + fatalityBoost + severityBoost + outageBoost);
@@ -530,15 +535,17 @@ function calcConflictScore(data: CountryData, countryCode: string): number {
   const civilianCount = events.filter(e => e.eventType === 'violence_against_civilians').length;
   const totalFatalities = events.reduce((sum, e) => sum + e.fatalities, 0);
 
-  const eventScore = Math.min(50, (battleCount * 3 + explosionCount * 4 + civilianCount * 5) * multiplier);
-  const fatalityScore = Math.min(40, Math.sqrt(totalFatalities) * 5 * multiplier);
-  const civilianBoost = civilianCount > 0 ? Math.min(10, civilianCount * 3) : 0;
+  const eventScore = Math.min(CII_CONFLICT.eventScoreCap,
+    (battleCount * CII_CONFLICT.battleWeight + explosionCount * CII_CONFLICT.explosionWeight + civilianCount * CII_CONFLICT.civilianWeight) * multiplier);
+  const fatalityScore = Math.min(CII_CONFLICT.fatalityScoreCap, Math.sqrt(totalFatalities) * CII_CONFLICT.fatalityMultiplier * multiplier);
+  const civilianBoost = civilianCount > 0 ? Math.min(CII_CONFLICT.civilianBoostCap, civilianCount * CII_CONFLICT.civilianBoostMultiplier) : 0;
 
   // HAPI fallback: if no ACLED conflict events but HAPI shows political violence
   let hapiFallback = 0;
   if (events.length === 0 && data.hapiSummary) {
     const h = data.hapiSummary;
-    hapiFallback = Math.min(60, (h.eventsPoliticalViolence * 2 + h.eventsCivilianTargeting * 3) * multiplier);
+    hapiFallback = Math.min(CII_CONFLICT.hapiFallbackCap,
+      (h.eventsPoliticalViolence * CII_CONFLICT.hapiPoliticalViolenceWeight + h.eventsCivilianTargeting * CII_CONFLICT.hapiCivilianTargetingWeight) * multiplier);
   }
 
   return Math.min(100, Math.max(eventScore + fatalityScore + civilianBoost, hapiFallback));
@@ -557,8 +564,8 @@ function getUcdpFloor(data: CountryData): number {
 function calcSecurityScore(data: CountryData): number {
   const flights = data.militaryFlights.length;
   const vessels = data.militaryVessels.length;
-  const flightScore = Math.min(50, flights * 3);
-  const vesselScore = Math.min(30, vessels * 5);
+  const flightScore = Math.min(CII_SECURITY.flightsCap, flights * CII_SECURITY.flightsMultiplier);
+  const vesselScore = Math.min(CII_SECURITY.vesselsCap, vessels * CII_SECURITY.vesselsMultiplier);
   return Math.min(100, flightScore + vesselScore);
 }
 
@@ -572,30 +579,30 @@ function calcInformationScore(data: CountryData, countryCode: string): number {
 
   // For high-volume countries (US, UK, DE, FR), use logarithmic scaling
   // This prevents routine news volume from triggering instability
-  const isHighVolume = multiplier < 0.7;
+  const isHighVolume = multiplier < CII_HIGH_VOLUME_THRESHOLD;
   const adjustedCount = isHighVolume
-    ? Math.log2(count + 1) * multiplier * 3  // Log scale for media-saturated countries
+    ? Math.log2(count + 1) * multiplier * CII_INFORMATION.logScaleMultiplier
     : count * multiplier;
 
-  const baseScore = Math.min(40, adjustedCount * 5);
+  const baseScore = Math.min(CII_INFORMATION.baseScoreCap, adjustedCount * CII_INFORMATION.countMultiplier);
 
   // Velocity only matters if it's actually high (breaking news style)
-  const velocityThreshold = isHighVolume ? 5 : 2;
+  const velocityThreshold = isHighVolume ? CII_INFORMATION.velocityThresholdHighVolume : CII_INFORMATION.velocityThresholdNormal;
   const velocityBoost = avgVelocity > velocityThreshold
-    ? Math.min(40, (avgVelocity - velocityThreshold) * 10 * multiplier)
+    ? Math.min(CII_INFORMATION.velocityBoostCap, (avgVelocity - velocityThreshold) * CII_INFORMATION.velocityMultiplier * multiplier)
     : 0;
 
   // Alert boost also scaled by multiplier
-  const alertBoost = data.newsEvents.some(e => e.isAlert) ? 20 * multiplier : 0;
+  const alertBoost = data.newsEvents.some(e => e.isAlert) ? CII_INFORMATION.alertBoost * multiplier : 0;
 
   return Math.min(100, baseScore + velocityBoost + alertBoost);
 }
 
 function getLevel(score: number): CountryScore['level'] {
-  if (score >= 81) return 'critical';
-  if (score >= 66) return 'high';
-  if (score >= 51) return 'elevated';
-  if (score >= 31) return 'normal';
+  if (score >= CII_LEVEL_THRESHOLDS.critical) return 'critical';
+  if (score >= CII_LEVEL_THRESHOLDS.high) return 'high';
+  if (score >= CII_LEVEL_THRESHOLDS.elevated) return 'elevated';
+  if (score >= CII_LEVEL_THRESHOLDS.normal) return 'normal';
   return 'low';
 }
 
@@ -603,8 +610,8 @@ function getTrend(code: string, current: number): CountryScore['trend'] {
   const prev = previousScores.get(code);
   if (prev === undefined) return 'stable';
   const diff = current - prev;
-  if (diff >= 5) return 'rising';
-  if (diff <= -5) return 'falling';
+  if (diff >= CII_TREND_THRESHOLD) return 'rising';
+  if (diff <= -CII_TREND_THRESHOLD) return 'falling';
   return 'stable';
 }
 
@@ -624,23 +631,23 @@ export function calculateCII(): CountryScore[] {
     };
 
     // Weighted components: conflict gets highest weight (armed conflict is strongest signal)
-    const eventScore = components.unrest * 0.25 + components.conflict * 0.30 + components.security * 0.20 + components.information * 0.25;
+    const eventScore = components.unrest * CII_COMPONENT_WEIGHTS.unrest + components.conflict * CII_COMPONENT_WEIGHTS.conflict + components.security * CII_COMPONENT_WEIGHTS.security + components.information * CII_COMPONENT_WEIGHTS.information;
 
     const hotspotBoost = getHotspotBoost(code);
-    const newsUrgencyBoost = components.information >= 70 ? 5
-      : components.information >= 50 ? 3
+    const newsUrgencyBoost = components.information >= CII_BOOSTS.newsUrgencyHigh.threshold ? CII_BOOSTS.newsUrgencyHigh.boost
+      : components.information >= CII_BOOSTS.newsUrgencyMedium.threshold ? CII_BOOSTS.newsUrgencyMedium.boost
       : 0;
     const focalUrgency = focalUrgencies.get(code);
-    const focalBoost = focalUrgency === 'critical' ? 8
-      : focalUrgency === 'elevated' ? 4
+    const focalBoost = focalUrgency === 'critical' ? CII_BOOSTS.focalCritical
+      : focalUrgency === 'elevated' ? CII_BOOSTS.focalElevated
       : 0;
 
-    const displacementBoost = data.displacementOutflow >= 1_000_000 ? 8
-      : data.displacementOutflow >= 100_000 ? 4
+    const displacementBoost = data.displacementOutflow >= CII_BOOSTS.displacementLarge.threshold ? CII_BOOSTS.displacementLarge.boost
+      : data.displacementOutflow >= CII_BOOSTS.displacementMedium.threshold ? CII_BOOSTS.displacementMedium.boost
       : 0;
     const climateBoost = data.climateStress;
 
-    const blendedScore = baselineRisk * 0.4 + eventScore * 0.6 + hotspotBoost + newsUrgencyBoost + focalBoost + displacementBoost + climateBoost;
+    const blendedScore = baselineRisk * CII_BLEND.baseline + eventScore * CII_BLEND.events + hotspotBoost + newsUrgencyBoost + focalBoost + displacementBoost + climateBoost;
 
     // UCDP-derived conflict floor replaces hardcoded floors
     // war (1000+ deaths/yr) → 70, minor (25-999) → 50, none → 0
@@ -682,20 +689,20 @@ export function getCountryScore(code: string): number | null {
     information: calcInformationScore(data, code),
   };
 
-  const eventScore = components.unrest * 0.25 + components.conflict * 0.30 + components.security * 0.20 + components.information * 0.25;
+  const eventScore = components.unrest * CII_COMPONENT_WEIGHTS.unrest + components.conflict * CII_COMPONENT_WEIGHTS.conflict + components.security * CII_COMPONENT_WEIGHTS.security + components.information * CII_COMPONENT_WEIGHTS.information;
   const hotspotBoost = getHotspotBoost(code);
-  const newsUrgencyBoost = components.information >= 70 ? 5
-    : components.information >= 50 ? 3
+  const newsUrgencyBoost = components.information >= CII_BOOSTS.newsUrgencyHigh.threshold ? CII_BOOSTS.newsUrgencyHigh.boost
+    : components.information >= CII_BOOSTS.newsUrgencyMedium.threshold ? CII_BOOSTS.newsUrgencyMedium.boost
     : 0;
   const focalUrgency = focalPointDetector.getCountryUrgency(code);
-  const focalBoost = focalUrgency === 'critical' ? 8
-    : focalUrgency === 'elevated' ? 4
+  const focalBoost = focalUrgency === 'critical' ? CII_BOOSTS.focalCritical
+    : focalUrgency === 'elevated' ? CII_BOOSTS.focalElevated
     : 0;
-  const displacementBoost = data.displacementOutflow >= 1_000_000 ? 8
-    : data.displacementOutflow >= 100_000 ? 4
+  const displacementBoost = data.displacementOutflow >= CII_BOOSTS.displacementLarge.threshold ? CII_BOOSTS.displacementLarge.boost
+    : data.displacementOutflow >= CII_BOOSTS.displacementMedium.threshold ? CII_BOOSTS.displacementMedium.boost
     : 0;
   const climateBoost = data.climateStress;
-  const blendedScore = baselineRisk * 0.4 + eventScore * 0.6 + hotspotBoost + newsUrgencyBoost + focalBoost + displacementBoost + climateBoost;
+  const blendedScore = baselineRisk * CII_BLEND.baseline + eventScore * CII_BLEND.events + hotspotBoost + newsUrgencyBoost + focalBoost + displacementBoost + climateBoost;
 
   const floor = getUcdpFloor(data);
   return Math.round(Math.min(100, Math.max(floor, blendedScore)));

@@ -1,5 +1,5 @@
 import type { SocialUnrestEvent, MilitaryFlight, MilitaryVessel, Earthquake } from '@/types';
-import { generateSignalId } from '@/utils/analysis-constants';
+import { generateSignalId, GEO_CONVERGENCE_THRESHOLD, GEO_CONVERGENCE_WINDOW_MS, GEO_CONVERGENCE_SCORING, GEO_CONVERGENCE_PROXIMITY_KM } from '@/utils/analysis-constants';
 import type { CorrelationSignalCore } from './analysis-core';
 import { INTEL_HOTSPOTS, CONFLICT_ZONES, STRATEGIC_WATERWAYS } from '@/config/geo';
 
@@ -14,8 +14,6 @@ interface GeoCell {
 }
 
 const cells = new Map<string, GeoCell>();
-const WINDOW_MS = 24 * 60 * 60 * 1000;
-const CONVERGENCE_THRESHOLD = 3;
 
 export function getCellId(lat: number, lon: number): string {
   return `${Math.floor(lat)},${Math.floor(lon)}`;
@@ -49,7 +47,7 @@ export function ingestGeoEvent(
 }
 
 function pruneOldEvents(): void {
-  const cutoff = Date.now() - WINDOW_MS;
+  const cutoff = Date.now() - GEO_CONVERGENCE_WINDOW_MS;
 
   for (const [cellId, cell] of cells) {
     for (const [type, data] of cell.events) {
@@ -102,16 +100,16 @@ export function detectGeoConvergence(seenAlerts: Set<string>): GeoConvergenceAle
   const alerts: GeoConvergenceAlert[] = [];
 
   for (const [cellId, cell] of cells) {
-    if (cell.events.size >= CONVERGENCE_THRESHOLD) {
+    if (cell.events.size >= GEO_CONVERGENCE_THRESHOLD) {
       if (seenAlerts.has(cellId)) continue;
 
       const types = Array.from(cell.events.keys());
       const totalEvents = Array.from(cell.events.values())
         .reduce((sum, d) => sum + d.count, 0);
 
-      const typeScore = cell.events.size * 25;
-      const countBoost = Math.min(25, totalEvents * 2);
-      const score = Math.min(100, typeScore + countBoost);
+      const typeScore = cell.events.size * GEO_CONVERGENCE_SCORING.typeMultiplier;
+      const countBoost = Math.min(GEO_CONVERGENCE_SCORING.countBoostCap, totalEvents * GEO_CONVERGENCE_SCORING.countMultiplier);
+      const score = Math.min(GEO_CONVERGENCE_SCORING.scoreCap, typeScore + countBoost);
 
       alerts.push({ cellId, lat: cell.lat, lon: cell.lon, types, totalEvents, score });
       seenAlerts.add(cellId);
@@ -143,7 +141,7 @@ export function getLocationName(lat: number, lon: number): string {
   for (const zone of CONFLICT_ZONES) {
     const [zoneLon, zoneLat] = zone.center;
     const dist = haversineKm(lat, lon, zoneLat, zoneLon);
-    if (dist < 300) {
+    if (dist < GEO_CONVERGENCE_PROXIMITY_KM.conflictZone) {
       return zone.name.replace(' Conflict', '').replace(' Civil War', '');
     }
   }
@@ -151,7 +149,7 @@ export function getLocationName(lat: number, lon: number): string {
   // Check strategic waterways
   for (const waterway of STRATEGIC_WATERWAYS) {
     const dist = haversineKm(lat, lon, waterway.lat, waterway.lon);
-    if (dist < 200) {
+    if (dist < GEO_CONVERGENCE_PROXIMITY_KM.waterway) {
       return waterway.name;
     }
   }
@@ -160,7 +158,7 @@ export function getLocationName(lat: number, lon: number): string {
   let nearestHotspot: { name: string; dist: number } | null = null;
   for (const hotspot of INTEL_HOTSPOTS) {
     const dist = haversineKm(lat, lon, hotspot.lat, hotspot.lon);
-    if (dist < 150 && (!nearestHotspot || dist < nearestHotspot.dist)) {
+    if (dist < GEO_CONVERGENCE_PROXIMITY_KM.hotspot && (!nearestHotspot || dist < nearestHotspot.dist)) {
       nearestHotspot = { name: hotspot.name, dist };
     }
   }
@@ -238,9 +236,9 @@ export function getAlertsNearLocation(lat: number, lon: number, radiusKm: number
     if (dist <= radiusKm && cell.events.size >= 2) {
       const types = cell.events.size;
       const totalEvents = Array.from(cell.events.values()).reduce((sum, d) => sum + d.count, 0);
-      const typeScore = types * 25;
-      const countBoost = Math.min(25, totalEvents * 2);
-      const score = Math.min(100, typeScore + countBoost);
+      const typeScore = types * GEO_CONVERGENCE_SCORING.typeMultiplier;
+      const countBoost = Math.min(GEO_CONVERGENCE_SCORING.countBoostCap, totalEvents * GEO_CONVERGENCE_SCORING.countMultiplier);
+      const score = Math.min(GEO_CONVERGENCE_SCORING.scoreCap, typeScore + countBoost);
 
       if (score > maxScore) {
         maxScore = score;

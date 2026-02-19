@@ -35,6 +35,9 @@ export class DeepLinkHandler {
   /*  Deep-link handling (runs once on startup)                        */
   /* ---------------------------------------------------------------- */
 
+  /** Max polling attempts before giving up on deep-link data (BUG-009). */
+  private static readonly MAX_DEEP_LINK_RETRIES = 60; // 60 × 500 ms = 30 s
+
   handleDeepLinks(callbacks: DeepLinkCallbacks): void {
     const url = new URL(window.location.href);
     if (url.pathname === '/story' || url.searchParams.has('c')) {
@@ -48,11 +51,14 @@ export class DeepLinkHandler {
           SY: 'Syria', YE: 'Yemen', MM: 'Myanmar', VE: 'Venezuela',
         };
         const countryName = countryNames[countryCode.toUpperCase()] || countryCode;
+        let storyRetries = 0;
         const checkAndOpen = () => {
           if (dataFreshness.hasSufficientData() && this.ctx.latestClusters.length > 0) {
             callbacks.openCountryStory(countryCode.toUpperCase(), countryName);
-          } else {
+          } else if (++storyRetries < DeepLinkHandler.MAX_DEEP_LINK_RETRIES) {
             setTimeout(checkAndOpen, 500);
+          } else {
+            console.warn(`[DeepLink] Gave up waiting for story data after ${storyRetries} retries (country=${countryCode})`);
           }
         };
         setTimeout(checkAndOpen, 2000);
@@ -65,11 +71,14 @@ export class DeepLinkHandler {
     this.ctx.pendingDeepLinkCountry = null;
     if (deepLinkCountry) {
       const cName = callbacks.resolveCountryName(deepLinkCountry);
+      let briefRetries = 0;
       const checkAndOpenBrief = () => {
         if (dataFreshness.hasSufficientData()) {
           callbacks.openCountryBriefByCode(deepLinkCountry, cName);
-        } else {
+        } else if (++briefRetries < DeepLinkHandler.MAX_DEEP_LINK_RETRIES) {
           setTimeout(checkAndOpenBrief, 500);
+        } else {
+          console.warn(`[DeepLink] Gave up waiting for brief data after ${briefRetries} retries (country=${deepLinkCountry})`);
         }
       };
       setTimeout(checkAndOpenBrief, 2000);

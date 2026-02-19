@@ -324,6 +324,262 @@ export const SIGNAL_CONTEXT: Record<SignalType, SignalContext> = {
   },
 };
 
+// ============================================================
+// SCORING ALGORITHM CONSTANTS
+// Centralized magic numbers used by CII, hotspot-escalation,
+// military-surge, and geo-convergence scoring services.
+// ============================================================
+
+// --- Country Instability Index (CII) ---
+
+/** Weights for each CII component (must sum to 1.0) */
+export const CII_COMPONENT_WEIGHTS = {
+  unrest: 0.25,
+  conflict: 0.30,
+  security: 0.20,
+  information: 0.25,
+} as const;
+
+/** How much baseline risk vs. live event score influences final CII */
+export const CII_BLEND = {
+  baseline: 0.4,
+  events: 0.6,
+} as const;
+
+/** Unrest sub-score caps and multipliers */
+export const CII_UNREST = {
+  baseScoreCap: 50,
+  baseScoreMultiplier: 8,
+  fatalityBoostCap: 30,
+  fatalityMultiplier: 5,
+  severityBoostCap: 20,
+  severityMultiplier: 10,
+  /** Outage scoring: total blackout / major / partial per-event points */
+  outageTotal: 30,
+  outageMajor: 15,
+  outagePartial: 5,
+  outageBoostCap: 50,
+  /** Democracy log-scale multiplier for frequent-protest countries */
+  logScaleMultiplier: 5,
+} as const;
+
+/** Conflict sub-score caps and multipliers */
+export const CII_CONFLICT = {
+  battleWeight: 3,
+  explosionWeight: 4,
+  civilianWeight: 5,
+  eventScoreCap: 50,
+  fatalityScoreCap: 40,
+  fatalityMultiplier: 5,
+  civilianBoostCap: 10,
+  civilianBoostMultiplier: 3,
+  /** HAPI fallback weights when ACLED data is unavailable */
+  hapiPoliticalViolenceWeight: 2,
+  hapiCivilianTargetingWeight: 3,
+  hapiFallbackCap: 60,
+} as const;
+
+/** Security sub-score caps and multipliers */
+export const CII_SECURITY = {
+  flightsMultiplier: 3,
+  flightsCap: 50,
+  vesselsMultiplier: 5,
+  vesselsCap: 30,
+} as const;
+
+/** Information sub-score caps and multipliers */
+export const CII_INFORMATION = {
+  baseScoreCap: 40,
+  countMultiplier: 5,
+  /** Log-scale multiplier for media-saturated countries */
+  logScaleMultiplier: 3,
+  velocityThresholdHighVolume: 5,
+  velocityThresholdNormal: 2,
+  velocityMultiplier: 10,
+  velocityBoostCap: 40,
+  alertBoost: 20,
+} as const;
+
+/** CII instability level score thresholds */
+export const CII_LEVEL_THRESHOLDS = {
+  critical: 81,
+  high: 66,
+  elevated: 51,
+  normal: 31,
+} as const;
+
+/** Minimum score change to register a trend direction */
+export const CII_TREND_THRESHOLD = 5;
+
+/** EVENT_MULTIPLIER below this → country treated as "high volume" (democracy) */
+export const CII_HIGH_VOLUME_THRESHOLD = 0.7;
+
+/** Boosts applied to final CII score */
+export const CII_BOOSTS = {
+  /** News urgency thresholds and bonus points */
+  newsUrgencyHigh: { threshold: 70, boost: 5 },
+  newsUrgencyMedium: { threshold: 50, boost: 3 },
+  /** Focal-point urgency bonuses */
+  focalCritical: 8,
+  focalElevated: 4,
+  /** Displacement outflow thresholds */
+  displacementLarge: { threshold: 1_000_000, boost: 8 },
+  displacementMedium: { threshold: 100_000, boost: 4 },
+  /** Climate stress points */
+  climateExtreme: 15,
+  climateModerate: 8,
+  /** Hotspot proximity boost */
+  hotspotBoostCap: 10,
+  hotspotBoostMultiplier: 1.5,
+} as const;
+
+/** Proximity radii (km) for attributing events to hotspots/zones/waterways */
+export const CII_PROXIMITY_KM = {
+  hotspot: 150,
+  conflictZone: 300,
+  waterway: 200,
+} as const;
+
+/** CII learning warmup duration */
+export const CII_LEARNING_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+// --- Hotspot Escalation ---
+
+/** Weights for each hotspot escalation component (must sum to 1.0) */
+export const ESCALATION_COMPONENT_WEIGHTS = {
+  news: 0.35,
+  cii: 0.25,
+  geo: 0.25,
+  military: 0.15,
+} as const;
+
+/** How much static baseline vs. dynamic score influences combined score */
+export const ESCALATION_BLEND = {
+  static: 0.3,
+  dynamic: 0.7,
+} as const;
+
+/** News activity normalization multipliers */
+export const ESCALATION_NEWS = {
+  matchMultiplier: 15,
+  breakingBoost: 30,
+  velocityMultiplier: 5,
+} as const;
+
+/** Default CII contribution when no CII data is available */
+export const ESCALATION_DEFAULT_CII = 30;
+
+/** Geo-alert normalization: alertTypes * this + alertScore, capped at 100 */
+export const ESCALATION_GEO_TYPE_MULTIPLIER = 10;
+
+/** Military normalization multipliers */
+export const ESCALATION_MILITARY = {
+  flightMultiplier: 10,
+  vesselMultiplier: 15,
+} as const;
+
+/** Trend detection slope thresholds */
+export const ESCALATION_TREND = {
+  escalating: 0.1,
+  deEscalating: -0.1,
+} as const;
+
+/** Signal emission thresholds */
+export const ESCALATION_SIGNAL = {
+  rapidIncrease: 0.5,
+  criticalScore: 4.5,
+  minimumEmitScore: 2,
+} as const;
+
+/** Cooldown between signals for the same hotspot */
+export const ESCALATION_SIGNAL_COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+/** Rolling history window for trend calculation */
+export const ESCALATION_HISTORY_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/** Maximum history data points retained per hotspot */
+export const ESCALATION_MAX_HISTORY_POINTS = 48;
+
+// --- Military Surge Detection ---
+
+/** Minimum multiple over baseline to qualify as a surge */
+export const SURGE_THRESHOLD = 2.0;
+
+/** Hours of history used to calculate baseline activity */
+export const SURGE_BASELINE_WINDOW_HOURS = 48;
+
+/** Minimum data points required for a valid baseline */
+export const SURGE_BASELINE_MIN_SAMPLES = 6;
+
+/** Minimum baseline values when insufficient history exists */
+export const SURGE_BASELINE_MINIMUMS = {
+  transport: 2,
+  fighter: 1,
+  recon: 1,
+} as const;
+
+/** Minimum aircraft count to trigger different surge types */
+export const SURGE_MIN_COUNTS = {
+  transport: 5,
+  fighter: 4,
+} as const;
+
+/** Proximity radius for associating flights with bases */
+export const SURGE_PROXIMITY_RADIUS_KM = 150;
+
+/** Interval between history cleanup passes */
+export const SURGE_CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+
+/** Maximum hours of flight history to retain */
+export const SURGE_MAX_HISTORY_HOURS = 72;
+
+/** Foreign presence confidence formula: min(cap, base + count * step) */
+export const SURGE_FOREIGN_CONFIDENCE = {
+  cap: 0.95,
+  base: 0.7,
+  step: 0.05,
+} as const;
+
+/** Surge alert confidence formula: min(cap, base + (multiple - offset) * step) */
+export const SURGE_ALERT_CONFIDENCE = {
+  cap: 0.95,
+  base: 0.6,
+  offset: 2,
+  step: 0.1,
+} as const;
+
+/** CII thresholds for boosting theater posture level */
+export const SURGE_CII_POSTURE_BOOST = {
+  critical: 85,
+  elevated: 70,
+} as const;
+
+/** Posture trend change-percent thresholds */
+export const SURGE_POSTURE_TREND_THRESHOLD = 10; // ±10 %
+
+// --- Geo-Convergence Detection ---
+
+/** Minimum distinct event types in a cell to trigger convergence alert */
+export const GEO_CONVERGENCE_THRESHOLD = 3;
+
+/** Time window for geo-convergence event tracking */
+export const GEO_CONVERGENCE_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/** Geo-convergence scoring formula constants */
+export const GEO_CONVERGENCE_SCORING = {
+  typeMultiplier: 25,
+  countBoostCap: 25,
+  countMultiplier: 2,
+  scoreCap: 100,
+} as const;
+
+/** Proximity radii for reverse-geocoding convergence cells */
+export const GEO_CONVERGENCE_PROXIMITY_KM = {
+  conflictZone: 300,
+  waterway: 200,
+  hotspot: 150,
+} as const;
+
 import { t } from '@/services/i18n';
 
 export function getSignalContext(type: SignalType): SignalContext {
