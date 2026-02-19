@@ -48,50 +48,50 @@
 ## 2. Architecture Documentation
 
 ### 2.1 Create `docs/ARCHITECTURE.md`
-- [ ] High-level system diagram (Mermaid): Browser ↔ Vercel Edge ↔ External APIs ↔ Redis
-- [ ] Variant architecture: how `VITE_VARIANT` controls config tree-shaking and panel registration
-- [ ] Data flow diagram: RSS ingestion → clustering → classification → display pipeline
-- [ ] Signal intelligence pipeline: source → normalization → correlation → aggregation → scoring
-- [ ] Map rendering pipeline: MapLibre base → deck.gl overlay → layer toggle → popup system
-- [ ] Caching architecture: Upstash Redis → Vercel CDN (s-maxage) → Service Worker → IndexedDB
-- [ ] Desktop architecture: Tauri shell → Node.js sidecar → local API server → OS keychain
-- [ ] ML pipeline: Groq API → OpenRouter fallback → browser Transformers.js (T5/NER/embeddings)
-- [ ] Error handling hierarchy: circuit breaker → retry → fallback → graceful degradation
+- [x] High-level system diagram (Mermaid): Browser ↔ Vercel Edge ↔ External APIs ↔ Redis
+- [x] Variant architecture: how `VITE_VARIANT` controls config tree-shaking and panel registration
+- [x] Data flow diagram: RSS ingestion → clustering → classification → display pipeline
+- [x] Signal intelligence pipeline: source → normalization → correlation → aggregation → scoring
+- [x] Map rendering pipeline: MapLibre base → deck.gl overlay → layer toggle → popup system
+- [x] Caching architecture: Upstash Redis → Vercel CDN (s-maxage) → Service Worker → IndexedDB
+- [x] Desktop architecture: Tauri shell → Node.js sidecar → local API server → OS keychain
+- [x] ML pipeline: Groq API → OpenRouter fallback → browser Transformers.js (T5/NER/embeddings)
+- [x] Error handling hierarchy: circuit breaker → retry → fallback → graceful degradation
 
 ### 2.2 Create `docs/DATA_MODEL.md`
-- [ ] Document all TypeScript interfaces from `src/types/index.ts` (1,297 lines) with prose descriptions
-- [ ] Entity model: `Entity`, `EntityType`, multi-index lookup strategy
-- [ ] News item lifecycle: raw RSS → parsed → clustered → classified → scored → displayed
-- [ ] Signal model: `Signal`, `SignalType`, correlation rules, aggregation
-- [ ] Map data models: layers, features, popups, deck.gl props
-- [ ] Panel state model: position, size, visibility, persistence
-- [ ] Variant config model: `VariantConfig`, base → override chain
-- [ ] Risk scoring models: CII, composite risk, hotspot escalation, theater posture
-- [ ] Cache entry schemas (Redis key patterns, TTLs, serialization)
+- [x] Document all TypeScript interfaces from `src/types/index.ts` (1,297 lines) with prose descriptions
+- [x] Entity model: `Entity`, `EntityType`, multi-index lookup strategy
+- [x] News item lifecycle: raw RSS → parsed → clustered → classified → scored → displayed
+- [x] Signal model: `Signal`, `SignalType`, correlation rules, aggregation
+- [x] Map data models: layers, features, popups, deck.gl props
+- [x] Panel state model: position, size, visibility, persistence
+- [x] Variant config model: `VariantConfig`, base → override chain
+- [x] Risk scoring models: CII, composite risk, hotspot escalation, theater posture
+- [x] Cache entry schemas (Redis key patterns, TTLs, serialization)
 
 ### 2.3 Create `docs/STATE_MANAGEMENT.md`
-- [ ] Document application state flow (no framework — manual class-based state)
-- [ ] `App.ts` state properties and their lifecycle (4,332 lines — needs mapping)
-- [ ] Panel state persistence (localStorage keys, URL state encoding)
-- [ ] Theme state management (light/dark, CSS custom properties)
-- [ ] IndexedDB storage schema (playback snapshots, persistent cache)
-- [ ] URL state encoding/decoding (`urlState.ts`) — query params for sharing
-- [ ] Runtime config state (desktop feature toggles via `runtime-config.ts`)
-- [ ] Activity tracking and idle detection (`activity-tracker.ts`)
+- [x] Document application state flow (no framework — manual class-based state)
+- [x] `App.ts` state properties and their lifecycle (4,332 lines — needs mapping)
+- [x] Panel state persistence (localStorage keys, URL state encoding)
+- [x] Theme state management (light/dark, CSS custom properties)
+- [x] IndexedDB storage schema (playback snapshots, persistent cache)
+- [x] URL state encoding/decoding (`urlState.ts`) — query params for sharing
+- [x] Runtime config state (desktop feature toggles via `runtime-config.ts`)
+- [x] Activity tracking and idle detection (`activity-tracker.ts`)
 
 ---
 
 ## 3. API Reference
 
 ### 3.1 Create `docs/API_REFERENCE.md`
-- [ ] Document all 60+ Vercel Edge Functions with:
+- [x] Document all 60+ Vercel Edge Functions with:
   - HTTP method, path, query parameters
   - Request/response schemas (TypeScript interfaces or JSON examples)
   - Cache headers and TTLs
   - Rate limiting behavior
   - External API dependencies and required env vars
   - Error response format
-- [ ] Group endpoints by domain:
+- [x] Group endpoints by domain:
   - **Geopolitical**: acled, acled-conflict, ucdp, ucdp-events, gdelt-doc, gdelt-geo, nga-warnings
   - **Markets & Finance**: finnhub, yahoo-finance, coingecko, stablecoin-markets, etf-flows, stock-index, fred-data, macro-signals
   - **Military & Security**: opensky, ais-snapshot, theater-posture, cyber-threats
@@ -103,40 +103,40 @@
   - **Prediction**: polymarket
   - **Meta**: version, cache-telemetry, debug-env, download, og-story, story
   - **Proxy/Passthrough**: eia, pizzint, wingbits, youtube
-- [ ] Document shared middleware modules: `_cors.js`, `_cache-telemetry.js`, `_ip-rate-limit.js`, `_upstash-cache.js`
-- [ ] Document the RSS domain allowlist and proxy security model
+- [x] Document shared middleware modules: `_cors.js`, `_cache-telemetry.js`, `_ip-rate-limit.js`, `_upstash-cache.js`
+- [x] Document the RSS domain allowlist and proxy security model
 
 ### 3.2 Create `docs/EXTERNAL_APIS.md`
-- [ ] Catalog every external API the system calls (30+ sources)
-- [ ] For each: base URL, auth method, rate limits, data format, fallback behavior
-- [ ] Document API key requirements and which tier/plan is needed
-- [ ] Map external API → env var → API endpoint → frontend service
-- [ ] Document degradation behavior when each API is unavailable
+- [x] Catalog every external API the system calls (30+ sources)
+- [x] For each: base URL, auth method, rate limits, data format, fallback behavior
+- [x] Document API key requirements and which tier/plan is needed
+- [x] Map external API → env var → API endpoint → frontend service
+- [x] Document degradation behavior when each API is unavailable
 
 ---
 
 ## 4. Component Documentation
 
 ### 4.1 Create `docs/COMPONENTS.md`
-- [ ] Document all 45+ components in `src/components/`:
+- [x] Document all 45+ components in `src/components/`:
   - Purpose and user-facing behavior
   - Constructor parameters and configuration
   - DOM structure and CSS classes
   - Events emitted/consumed
   - Data sources (which services it calls)
   - Variant visibility (World / Tech / Finance)
-- [ ] Document the `Panel` base class: drag, resize, collapse, persistence
-- [ ] Document `DeckGLMap.ts`: layer registration, WebGL rendering, interaction handlers
-- [ ] Document `Map.ts` and `MapContainer.ts`: MapLibre setup, region controls, popup system
-- [ ] Document `VirtualList.ts`: virtual scrolling implementation details
-- [ ] Document `SearchModal.ts`: Cmd+K search, fuzzy matching, result ranking
+- [x] Document the `Panel` base class: drag, resize, collapse, persistence
+- [x] Document `DeckGLMap.ts`: layer registration, WebGL rendering, interaction handlers
+- [x] Document `Map.ts` and `MapContainer.ts`: MapLibre setup, region controls, popup system
+- [x] Document `VirtualList.ts`: virtual scrolling implementation details
+- [x] Document `SearchModal.ts`: Cmd+K search, fuzzy matching, result ranking
 
 ### 4.2 Create `docs/PANELS.md`
-- [ ] List all panels with screenshots/descriptions per variant
-- [ ] Document panel registration system (`src/config/panels.ts`)
-- [ ] Document default panel layouts per variant
-- [ ] Document panel configuration options (position, size, default visibility)
-- [ ] Document panel persistence (which settings survive page reload)
+- [x] List all panels with screenshots/descriptions per variant
+- [x] Document panel registration system (`src/config/panels.ts`)
+- [x] Document default panel layouts per variant
+- [x] Document panel configuration options (position, size, default visibility)
+- [x] Document panel persistence (which settings survive page reload)
 
 ---
 
