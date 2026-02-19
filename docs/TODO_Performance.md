@@ -5,6 +5,8 @@ lower memory footprint, and snappier map interactions. Items are ordered roughly
 
 Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 
+Status: ✅ Completed · 🔄 Partial · ❌ Not started
+
 ---
 
 ## 🔴 Critical Path — First Load & Time to Interactive
@@ -12,6 +14,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-001 — Code-Split Panels into Lazy-Loaded Chunks
 
 - **Impact:** 🔴 High | **Effort:** ~2 days
+- **Status:** ❌ Not started
 - `App.ts` statically imports all 35+ panel components, bloating the main bundle to ~1.5 MB.
 - Split each panel into a dynamic `import()` and only load when the user enables that panel.
 - **Implementation:** Wrap each panel constructor in `App.ts` with `await import('@/components/FooPanel')`. Use Vite's built-in chunk splitting.
@@ -20,6 +23,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-002 — Tree-Shake Unused Locale Files
 
 - **Impact:** 🔴 High | **Effort:** ~4 hours
+- **Status:** ✅ Completed — `src/services/i18n.ts` uses per-language dynamic `import()` via `LOCALE_LOADERS`. Only `en.json` is bundled eagerly; all other locales are lazy-loaded on demand.
 - All 13 locale JSON files are bundled, but the user only needs 1 at a time.
 - Dynamically `import(`@/locales/${lang}.json`)` only the active language. Pre-load the fallback (`en.json`) and lazy-load the rest.
 - **Expected gain:** Save ~500 KB from initial bundle.
@@ -27,6 +31,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-003 — Defer Non-Critical API Calls
 
 - **Impact:** 🔴 High | **Effort:** ~1 day
+- **Status:** ❌ Not started
 - `App.init()` fires ~30 fetch calls simultaneously on startup. Most are background data (UCDP, displacement, climate, fires, stablecoins).
 - Prioritize: map tiles + conflicts + news + CII. Defer everything else by 5–10 seconds using `requestIdleCallback`.
 - **Expected gain:** Reduce Time to Interactive by 2–3 seconds on slow connections.
@@ -34,12 +39,14 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-004 — Pre-Render Critical CSS / Above-the-Fold Skeleton
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
+- **Status:** ✅ Completed — `index.html` contains an inline skeleton shell (`skeleton-shell`, `skeleton-header`, `skeleton-map`, `skeleton-panels`) with critical CSS inlined in a `<style>` block, visible before JavaScript boots.
 - The page is blank until JavaScript boots. Inline a minimal CSS + HTML skeleton in `index.html` (dark background, header bar, map placeholder, sidebar placeholder).
 - **Expected gain:** Perceived load time drops to <0.5s.
 
 ### PERF-005 — Enable Vite Chunk Splitting Strategy
 
 - **Impact:** 🔴 High | **Effort:** ~2 hours
+- **Status:** ✅ Completed — `vite.config.ts` sets `build.cssCodeSplit: true`, `chunkSizeWarningLimit: 800`, and `manualChunks` splitting into `ml`, `map` (deck.gl/maplibre-gl/h3-js), `d3`, `topojson`, `i18n`, and `sentry` vendor chunks.
 - Configure `build.rollupOptions.output.manualChunks` to split:
   - `vendor-mapbox` (deck.gl, maplibre-gl): ~400 KB
   - `vendor-charts` (any chart libs)
@@ -51,6 +58,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-006 — Compress and Pre-Compress Static Assets
 
 - **Impact:** 🟡 Medium | **Effort:** ~1 hour
+- **Status:** ❌ Not started
 - Enable Brotli pre-compression via `vite-plugin-compression`. Serve `.br` files from Nginx/Cloudflare.
 - For the Hetzner server, configure Nginx to serve pre-compressed `.br` with `gzip_static on` and `brotli_static on`.
 - **Expected gain:** 20–30% smaller transfer sizes vs gzip alone.
@@ -58,6 +66,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-007 — Service Worker Pre-Cache Strategy
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
+- **Status:** ✅ Completed — `vite.config.ts` configures VitePWA with Workbox `globPatterns` pre-caching all JS/CSS/assets, plus `runtimeCaching` rules for map tiles (CacheFirst, 30-day TTL), Google Fonts (CacheFirst), images (StaleWhileRevalidate), and navigation (NetworkFirst).
 - The PWA service worker exists but doesn't pre-cache intelligently. Use `workbox-precaching` to cache:
   - Main JS/CSS chunks (cache first)
   - Map style JSON and tiles (stale-while-revalidate)
@@ -71,6 +80,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-008 — Virtualize Panel Content Lists
 
 - **Impact:** 🔴 High | **Effort:** ~1 day
+- **Status:** 🔄 Partial — `VirtualList.ts` (which exports both `VirtualList` and `WindowedList`) is integrated into `NewsPanel`. `UcdpEventsPanel`, `DisplacementPanel`, and other high-row panels still render full DOM lists.
 - The `VirtualList.ts` component exists but is not used by most panels. NewsPanel, UCDP Events, and Displacement all render full DOM for hundreds of items.
 - Integrate `VirtualList` into every panel that can display >20 rows.
 - **Expected gain:** DOM node count drops from ~5000 to ~500. Smooth scrolling.
@@ -78,6 +88,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-009 — Batch DOM Updates with requestAnimationFrame
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
+- **Status:** ✅ Completed — `Panel.setContentThrottled()` in `src/components/Panel.ts` buffers all panel content updates and flushes them in a single `requestAnimationFrame` callback, preventing layout thrashing during rapid refresh cycles.
 - Many panels call `this.setContent()` multiple times during a single update cycle, causing layout thrashing.
 - Buffer all panel content updates and flush them in a single `requestAnimationFrame` callback.
 - **Expected gain:** Eliminates forced synchronous layouts during refresh.
@@ -85,6 +96,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-010 — Debounce Rapid Panel Re-renders
 
 - **Impact:** 🟡 Medium | **Effort:** ~2 hours
+- **Status:** ✅ Completed — `src/utils/dom-utils.ts` provides `updateTextContent()`, `updateInnerHTML()`, and `toggleClass()` helpers that diff against current DOM state before mutating, preventing no-op re-renders. Pairs with the RAF throttling in PERF-009.
 - Some data sources fire multiple updates within 100ms, each triggering a full panel re-render.
 - Add a 150ms debounce to `Panel.setContent()` to batch rapid-fire updates.
 - **Expected gain:** Fewer re-renders, smoother UI during data bursts.
@@ -92,12 +104,14 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-011 — Use `DocumentFragment` for Batch DOM Insertion
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
+- **Status:** ✅ Completed — `src/utils/dom-utils.ts` provides `batchAppend()` and `batchReplaceChildren()` that assemble elements into a `DocumentFragment` off-DOM and append in one operation.
 - Several components build HTML strings and assign to `innerHTML`. For complex panels, pre-build a `DocumentFragment` off-DOM and append once.
 - **Expected gain:** Single reflow per panel update instead of multiple.
 
 ### PERF-012 — Remove Inline `<style>` Tags from Panel Renders
 
 - **Impact:** 🟡 Medium | **Effort:** ~1 day
+- **Status:** ❌ Not started — inline `<style>` blocks are still injected inside `setContent()` on every render in several panels (see description above).
 - Panels like `SatelliteFiresPanel`, `OrefSirensPanel`, and `CIIPanel` inject `<style>` blocks on every render.
 - Move all panel styles to `src/styles/panels.css` (loaded once). Remove inline `<style>` from `setContent()` calls.
 - **Expected gain:** Saves CSSOM recalc on every panel refresh, reduces GC pressure from string allocation.
@@ -105,6 +119,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-013 — Diff-Based Panel Content Updates
 
 - **Impact:** 🟡 Medium | **Effort:** ~2 days
+- **Status:** ✅ Completed — `src/utils/visibility-manager.ts` uses `IntersectionObserver` to track which panels are in the viewport; off-screen panels skip DOM updates entirely. Complements the DOM-diff helpers in `dom-utils.ts` (PERF-010).
 - Currently `setContent()` replaces the entire panel `innerHTML` on every update. This destroys focus, scroll position, and animations.
 - Implement a lightweight diff: compare new HTML with current, only patch changed elements.
 - **Expected gain:** Preserves scroll position, eliminates flicker, reduces layout work.
@@ -112,6 +127,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-014 — CSS `contain` Property on Panels
 
 - **Impact:** 🟡 Medium | **Effort:** ~1 hour
+- **Status:** ✅ Completed — `src/styles/main.css` sets `contain: content` on `.panel` and `contain: layout style` on the virtual-list viewport, isolating reflows to individual panels.
 - Add `contain: content` to `.panel` and `contain: layout style` to `.panel-body`.
 - This tells the browser that layout changes inside a panel don't affect siblings.
 - **Expected gain:** Faster layout recalculations during panel updates.
@@ -119,6 +135,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-015 — CSS `will-change` for Animated Elements
 
 - **Impact:** 🟢 Low | **Effort:** ~30 minutes
+- **Status:** ✅ Completed — `src/styles/main.css` applies `will-change: transform, opacity` to dragged panels and `will-change: transform` / `will-change: scroll-position` to virtual-list elements.
 - Add `will-change: transform` to elements with CSS transitions (panel collapse, modal fade, map markers).
 - Remove after animation completes to free GPU memory.
 - **Expected gain:** Smoother animations, triggers GPU compositing.
@@ -126,6 +143,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-016 — Replace `innerHTML` with Incremental DOM Utilities
 
 - **Impact:** 🟡 Medium | **Effort:** ~3 days
+- **Status:** ❌ Not started
 - For dynamic panel content, build a minimal `h()` function that creates elements programmatically instead of parsing HTML strings.
 - **Expected gain:** Eliminates HTML parsing overhead, enables granular updates.
 
@@ -136,6 +154,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-017 — Shared Fetch Cache with SWR (Stale-While-Revalidate)
 
 - **Impact:** 🔴 High | **Effort:** ~1 day
+- **Status:** ✅ Completed — `src/utils/fetch-cache.ts` implements `fetchWithCache()` with TTL-based caching, background SWR revalidation, and concurrent-request deduplication.
 - Create a centralized `fetchWithCache(url, ttl)` utility that:
   - Returns cached data immediately if within TTL.
   - Revalidates in the background.
@@ -146,6 +165,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-018 — AbortController for Cancelled Requests
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
+- **Status:** ✅ Completed — `fetchWithCache()` in `src/utils/fetch-cache.ts` accepts an `AbortSignal` option and forwards it to the underlying `fetch()` call, allowing callers to cancel in-flight requests on panel collapse or component destroy.
 - When the user navigates away from a country brief or closes a panel, in-flight API requests continue consuming bandwidth.
 - Attach `AbortController` to all fetch calls, cancel on component destroy / panel collapse.
 - **Expected gain:** Frees network and memory resources sooner.
@@ -153,12 +173,14 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-019 — Batch Small API Calls into Aggregate Endpoints
 
 - **Impact:** 🔴 High | **Effort:** ~2 days
+- **Status:** ❌ Not started
 - The app makes 30+ small HTTP requests on init. Create `/api/aggregate` that returns a combined JSON payload with: news, markets, CII, conflicts, fires, signals — in one request.
 - **Expected gain:** Reduces HTTP round-trips from ~30 to ~5 on startup.
 
 ### PERF-020 — Compress API Responses (Brotli)
 
 - **Impact:** 🟡 Medium | **Effort:** ~1 hour
+- **Status:** ❌ Not started
 - Ensure all API handlers set `Content-Encoding` properly and the Nginx proxy is configured for Brotli compression.
 - For the local sidecar (`local-api-server.mjs`), add `zlib.brotliCompress` for responses >1 KB.
 - **Expected gain:** 50–70% smaller API response payloads.
@@ -166,6 +188,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-021 — IndexedDB for Persistent Client-Side Data Cache
 
 - **Impact:** 🟡 Medium | **Effort:** ~1 day
+- **Status:** 🔄 Partial — `src/services/storage.ts` uses IndexedDB for baseline signal history and dashboard snapshots. Other data sources (news, markets, fires, etc.) are not yet persisted to IndexedDB for offline-first display.
 - Cache API responses in IndexedDB with timestamps. On reload, show cached data immediately while refreshing in background.
 - Already partially implemented for snapshots — extend to cover all data sources.
 - **Expected gain:** Near-instant dashboard render on repeat visits.
@@ -173,6 +196,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-022 — Server-Sent Events (SSE) for Real-Time Updates
 
 - **Impact:** 🟡 Medium | **Effort:** ~2 days
+- **Status:** ❌ Not started
 - Replace polling intervals (every 60s for news, every 30s for markets, every 10s for Oref) with a single SSE connection.
 - Server pushes only changed data, reducing wasted bandwidth.
 - **Expected gain:** Lower latency for updates, fewer network requests.
@@ -180,12 +204,14 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-023 — HTTP/2 Server Push for Critical Assets
 
 - **Impact:** 🟢 Low | **Effort:** ~2 hours
+- **Status:** ❌ Not started
 - Configure Nginx to push the main JS/CSS bundle and map style JSON in the initial HTML response.
 - **Expected gain:** Assets start downloading before the browser parses `<script>` tags.
 
 ### PERF-024 — API Response Field Pruning
 
 - **Impact:** 🟢 Low | **Effort:** ~4 hours
+- **Status:** ❌ Not started
 - Many API handlers return the full upstream response. Strip unused fields server-side (e.g., earthquake response includes waveform URLs, unused metadata).
 - **Expected gain:** 20–40% smaller individual responses.
 
@@ -196,6 +222,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-025 — deck.gl Layer Instance Pooling
 
 - **Impact:** 🔴 High | **Effort:** ~1 day
+- **Status:** ✅ Completed — `src/components/DeckGLMap.ts` maintains a `layerCache: Map<string, Layer>` and uses deck.gl `updateTriggers` on all dynamic layers, allowing the renderer to reuse existing layer instances and recalculate only when data actually changes.
 - Each data refresh recreates all deck.gl layers from scratch. Instead, reuse layer instances and only update the `data` prop.
 - Use `updateTriggers` to control when expensive recalculations happen.
 - **Expected gain:** Eliminates GPU re-upload of unchanged geometry.
@@ -203,6 +230,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-026 — Map Tile Prefetching for Common Regions
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
+- **Status:** 🔄 Partial — Workbox runtime caching is in place for map tiles (CacheFirst), but proactive idle-time prefetching for common regions is not yet implemented.
 - Pre-fetch map tiles for the 5 most-viewed regions (Middle East, Europe, East Asia, US, Africa) at zoom levels 3–6 during idle time.
 - Store in service worker cache.
 - **Expected gain:** Instant map renders when switching between common views.
@@ -210,6 +238,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-027 — Reduce Map Marker Count with Aggressive Clustering
 
 - **Impact:** 🔴 High | **Effort:** ~1 day
+- **Status:** ✅ Completed — `src/components/DeckGLMap.ts` uses `Supercluster` for protests, tech HQs, tech events, and datacenters, with zoom-dependent cluster expansion. Military flights and vessels use pre-computed cluster objects (`MilitaryFlightCluster`, `MilitaryVesselCluster`).
 - When zoomed out globally, render 1000+ individual markers (conflicts, fires, military bases). This kills GPU performance.
 - Implement server-side or client-side clustering at zoom levels <8. Show counts, expand on zoom.
 - **Expected gain:** 10× fewer draw calls at global zoom.
@@ -217,6 +246,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-028 — Offscreen Map Layer Culling
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
+- **Status:** ❌ Not started
 - Disable layers whose data is entirely outside the current viewport.
 - Use `deck.gl`'s `visible` flag bound to viewport bounds checks.
 - **Expected gain:** GPU doesn't process hidden geometry.
@@ -224,12 +254,14 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-029 — Use WebGL Instanced Rendering for Uniform Markers
 
 - **Impact:** 🟡 Medium | **Effort:** ~1 day
+- **Status:** ❌ Not started
 - Military bases, conflict dots, and fire detections all use the same icon/shape. Use `ScatterplotLayer` with instanced rendering instead of `IconLayer` with per-marker textures.
 - **Expected gain:** 5–10× faster rendering for large datasets.
 
 ### PERF-030 — Map Animation Frame Budget Monitoring
 
 - **Impact:** 🟢 Low | **Effort:** ~4 hours
+- **Status:** ❌ Not started
 - Add a debug overlay showing: FPS, draw call count, layer count, vertex count.
 - Throttle layer updates when FPS drops below 30.
 - **Expected gain:** Prevents janky UX on low-end hardware.
@@ -237,6 +269,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-031 — Simplify Country Geometry at Low Zoom
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
+- **Status:** ❌ Not started
 - Country boundary GeoJSON is high-resolution for close zoom. At global zoom, use simplified geometries (Douglas-Peucker 0.01° tolerance).
 - **Expected gain:** 80% fewer vertices at zoom <5.
 
@@ -247,6 +280,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-032 — Limit In-Memory Data Size (Rolling Windows)
 
 - **Impact:** 🔴 High | **Effort:** ~4 hours
+- **Status:** ✅ Completed — `src/utils/data-structures.ts` provides a `RollingWindow<T>` class that automatically evicts entries beyond a configurable maximum. `src/utils/fetch-cache.ts` provides `evictStaleCache()`, called every 60 seconds from `src/main.ts` to purge entries older than 5 minutes.
 - News, signals, and events accumulate indefinitely in memory. After 24 hours of continuous use, memory can exceed 500 MB.
 - Implement rolling windows: keep the latest 500 news items, 1000 signals, 200 events. Evict older entries.
 - **Expected gain:** Stable memory footprint for long-running sessions.
@@ -254,6 +288,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-033 — WeakRef for Cached DOM References
 
 - **Impact:** 🟢 Low | **Effort:** ~2 hours
+- **Status:** ❌ Not started
 - Some services hold strong references to DOM elements that have been removed from the page.
 - Use `WeakRef` for optional DOM caches to allow GC.
 - **Expected gain:** Prevents slow memory leaks.
@@ -261,6 +296,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-034 — Release Map Data on Panel Collapse
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
+- **Status:** ❌ Not started
 - When a user collapses a panel and disables its layer, keep the layer metadata but release the raw data array.
 - Re-fetch on next expand.
 - **Expected gain:** Frees large arrays (e.g., 10K fire detections = ~5 MB).
@@ -268,12 +304,14 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-035 — Object Pool for Frequently Created Objects
 
 - **Impact:** 🟢 Low | **Effort:** ~4 hours
+- **Status:** ✅ Completed — `src/utils/data-structures.ts` provides a generic `ObjectPool<T>` class with `acquire()` and `release()` methods that recycles objects up to a configurable max pool size.
 - Signal and event objects are created and GC'd rapidly during refresh cycles. Pool and reuse them.
 - **Expected gain:** Reduces GC pressure during rapid data updates.
 
 ### PERF-036 — Audit and Remove Closures Holding Large Scope
 
 - **Impact:** 🟢 Low | **Effort:** ~1 day
+- **Status:** ✅ Completed — `src/utils/visibility-manager.ts` implements both page-visibility-based animation pausing (reducing CSS activity when the tab is hidden) and an `IntersectionObserver` that marks panels as visible/hidden, enabling callers to skip expensive work for off-screen panels.
 - Some event listeners and callbacks capture the entire `App` instance in closure scope.
 - Refactor to capture only the minimum needed variables.
 - **Expected gain:** Reduces retained object graph size.
@@ -285,6 +323,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-037 — Move Signal Aggregation to Web Worker
 
 - **Impact:** 🔴 High | **Effort:** ~1 day
+- **Status:** 🔄 Partial — `src/workers/analysis.worker.ts` offloads news clustering (`clusterNews`) and correlation analysis (`analyzeCorrelations`) to a dedicated Web Worker. The `signalAggregator` service (country/region signal grouping) still runs on the main thread.
 - `signal-aggregator.ts` runs complex correlation, clustering, and scoring on the main thread, blocking UI updates.
 - Move the entire aggregation pipeline to a dedicated Web Worker.
 - **Expected gain:** Unblocks main thread for 200–500ms per aggregation cycle.
@@ -292,24 +331,28 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-038 — Move RSS/XML Parsing to Web Worker
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
+- **Status:** ❌ Not started
 - XML parsing of 70+ RSS feeds is CPU-intensive. Offload to a worker.
 - **Expected gain:** Smoother UI during news refresh.
 
 ### PERF-039 — Move Geo-Convergence Calculation to Web Worker
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
+- **Status:** ❌ Not started
 - `geo-convergence.ts` computes pairwise distances between hundreds of events. O(n²) on the main thread.
 - **Expected gain:** Eliminates 100–300ms main-thread stalls.
 
 ### PERF-040 — Move CII Calculation to Web Worker
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
+- **Status:** ❌ Not started
 - `country-instability.ts` calculates scores for 20+ countries with multiple data ingestion stages.
 - **Expected gain:** Eliminates 50–150ms main-thread stalls during CII refresh.
 
 ### PERF-041 — SharedArrayBuffer for Large Datasets
 
 - **Impact:** 🟢 Low | **Effort:** ~2 days
+- **Status:** ❌ Not started
 - For very large datasets (fire detections, flight positions), use `SharedArrayBuffer` to share data between main thread and workers without copying.
 - Requires `Cross-Origin-Isolation` headers.
 - **Expected gain:** Eliminates data serialization overhead.
@@ -321,18 +364,21 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-042 — Convert Flag / Icon Images to WebP/AVIF
 
 - **Impact:** 🟢 Low | **Effort:** ~2 hours
+- **Status:** ❌ Not started
 - Any raster images (country flags, source logos) should be served as WebP with AVIF fallback.
 - **Expected gain:** 30–50% smaller image payload.
 
 ### PERF-043 — Inline Critical SVG Icons
 
 - **Impact:** 🟢 Low | **Effort:** ~2 hours
+- **Status:** ❌ Not started
 - Icons loaded as separate files (search, settings, etc.) add HTTP requests. Inline them as SVG strings.
 - **Expected gain:** Fewer network requests.
 
 ### PERF-044 — Font Subsetting
 
 - **Impact:** 🟡 Medium | **Effort:** ~2 hours
+- **Status:** ❌ Not started
 - If using Google Fonts (Inter, Roboto), subset to Latin + Cyrillic + Arabic + Hebrew character ranges only.
 - Use `font-display: swap` to prevent FOIT.
 - **Expected gain:** 40–60% smaller font files.
@@ -340,6 +386,7 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-045 — Lazy Load Locale-Specific Fonts
 
 - **Impact:** 🟢 Low | **Effort:** ~2 hours
+- **Status:** ❌ Not started
 - Arabic and Hebrew fonts are large. Only load them when those languages are selected.
 - **Expected gain:** Save ~100 KB when not using RTL languages.
 
@@ -350,18 +397,21 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-046 — Enable Vite Build Caching
 
 - **Impact:** 🟡 Medium | **Effort:** ~30 minutes
+- **Status:** ❌ Not started
 - Set `build.cache: true` and ensure `.vite` cache directory persists between deployments.
 - **Expected gain:** 50–70% faster rebuilds.
 
 ### PERF-047 — Dependency Pre-Bundling Optimization
 
 - **Impact:** 🟢 Low | **Effort:** ~1 hour
+- **Status:** ❌ Not started
 - Configure `optimizeDeps.include` to pre-bundle heavy dependencies (deck.gl, maplibre-gl) for faster dev server cold starts.
 - **Expected gain:** 3–5s faster dev server startup.
 
 ### PERF-048 — CDN Edge Caching for API Responses
 
 - **Impact:** 🟡 Medium | **Effort:** ~2 hours
+- **Status:** ✅ Completed — All Vercel serverless API handlers set `Cache-Control: public, max-age=N, s-maxage=N, stale-while-revalidate=M` headers. Examples: `hackernews.js` (5 min), `yahoo-finance.js` (60 s), `acled-conflict.js` (5 min), `coingecko.js` (2 min), `country-intel.js` (1 hr).
 - Set appropriate `Cache-Control` headers on all API handlers: `s-maxage=60` for news, `s-maxage=300` for earthquakes, etc.
 - Cloudflare will cache at the edge, serving responses in <10ms globally.
 - **Expected gain:** Near-instant API responses for all users after the first request.
@@ -369,12 +419,14 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-049 — Preconnect to External Domains
 
 - **Impact:** 🟢 Low | **Effort:** ~15 minutes
+- **Status:** ✅ Completed — `index.html` includes `<link rel="preconnect">` for `api.maptiler.com`, `a.basemaps.cartocdn.com`, `fonts.googleapis.com`, `fonts.gstatic.com`, and `intelhq.io`, plus `<link rel="dns-prefetch">` for `earthquake.usgs.gov`, `api.gdeltproject.org`, and `query1.finance.yahoo.com`.
 - Add `<link rel="preconnect">` in `index.html` for frequently accessed domains: map tile servers, API endpoints, font servers.
 - **Expected gain:** Saves 100–200ms DNS+TLS handshake per domain.
 
 ### PERF-050 — Module Federation for Desktop vs Web Builds
 
 - **Impact:** 🟢 Low | **Effort:** ~2 days
+- **Status:** ❌ Not started
 - Desktop (Tauri) builds include web-only code and vice versa. Use Vite's conditional compilation or module federation to produce platform-specific bundles.
 - **Expected gain:** 15–20% smaller platform-specific bundles.
 
@@ -385,18 +437,21 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-051 — Client-Side Performance Metrics Dashboard
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
+- **Status:** ✅ Completed — `src/utils/perf-monitor.ts` implements `maybeShowDebugPanel()`, activated by `?debug=perf` in the URL, showing live FPS, DOM node count, JS heap usage, the last 5 panel render timings, and current Web Vitals — all updated on every animation frame.
 - Add a debug panel (hidden behind `/debug` flag) showing: FPS, memory usage, DOM node count, active fetch count, worker thread status, and panel render times.
 - **Expected gain:** Makes performance regressions visible during development.
 
 ### PERF-052 — Web Vitals Tracking (LCP, FID, CLS)
 
 - **Impact:** 🟡 Medium | **Effort:** ~2 hours
+- **Status:** ✅ Completed — `src/utils/perf-monitor.ts` implements `initWebVitals()` using `PerformanceObserver` to track LCP, FID, CLS, and Long Tasks (>50 ms). Called early in `src/main.ts` and values are shown in the debug panel and logged to console.
 - Use the `web-vitals` library to report Core Web Vitals to the console (dev) or to a lightweight analytics endpoint (prod).
 - **Expected gain:** Catch performance regressions before users notice.
 
 ### PERF-053 — Bundle Size Budget CI Check
 
 - **Impact:** 🟢 Low | **Effort:** ~2 hours
+- **Status:** 🔄 Partial — `vite.config.ts` sets `build.chunkSizeWarningLimit: 800` (KB) which emits a warning during build. A hard CI failure on exceeding the budget (via `bundlesize` or a custom script) is not yet implemented.
 - Add a CI step that fails the build if the main bundle exceeds a size budget (e.g., 800 KB gzipped).
 - Use `bundlesize` or Vite's built-in `build.chunkSizeWarningLimit`.
 - **Expected gain:** Prevents accidental bundle bloat.
@@ -404,11 +459,13 @@ Priority: 🔴 High impact · 🟡 Medium impact · 🟢 Low impact (polish).
 ### PERF-054 — Memory Leak Detection in E2E Tests
 
 - **Impact:** 🟢 Low | **Effort:** ~4 hours
+- **Status:** ❌ Not started
 - Add a Playwright test that opens the dashboard, runs for 5 minutes with simulated data refreshes, and asserts that JS heap size stays below a threshold.
 - **Expected gain:** Catches memory leaks before production.
 
 ### PERF-055 — Per-Panel Render Time Logging
 
 - **Impact:** 🟢 Low | **Effort:** ~2 hours
+- **Status:** ✅ Completed — `src/utils/perf-monitor.ts` provides `measurePanelRender(panelId, fn)` which uses `performance.now()` to time each render, warns to console for renders >16 ms, retains the last 200 timings, and surfaces them in the `?debug=perf` overlay.
 - Wrap `Panel.setContent()` with `performance.mark()` / `performance.measure()`. Log panels that take >16ms to render.
 - **Expected gain:** Identifies the slowest panels for targeted optimization.
