@@ -111,7 +111,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-012 — Remove Inline `<style>` Tags from Panel Renders
 
 - **Impact:** 🟡 Medium | **Effort:** ~1 day
-- **Status:** ❌ Not started — inline `<style>` blocks are still injected inside `setContent()` on every render in several panels (see description above).
+- **Status:** ✅ Completed — Panel styles from `SatelliteFiresPanel` and `OrefSirensPanel` moved to `src/styles/panels.css`, loaded once via `main.css`. Inline `<style>` blocks removed from `setContent()` calls.
 - Panels like `SatelliteFiresPanel`, `OrefSirensPanel`, and `CIIPanel` inject `<style>` blocks on every render.
 - Move all panel styles to `src/styles/panels.css` (loaded once). Remove inline `<style>` from `setContent()` calls.
 - **Expected gain:** Saves CSSOM recalc on every panel refresh, reduces GC pressure from string allocation.

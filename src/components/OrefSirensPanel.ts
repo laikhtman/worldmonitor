@@ -60,7 +60,6 @@ export class OrefSirensPanel extends Panel {
             <span class="oref-updated">${ago}</span>
           </div>
         </div>
-        ${this.getStyles()}
       `);
             return;
         }
@@ -95,29 +94,7 @@ export class OrefSirensPanel extends Panel {
           <span class="oref-updated">${ago}</span>
         </div>
       </div>
-      ${this.getStyles()}
     `);
-    }
-
-    private getStyles(): string {
-        return `<style>
-      .oref-panel-content { font-size: 12px; }
-      .oref-status { display: flex; align-items: center; gap: 8px; padding: 12px 8px; }
-      .oref-status-icon { font-size: 18px; }
-      .oref-status-text { font-size: 13px; font-weight: 600; }
-      .oref-ok .oref-status-text { color: var(--text-secondary); }
-      .oref-danger { background: rgba(255, 30, 30, 0.1); border-radius: 6px; border: 1px solid rgba(255, 30, 30, 0.3); }
-      .oref-danger .oref-status-text { color: #ff3030; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
-      .oref-pulse { width: 10px; height: 10px; border-radius: 50%; background: #ff3030; animation: oref-blink 1s ease-in-out infinite; }
-      @keyframes oref-blink { 0%, 100% { opacity: 1; box-shadow: 0 0 4px #ff3030; } 50% { opacity: 0.3; box-shadow: 0 0 12px #ff3030; } }
-      .oref-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-      .oref-table th { text-align: left; color: var(--text-muted); font-weight: 600; font-size: 10px; text-transform: uppercase; padding: 4px 8px; border-bottom: 1px solid var(--border); }
-      .oref-table td { padding: 5px 8px; border-bottom: 1px solid var(--border-subtle); }
-      .oref-area { color: var(--threat-critical); font-weight: 500; }
-      .oref-time { color: var(--text-muted); text-align: right; font-variant-numeric: tabular-nums; }
-      .oref-alert-row:hover { background: var(--surface-hover); }
-      .oref-footer { display: flex; justify-content: space-between; padding: 8px 8px 0; color: var(--text-faint); font-size: 10px; }
-    </style>`;
     }
 }
 
