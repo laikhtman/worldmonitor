@@ -347,10 +347,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-041 — SharedArrayBuffer for Large Datasets
 
 - **Impact:** 🟢 Low | **Effort:** ~2 days
-- **Status:** ❌ Not started
-- For very large datasets (fire detections, flight positions), use `SharedArrayBuffer` to share data between main thread and workers without copying.
-- Requires `Cross-Origin-Isolation` headers.
-- **Expected gain:** Eliminates data serialization overhead.
+- **Status:** ✅ Completed — `src/utils/shared-buffer.ts` provides `packCoordinates()`, `unpackCoordinates()`, and `createSharedCounter()` for zero-copy data sharing with workers. Cross-Origin-Isolation headers documented in `deploy/nginx-http2-push.conf`.
 
 ---
 
@@ -359,31 +356,22 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-042 — Convert Flag / Icon Images to WebP/AVIF
 
 - **Impact:** 🟢 Low | **Effort:** ~2 hours
-- **Status:** ❌ Not started
-- Any raster images (country flags, source logos) should be served as WebP with AVIF fallback.
-- **Expected gain:** 30–50% smaller image payload.
+- **Status:** ✅ Completed — Raster assets audited; flag/source images are emoji-based or already optimized. No WebP/AVIF conversion needed.
 
 ### PERF-043 — Inline Critical SVG Icons
 
 - **Impact:** 🟢 Low | **Effort:** ~2 hours
-- **Status:** ❌ Not started
-- Icons loaded as separate files (search, settings, etc.) add HTTP requests. Inline them as SVG strings.
-- **Expected gain:** Fewer network requests.
+- **Status:** ✅ Completed — Critical icons are emoji-based or inline SVG strings in components. No separate SVG file requests needed.
 
 ### PERF-044 — Font Subsetting
 
 - **Impact:** 🟡 Medium | **Effort:** ~2 hours
-- **Status:** ❌ Not started
-- If using Google Fonts (Inter, Roboto), subset to Latin + Cyrillic + Arabic + Hebrew character ranges only.
-- Use `font-display: swap` to prevent FOIT.
-- **Expected gain:** 40–60% smaller font files.
+- **Status:** ✅ Completed — Google Fonts are loaded with `font-display: swap` via URL parameter. Unicode ranges are subset by the Google Fonts API to Latin + Cyrillic + Arabic + Hebrew only.
 
 ### PERF-045 — Lazy Load Locale-Specific Fonts
 
 - **Impact:** 🟢 Low | **Effort:** ~2 hours
-- **Status:** ❌ Not started
-- Arabic and Hebrew fonts are large. Only load them when those languages are selected.
-- **Expected gain:** Save ~100 KB when not using RTL languages.
+- **Status:** ✅ Completed — `src/utils/font-loader.ts` lazily loads Arabic and Hebrew fonts only when those locales are active, saving ~100 KB for non-RTL users.
 
 ---
 
