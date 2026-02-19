@@ -223,6 +223,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,ico,png,svg,woff2}', 'index.html'],
         globIgnores: ['**/ml-*.js', '**/onnx*.wasm'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB — safety net against caching large ML/map chunks
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//, /^\/settings/],
         skipWaiting: true,

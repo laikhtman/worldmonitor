@@ -58,12 +58,19 @@ export class NewsPanel extends Panel {
         chunkSize: 8, // Render 8 items per chunk
         bufferChunks: 1, // 1 chunk buffer above/below
       },
-      (prepared) => this.renderClusterHtml(
-        prepared.cluster,
-        prepared.isNew,
-        prepared.shouldHighlight,
-        prepared.showNewTag
-      ),
+      (prepared) => {
+        try {
+          return this.renderClusterHtml(
+            prepared.cluster,
+            prepared.isNew,
+            prepared.shouldHighlight,
+            prepared.showNewTag
+          );
+        } catch (err) {
+          console.error('[NewsPanel] Failed to render cluster:', prepared.cluster?.id, err);
+          return '<div class="item cluster-render-error">Failed to display story</div>';
+        }
+      },
       () => this.bindRelatedAssetEvents()
     );
   }
@@ -379,7 +386,14 @@ export class NewsPanel extends Panel {
     } else {
       // Direct render for small lists
       const html = prepared
-        .map(p => this.renderClusterHtml(p.cluster, p.isNew, p.shouldHighlight, p.showNewTag))
+        .map(p => {
+          try {
+            return this.renderClusterHtml(p.cluster, p.isNew, p.shouldHighlight, p.showNewTag);
+          } catch (err) {
+            console.error('[NewsPanel] Failed to render cluster:', p.cluster?.id, err);
+            return '<div class="item cluster-render-error">Failed to display story</div>';
+          }
+        })
         .join('');
       this.setContent(html);
       this.bindRelatedAssetEvents();

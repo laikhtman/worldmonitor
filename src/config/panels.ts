@@ -1,4 +1,23 @@
 import type { PanelConfig, MapLayers } from '@/types';
+import type { DataSourceId } from '@/services/data-freshness';
+
+/**
+ * Maps map-layer toggle keys to their corresponding data-freshness source IDs.
+ * Used by both `syncDataFreshnessWithLayers()` and `setupMapLayerHandlers()`
+ * in App.ts to avoid duplicate definitions. (BUG-005 fix)
+ */
+export const LAYER_TO_SOURCE: Partial<Record<keyof MapLayers, DataSourceId[]>> = {
+  military: ['opensky', 'wingbits'],
+  ais: ['ais'],
+  natural: ['usgs'],
+  weather: ['weather'],
+  outages: ['outages'],
+  cyberThreats: ['cyber_threats'],
+  protests: ['acled'],
+  ucdpEvents: ['ucdp_events'],
+  displacement: ['unhcr'],
+  climate: ['climate'],
+};
 import { SITE_VARIANT } from './variant';
 
 // ============================================

@@ -5,6 +5,7 @@ import {
   MOBILE_DEFAULT_MAP_LAYERS,
   STORAGE_KEYS,
   SITE_VARIANT,
+  LAYER_TO_SOURCE,
 } from '@/config';
 import { initDB, cleanOldSnapshots, isOutagesConfigured, isAisConfigured, initAisStream, disconnectAisStream } from '@/services';
 import { mlWorker } from '@/services/ml-worker';
@@ -165,7 +166,7 @@ export class App implements AppContext {
             newOrder.push(...priorityPanels.filter(p => order.includes(p)));
             newOrder.push(...filtered);
             localStorage.setItem(this.PANEL_ORDER_KEY, JSON.stringify(newOrder));
-            console.log('[App] Migrated panel order to v1.8 layout');
+            console.log('[App] Migrated panel order to v1.9 layout');
           } catch {
             // Invalid saved order, will use defaults
           }
@@ -368,21 +369,7 @@ export class App implements AppContext {
   // ── Kept in App (own logic, not extractable) ────────────────────────
 
   private syncDataFreshnessWithLayers(): void {
-    // Map layer toggles to data source IDs
-    const layerToSource: Partial<Record<keyof MapLayers, DataSourceId[]>> = {
-      military: ['opensky', 'wingbits'],
-      ais: ['ais'],
-      natural: ['usgs'],
-      weather: ['weather'],
-      outages: ['outages'],
-      cyberThreats: ['cyber_threats'],
-      protests: ['acled'],
-      ucdpEvents: ['ucdp_events'],
-      displacement: ['unhcr'],
-      climate: ['climate'],
-    };
-
-    for (const [layer, sourceIds] of Object.entries(layerToSource)) {
+    for (const [layer, sourceIds] of Object.entries(LAYER_TO_SOURCE)) {
       const enabled = this.mapLayers[layer as keyof MapLayers] ?? false;
       for (const sourceId of sourceIds) {
         dataFreshness.setEnabled(sourceId as DataSourceId, enabled);
@@ -406,19 +393,7 @@ export class App implements AppContext {
       saveToStorage(STORAGE_KEYS.mapLayers, this.mapLayers);
 
       // Sync data freshness tracker
-      const layerToSource: Partial<Record<keyof MapLayers, DataSourceId[]>> = {
-        military: ['opensky', 'wingbits'],
-        ais: ['ais'],
-        natural: ['usgs'],
-        weather: ['weather'],
-        outages: ['outages'],
-        cyberThreats: ['cyber_threats'],
-        protests: ['acled'],
-        ucdpEvents: ['ucdp_events'],
-        displacement: ['unhcr'],
-        climate: ['climate'],
-      };
-      const sourceIds = layerToSource[layer];
+      const sourceIds = LAYER_TO_SOURCE[layer as keyof MapLayers];
       if (sourceIds) {
         for (const sourceId of sourceIds) {
           dataFreshness.setEnabled(sourceId, enabled);

@@ -10,10 +10,10 @@ Each entry includes severity, description, affected files, and dependencies on o
 | BUG-001 | Critical | 🔴 Very High | 24–32 h | ✅ Resolved |
 | BUG-002 | Critical | 🔴 High | 8–12 h | Open |
 | BUG-003 | Critical | 🟢 Low | 1 h | ✅ Resolved |
-| BUG-004 | High | 🟢 Trivial | 0.25 h | Open |
-| BUG-005 | High | 🟢 Low | 1 h | Open |
+| BUG-004 | High | 🟢 Trivial | 0.25 h | ✅ Resolved |
+| BUG-005 | High | 🟢 Low | 1 h | ✅ Resolved |
 | BUG-006 | High | 🟡 Medium | 2–3 h | Open |
-| BUG-007 | High | 🟡 Medium | 2 h | Open |
+| BUG-007 | High | 🟡 Medium | 2 h | ✅ Resolved |
 | BUG-008 | High | 🟢 Low | 0.5 h | ✅ Resolved |
 | BUG-009 | High | 🟢 Low | 1–2 h | ✅ Resolved |
 | BUG-010 | High | 🟢 Low | 1 h | ✅ Resolved |
@@ -21,14 +21,14 @@ Each entry includes severity, description, affected files, and dependencies on o
 | BUG-012 | Medium | 🟡 Medium | 3–4 h | Open |
 | BUG-013 | Medium | 🟢 Low | 1–2 h | Open |
 | BUG-014 | Medium | 🔴 Very High | 24–32 h | Open |
-| BUG-015 | Medium | 🟢 Low | 1 h | Open |
+| BUG-015 | Medium | 🟢 Low | 1 h | ✅ Resolved |
 | BUG-016 | Medium | 🔴 High | 12–16 h | Open |
 | BUG-017 | Low | 🟡 Medium | 3–4 h | Open |
 | BUG-018 | Low | 🔴 High | 10–16 h | Open |
 | BUG-019 | Low | 🟢 Trivial | 0.5 h | Open |
 | BUG-020 | Low | 🔴 Very High | 16–24 h | Open |
 
-**Total open backlog: ~84–131 h** (excluding 5 resolved bugs: BUG-001, BUG-003, BUG-008, BUG-009, BUG-010)
+**Total open backlog: ~79–124 h** (excluding 9 resolved bugs)
 
 ---
 
@@ -120,15 +120,17 @@ Implement the pending live-stream detection using the `youtubei.js` library alre
 
 ## High
 
-### BUG-004 — Panel-Order Migration Log Says "v1.8" but Key Says "v1.9"
+### BUG-004 — Panel-Order Migration Log Says "v1.8" but Key Says "v1.9" ✅ Resolved
 
 | Field | Value |
 |---|---|
 | **Severity** | High (data inconsistency) |
-| **Affected** | `src/App.ts` (line ~237) |
+| **Affected** | `src/App.ts` (line ~168) |
 | **Depends on** | — |
 | **Complexity** | 🟢 Trivial — single string change |
-| **Est. Hours** | 0.25 h |
+| **Est. Hours** | 0.25 h (completed) |
+| **Status** | ✅ Resolved |
+| **Resolution** | Changed log message from `v1.8` to `v1.9` to match `PANEL_ORDER_MIGRATION_KEY`. |
 
 **Description**
 `PANEL_ORDER_MIGRATION_KEY` is `worldmonitor-panel-order-v1.9` but the `console.log` says `"Migrated panel order to v1.8 layout"`.
@@ -139,15 +141,17 @@ Change the log message to `v1.9`.
 
 ---
 
-### BUG-005 — Duplicate `layerToSource` Mapping
+### BUG-005 — Duplicate `layerToSource` Mapping ✅ Resolved
 
 | Field | Value |
 |---|---|
 | **Severity** | High (maintenance risk) |
-| **Affected** | `src/App.ts` — `syncDataFreshnessWithLayers()` (line ~606) and `setupMapLayerHandlers()` (line ~643) |
+| **Affected** | `src/App.ts`, `src/config/panels.ts` |
 | **Depends on** | BUG-001 (Phase 2) |
 | **Complexity** | 🟢 Low — extract constant to config, update two import sites |
-| **Est. Hours** | 1 h |
+| **Est. Hours** | 1 h (completed) |
+| **Status** | ✅ Resolved |
+| **Resolution** | Extracted `LAYER_TO_SOURCE` constant to `src/config/panels.ts`, exported via barrel `src/config/index.ts`, and imported in both `syncDataFreshnessWithLayers()` and `setupMapLayerHandlers()` in App.ts. Duplicate inline definitions removed. |
 
 **Description**
 The `layerToSource` map is copy-pasted in two places. If a new layer is added to one and not the other, freshness tracking silently breaks for that layer.
@@ -177,15 +181,17 @@ Proxy directly to `gamma-api.polymarket.com` or implement the same edge-function
 
 ---
 
-### BUG-007 — No Error Boundary on News Cluster Rendering
+### BUG-007 — No Error Boundary on News Cluster Rendering ✅ Resolved
 
 | Field | Value |
 |---|---|
 | **Severity** | High |
-| **Affected** | `src/components/NewsPanel.ts`, `src/services/clustering.ts` |
+| **Affected** | `src/components/NewsPanel.ts` |
 | **Depends on** | — |
 | **Complexity** | 🟡 Medium — identify all render loops, add try/catch with fallback UI |
-| **Est. Hours** | 2 h |
+| **Est. Hours** | 2 h (completed) |
+| **Status** | ✅ Resolved |
+| **Resolution** | Wrapped both render paths (WindowedList callback and direct `.map()` render) in try/catch. On failure, logs the bad cluster ID and renders a `"Failed to display story"` placeholder so remaining clusters still appear. |
 
 **Description**
 If the clustering worker returns malformed data (e.g., a cluster with `undefined` headline), the `NewsPanel` render loop throws, leaving the panel blank.
@@ -338,15 +344,17 @@ Write unit tests for all API handlers using the node built-in test runner. Prior
 
 ---
 
-### BUG-015 — Service Worker Excludes ML WASM but Still Caches 60+ MB ML JS Chunk
+### BUG-015 — Service Worker Excludes ML WASM but Still Caches 60+ MB ML JS Chunk ✅ Resolved
 
 | Field | Value |
 |---|---|
 | **Severity** | Medium |
-| **Affected** | `vite.config.ts` (line ~200) |
+| **Affected** | `vite.config.ts` (Workbox config) |
 | **Depends on** | — |
 | **Complexity** | 🟢 Low — verify chunk output filename, adjust `globIgnores` pattern |
-| **Est. Hours** | 1 h |
+| **Est. Hours** | 1 h (completed) |
+| **Status** | ✅ Resolved |
+| **Resolution** | Verified `globIgnores: ['**/ml-*.js', '**/onnx*.wasm']` correctly matches the `ml` manual chunk (`ml-{hash}.js`). Added `maximumFileSizeToCacheInBytes: 5 * 1024 * 1024` (5 MB) as a safety net to prevent any oversized chunk from being precached. |
 
 **Description**
 `globIgnores` excludes `**/onnx*.wasm` but the `ml` chunk (Xenova Transformers JS code) is still matched by `**/*.{js,…}` and will be precached by Workbox.
