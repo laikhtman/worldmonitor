@@ -19,16 +19,16 @@ Each entry includes severity, description, affected files, and dependencies on o
 | BUG-010 | High | 🟢 Low | 1 h | ✅ Resolved |
 | BUG-011 | Medium | 🟢 Low | 1 h | Open |
 | BUG-012 | Medium | 🟡 Medium | 3–4 h | Open |
-| BUG-013 | Medium | 🟢 Low | 1–2 h | Open |
+| BUG-013 | Medium | 🟢 Low | 1–2 h | ✅ Resolved |
 | BUG-014 | Medium | 🔴 Very High | 24–32 h | Open |
 | BUG-015 | Medium | 🟢 Low | 1 h | ✅ Resolved |
 | BUG-016 | Medium | 🔴 High | 12–16 h | Open |
 | BUG-017 | Low | 🟡 Medium | 3–4 h | Open |
 | BUG-018 | Low | 🔴 High | 10–16 h | Open |
-| BUG-019 | Low | 🟢 Trivial | 0.5 h | Open |
+| BUG-019 | Low | 🟢 Trivial | 0.5 h | ✅ Resolved |
 | BUG-020 | Low | 🔴 Very High | 16–24 h | Open |
 
-**Total open backlog: ~79–124 h** (excluding 9 resolved bugs)
+**Total open backlog: ~77–122 h** (excluding 11 resolved bugs)
 
 ---
 
@@ -305,7 +305,7 @@ Register all backend data sources in `data-freshness.ts` and call `dataFreshness
 
 ---
 
-### BUG-013 — `VITE_VARIANT` Env Var Not Windows-Compatible in npm Scripts
+### BUG-013 — `VITE_VARIANT` Env Var Not Windows-Compatible in npm Scripts ✅ Resolved
 
 | Field | Value |
 |---|---|
@@ -313,11 +313,13 @@ Register all backend data sources in `data-freshness.ts` and call `dataFreshness
 | **Affected** | `package.json` (all `VITE_VARIANT=…` scripts) |
 | **Depends on** | — |
 | **Complexity** | 🟢 Low — add `cross-env` dependency, prefix all affected scripts |
-| **Est. Hours** | 1–2 h |
+| **Est. Hours** | 1–2 h (completed) |
+| **Status** | ✅ Resolved |
+| **Resolution** | Installed `cross-env` as devDependency. Prefixed all 17 scripts that use `VITE_VARIANT=` or `VITE_DESKTOP_RUNTIME=` with `cross-env`. Verified `build:tech` runs successfully on Windows. |
 
 **Description**
-Scripts like `"build:tech": "VITE_VARIANT=tech tsc && VITE_VARIANT=tech vite build"` use Unix shell syntax.
-On Windows (the project's primary development OS per user profile) these will silently ignore the variable, building the wrong variant.
+Scripts like `"build:tech": "VITE_VARIANT=tech tsc && VITE_VARIANT=tech vite build"` used Unix shell syntax.
+On Windows (the project's primary development OS per user profile) these silently ignored the variable, building the wrong variant.
 
 **AI instructions**
 Use `cross-env` (npm package) to set environment variables portably, e.g., `"build:tech": "cross-env VITE_VARIANT=tech tsc && cross-env VITE_VARIANT=tech vite build"`.
@@ -424,7 +426,7 @@ Audit all user-facing strings for missing `t(…)` calls. Add keys to `en.json` 
 
 ---
 
-### BUG-019 — `test:e2e` Scripts Fail on Windows Due to Shell Syntax
+### BUG-019 — `test:e2e` Scripts Fail on Windows Due to Shell Syntax ✅ Resolved
 
 | Field | Value |
 |---|---|
@@ -432,11 +434,13 @@ Audit all user-facing strings for missing `t(…)` calls. Add keys to `en.json` 
 | **Affected** | `package.json` — all `test:e2e:*` scripts |
 | **Depends on** | BUG-013 |
 | **Complexity** | 🟢 Trivial — same `cross-env` fix as BUG-013, applied to test scripts |
-| **Est. Hours** | 0.5 h (done alongside BUG-013) |
+| **Est. Hours** | 0.5 h (completed alongside BUG-013) |
+| **Status** | ✅ Resolved |
+| **Resolution** | Fixed as part of BUG-013. All 7 `test:e2e:*` and `test:e2e:visual:*` scripts now use `cross-env VITE_VARIANT=...`. |
 
 **Description**
-Same issue as BUG-013 — `VITE_VARIANT=full playwright test` is Unix-only.
-E2E tests are untestable on the primary development platform (Windows).
+Same issue as BUG-013 — `VITE_VARIANT=full playwright test` was Unix-only.
+E2E tests were untestable on the primary development platform (Windows).
 
 **AI instructions**
 Fix alongside BUG-013 using `cross-env`.
