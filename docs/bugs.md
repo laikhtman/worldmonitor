@@ -8,7 +8,7 @@ Each entry includes severity, description, affected files, and dependencies on o
 | Bug | Severity | Complexity | Est. Hours | Status |
 |-----|----------|------------|------------|--------|
 | BUG-001 | Critical | 🔴 Very High | 24–32 h | ✅ Resolved |
-| BUG-002 | Critical | 🔴 High | 8–12 h | Open |
+| BUG-002 | Critical | 🔴 High | 8–12 h | ✅ Resolved |
 | BUG-003 | Critical | 🟢 Low | 1 h | ✅ Resolved |
 | BUG-004 | High | 🟢 Trivial | 0.25 h | ✅ Resolved |
 | BUG-005 | High | 🟢 Low | 1 h | ✅ Resolved |
@@ -76,15 +76,17 @@ Keep the `App` class as a thin composition root that wires controllers together.
 
 ---
 
-### BUG-002 — Unsafe `innerHTML` Assignments with External Data
+### BUG-002 — Unsafe `innerHTML` Assignments with External Data ✅ Resolved
 
 | Field | Value |
 |---|---|
 | **Severity** | Critical (security) |
-| **Affected** | `src/components/MapPopup.ts`, `src/components/DeckGLMap.ts`, `src/components/CascadePanel.ts`, `src/components/CountryBriefPage.ts`, `src/components/CountryIntelModal.ts`, `src/components/InsightsPanel.ts`, `src/App.ts` (lines ~2763, ~2817) |
+| **Affected** | `src/controllers/panel-manager.ts`, `src/components/SignalModal.ts`, `src/components/CountryIntelModal.ts`, `src/components/CountryBriefPage.ts`, `src/components/ServiceStatusPanel.ts` |
 | **Depends on** | — |
+| **Status** | ✅ Resolved |
+| **Resolution** | Full audit of 142 innerHTML sites across `src/`. 8 unsafe interpolations found and fixed: `panel-manager.ts` (theater posture `headline`/`summary`), `SignalModal.ts` (convergence `types`, cascade `sourceType`, `regionName`), `CountryIntelModal.ts` and `CountryBriefPage.ts` (`weekChangePercent`), `ServiceStatusPanel.ts` (`service.status` in class attrs and text). All now wrapped with `escapeHtml()`. Remaining 134 sites verified safe (static HTML, `t()` i18n, already escaped, or clearing). |
 | **Complexity** | 🔴 High — requires full audit of every `innerHTML` site across 7+ components, careful escaping without breaking HTML structure |
-| **Est. Hours** | 8–12 h |
+| **Est. Hours** | 8–12 h (completed) |
 
 **Description**
 Despite documentation claiming all external data passes through `escapeHtml()`, many `innerHTML` assignments interpolate feed-sourced strings (headlines, source names, tension labels) without escaping.

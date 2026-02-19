@@ -164,7 +164,7 @@ export class SignalModal {
         </div>
         <div class="signal-context-item">
           <span class="context-label">${t('modals.signal.eventTypes')}</span>
-          <span class="context-value">${conv.types.join(', ')}</span>
+          <span class="context-value">${escapeHtml(conv.types.join(', '))}</span>
         </div>
         <div class="signal-context-item">
           <span class="context-label">${t('modals.signal.eventCount')}</span>
@@ -179,7 +179,7 @@ export class SignalModal {
       detailsHtml += `
         <div class="signal-context-item">
           <span class="context-label">${t('modals.signal.source')}</span>
-          <span class="context-value">${escapeHtml(cascade.sourceName)} (${cascade.sourceType})</span>
+          <span class="context-value">${escapeHtml(cascade.sourceName)} (${escapeHtml(cascade.sourceType)})</span>
         </div>
         <div class="signal-context-item">
           <span class="context-label">${t('modals.signal.countriesAffected')}</span>
@@ -280,7 +280,7 @@ export class SignalModal {
           ${locationData.lat && locationData.lon ? `
             <div class="signal-location">
               <button class="location-link" data-lat="${locationData.lat}" data-lon="${locationData.lon}">
-                📍 ${t('modals.signal.viewOnMap')}: ${locationData.regionName || `${locationData.lat.toFixed(2)}°, ${locationData.lon.toFixed(2)}°`}
+                📍 ${t('modals.signal.viewOnMap')}: ${locationData.regionName ? escapeHtml(locationData.regionName) : `${locationData.lat.toFixed(2)}°, ${locationData.lon.toFixed(2)}°`}
               </button>
             </div>
           ` : ''}

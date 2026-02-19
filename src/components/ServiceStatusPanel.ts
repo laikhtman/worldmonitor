@@ -232,10 +232,10 @@ export class ServiceStatusPanel extends Panel {
       const statusClass = service.status;
 
       return `
-        <div class="service-status-item ${statusClass}">
+        <div class="service-status-item ${escapeHtml(statusClass)}">
           <span class="status-icon">${statusIcon}</span>
           <span class="status-name">${escapeHtml(service.name)}</span>
-          <span class="status-badge ${statusClass}">${service.status.toUpperCase()}</span>
+          <span class="status-badge ${escapeHtml(statusClass)}">${escapeHtml(service.status).toUpperCase()}</span>
         </div>
       `;
     }).join('');

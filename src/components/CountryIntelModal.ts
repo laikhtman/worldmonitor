@@ -255,7 +255,7 @@ export class CountryIntelModal {
     const cls = pct >= 0 ? 'stock-up' : 'stock-down';
     const arrow = pct >= 0 ? '📈' : '📉';
     el.className = `signal-chip stock ${cls}`;
-    el.innerHTML = `${arrow} ${escapeHtml(data.indexName)}: ${sign}${data.weekChangePercent}% (1W)`;
+    el.innerHTML = `${arrow} ${escapeHtml(data.indexName)}: ${sign}${escapeHtml(data.weekChangePercent)}% (1W)`;
   }
 
   private formatBrief(text: string): string {
