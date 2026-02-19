@@ -114,6 +114,9 @@ maybeShowDebugPanel();
 import { evictStaleCache } from '@/utils/fetch-cache';
 setInterval(() => evictStaleCache(5 * 60_000), 60_000);
 
+// Clear stale settings-open flag (survives ungraceful shutdown)
+localStorage.removeItem('wm-settings-open');
+
 const app = new App('app');
 app
   .init()

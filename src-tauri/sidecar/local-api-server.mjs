@@ -844,7 +844,8 @@ export async function createLocalApiServer(options = {}) {
     }
 
     const start = Date.now();
-    const skipRecord = requestUrl.pathname === '/api/local-traffic-log'
+    const skipRecord = req.method === 'OPTIONS'
+      || requestUrl.pathname === '/api/local-traffic-log'
       || requestUrl.pathname === '/api/local-debug-toggle'
       || requestUrl.pathname === '/api/local-env-update'
       || requestUrl.pathname === '/api/local-validate-secret';

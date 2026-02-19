@@ -186,10 +186,11 @@ export class LiveNewsPanel extends Panel {
     // Track user activity to detect idle (pauses after 5 min inactivity)
     this.boundIdleResetHandler = () => {
       if (this.idleTimeout) clearTimeout(this.idleTimeout);
+      this.resumeFromIdle();
       this.idleTimeout = setTimeout(() => this.pauseForIdle(), this.IDLE_PAUSE_MS);
     };
 
-    ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+    ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'].forEach(event => {
       document.addEventListener(event, this.boundIdleResetHandler, { passive: true });
     });
 
@@ -266,7 +267,12 @@ export class LiveNewsPanel extends Panel {
     this.isPlaying = !this.isPlaying;
     this.wasPlayingBeforeIdle = this.isPlaying;
     this.updateLiveIndicator();
-    this.syncPlayerState();
+    if (this.isPlaying && !this.player && !this.desktopEmbedIframe) {
+      this.ensurePlayerContainer();
+      void this.initializePlayer();
+    } else {
+      this.syncPlayerState();
+    }
   }
 
   private createMuteButton(): void {
@@ -685,7 +691,7 @@ export class LiveNewsPanel extends Panel {
 
     document.removeEventListener('visibilitychange', this.boundVisibilityHandler);
     window.removeEventListener('message', this.boundMessageHandler);
-    ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+    ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'].forEach(event => {
       document.removeEventListener(event, this.boundIdleResetHandler);
     });
 

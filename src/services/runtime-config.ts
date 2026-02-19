@@ -79,6 +79,13 @@ const defaultToggles: Record<RuntimeFeatureId, boolean> = {
 
 export const RUNTIME_FEATURES: RuntimeFeatureDefinition[] = [
   {
+    id: 'aiOllama',
+    name: 'Ollama local summarization',
+    description: 'Local LLM provider via OpenAI-compatible endpoint (Ollama or LM Studio, desktop-first).',
+    requiredSecrets: ['OLLAMA_API_URL', 'OLLAMA_MODEL'],
+    fallback: 'Falls back to Groq, then OpenRouter, then local browser model.',
+  },
+  {
     id: 'aiGroq',
     name: 'Groq summarization',
     description: 'Primary fast LLM provider used for AI summary generation.',
