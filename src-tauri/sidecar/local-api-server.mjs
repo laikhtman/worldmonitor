@@ -3,7 +3,7 @@ import http, { createServer } from 'node:http';
 import https from 'node:https';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
-import { gzipSync } from 'node:zlib';
+import { gzipSync, brotliCompressSync, constants as zlibConstants } from 'node:zlib';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -869,10 +869,18 @@ export async function createLocalApiServer(options = {}) {
       }
 
       const acceptEncoding = req.headers['accept-encoding'] || '';
-      if (acceptEncoding.includes('gzip') && body.length > 1024) {
-        body = gzipSync(body);
-        headers['content-encoding'] = 'gzip';
-        headers['vary'] = 'Accept-Encoding';
+      if (body.length > 1024) {
+        if (acceptEncoding.includes('br')) {
+          body = brotliCompressSync(body, {
+            params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 4 },
+          });
+          headers['content-encoding'] = 'br';
+          headers['vary'] = 'Accept-Encoding';
+        } else if (acceptEncoding.includes('gzip')) {
+          body = gzipSync(body);
+          headers['content-encoding'] = 'gzip';
+          headers['vary'] = 'Accept-Encoding';
+        }
       }
 
       res.writeHead(response.status, headers);

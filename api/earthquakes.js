@@ -17,8 +17,40 @@ export default async function handler(request) {
       }
     );
 
-    const data = await response.text();
-    return new Response(data, {
+    const raw = await response.json();
+
+    // PERF-024: prune unused upstream fields to reduce payload by ~30%
+    if (raw && Array.isArray(raw.features)) {
+      raw.features = raw.features.map(f => ({
+        type: f.type,
+        id: f.id,
+        geometry: f.geometry,
+        properties: {
+          mag: f.properties?.mag,
+          place: f.properties?.place,
+          time: f.properties?.time,
+          updated: f.properties?.updated,
+          url: f.properties?.url,
+          title: f.properties?.title,
+          status: f.properties?.status,
+          tsunami: f.properties?.tsunami,
+          sig: f.properties?.sig,
+          type: f.properties?.type,
+          felt: f.properties?.felt,
+          cdi: f.properties?.cdi,
+          mmi: f.properties?.mmi,
+          alert: f.properties?.alert,
+        },
+      }));
+      // Strip top-level metadata but keep bbox
+      raw.metadata = {
+        generated: raw.metadata?.generated,
+        count: raw.metadata?.count,
+        title: raw.metadata?.title,
+      };
+    }
+
+    return new Response(JSON.stringify(raw), {
       status: response.status,
       headers: {
         'Content-Type': 'application/json',

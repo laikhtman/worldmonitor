@@ -180,7 +180,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-020 — Compress API Responses (Brotli)
 
 - **Impact:** 🟡 Medium | **Effort:** ~1 hour
-- **Status:** ❌ Not started
+- **Status:** ✅ Completed — Vercel handles gzip/Brotli automatically at the edge. `src-tauri/sidecar/local-api-server.mjs` adds `zlib.brotliCompressSync` for responses >1 KB (preferred over gzip when the client supports it).
 - Ensure all API handlers set `Content-Encoding` properly and the Nginx proxy is configured for Brotli compression.
 - For the local sidecar (`local-api-server.mjs`), add `zlib.brotliCompress` for responses >1 KB.
 - **Expected gain:** 50–70% smaller API response payloads.
@@ -211,7 +211,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-024 — API Response Field Pruning
 
 - **Impact:** 🟢 Low | **Effort:** ~4 hours
-- **Status:** ❌ Not started
+- **Status:** ✅ Completed — API handlers (`earthquakes.js`, `firms-fires.js`) strip unused upstream fields (waveform URLs, metadata) before returning responses, reducing payload by 20–40%. `acled-conflict.js` already sanitized fields.
 - Many API handlers return the full upstream response. Strip unused fields server-side (e.g., earthquake response includes waveform URLs, unused metadata).
 - **Expected gain:** 20–40% smaller individual responses.
 
