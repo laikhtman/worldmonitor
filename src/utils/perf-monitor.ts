@@ -190,3 +190,55 @@ export function destroyDebugPanel(): void {
     debugPanelEl?.remove();
     debugPanelEl = null;
 }
+
+/**
+ * PERF-030: Map animation frame budget monitoring.
+ * Shows FPS, draw call count, layer count, and throttles updates when FPS < 30.
+ */
+
+let mapDebugEl: HTMLElement | null = null;
+let mapFpsHistory: number[] = [];
+let throttleActive = false;
+
+export function updateMapDebugStats(stats: {
+    fps: number;
+    layerCount: number;
+    drawCalls?: number;
+    vertexCount?: number;
+}): void {
+    mapFpsHistory.push(stats.fps);
+    if (mapFpsHistory.length > 60) mapFpsHistory.shift();
+
+    // Throttle when FPS drops below 30
+    const avgFps = mapFpsHistory.reduce((a, b) => a + b, 0) / mapFpsHistory.length;
+    throttleActive = avgFps < 30;
+
+    if (!mapDebugEl && location.search.includes('debug=perf')) {
+        mapDebugEl = document.createElement('div');
+        mapDebugEl.id = 'map-debug-overlay';
+        mapDebugEl.style.cssText = `
+            position: fixed; top: 50px; right: 0; z-index: 99999;
+            background: rgba(0,0,0,0.85); color: #0ff; font-family: monospace;
+            font-size: 10px; padding: 6px 10px; border-bottom-left-radius: 4px;
+            pointer-events: none; line-height: 1.5;
+        `;
+        document.body.appendChild(mapDebugEl);
+    }
+
+    if (mapDebugEl) {
+        const color = stats.fps >= 50 ? '#0f0' : stats.fps >= 30 ? '#ff0' : '#f44';
+        mapDebugEl.innerHTML = `<b>🗺️ MAP</b> `
+            + `<span style="color:${color}">FPS: ${stats.fps}</span>`
+            + ` | Layers: ${stats.layerCount}`
+            + (stats.drawCalls != null ? ` | Draws: ${stats.drawCalls}` : '')
+            + (stats.vertexCount != null ? ` | Verts: ${(stats.vertexCount / 1000).toFixed(0)}k` : '')
+            + (throttleActive ? ' | <span style="color:#f44">⚠ THROTTLED</span>' : '');
+    }
+}
+
+/**
+ * Check if map layer updates should be throttled due to low FPS.
+ */
+export function isMapThrottled(): boolean {
+    return throttleActive;
+}

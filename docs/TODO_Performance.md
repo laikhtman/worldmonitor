@@ -261,7 +261,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-030 — Map Animation Frame Budget Monitoring
 
 - **Impact:** 🟢 Low | **Effort:** ~4 hours
-- **Status:** ❌ Not started
+- **Status:** ✅ Completed — `src/utils/perf-monitor.ts` adds `updateMapDebugStats()` and `isMapThrottled()` for map frame budget monitoring. Shows FPS, layer count, draw calls in the `?debug=perf` overlay and throttles layer updates when FPS drops below 30.
 - Add a debug overlay showing: FPS, draw call count, layer count, vertex count.
 - Throttle layer updates when FPS drops below 30.
 - **Expected gain:** Prevents janky UX on low-end hardware.
@@ -269,7 +269,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-031 — Simplify Country Geometry at Low Zoom
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
-- **Status:** ❌ Not started
+- **Status:** ✅ Completed — `src/utils/geo-simplify.ts` provides Douglas-Peucker coordinate simplification with zoom-dependent tolerance. At zoom <5, uses 0.01° tolerance for ~80% vertex reduction.
 - Country boundary GeoJSON is high-resolution for close zoom. At global zoom, use simplified geometries (Douglas-Peucker 0.01° tolerance).
 - **Expected gain:** 80% fewer vertices at zoom <5.
 
@@ -288,7 +288,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-033 — WeakRef for Cached DOM References
 
 - **Impact:** 🟢 Low | **Effort:** ~2 hours
-- **Status:** ❌ Not started
+- **Status:** ✅ Completed — `src/utils/dom-utils.ts` provides `WeakDOMCache` using `WeakRef` and `FinalizationRegistry` to hold DOM element references that allow GC when elements are removed from the page.
 - Some services hold strong references to DOM elements that have been removed from the page.
 - Use `WeakRef` for optional DOM caches to allow GC.
 - **Expected gain:** Prevents slow memory leaks.
@@ -296,7 +296,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-034 — Release Map Data on Panel Collapse
 
 - **Impact:** 🟡 Medium | **Effort:** ~4 hours
-- **Status:** ❌ Not started
+- **Status:** ✅ Completed — `Panel.ts` adds `onDataRelease()` hook called on panel collapse, allowing subclasses to release large data arrays and re-fetch on next expand.
 - When a user collapses a panel and disables its layer, keep the layer metadata but release the raw data array.
 - Re-fetch on next expand.
 - **Expected gain:** Frees large arrays (e.g., 10K fire detections = ~5 MB).
