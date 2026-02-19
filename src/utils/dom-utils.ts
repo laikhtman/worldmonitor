@@ -117,3 +117,47 @@ export function createElement<K extends keyof HTMLElementTagNameMap>(
     }
     return el;
 }
+
+/**
+ * PERF-016: Minimal hyperscript-like element builder.
+ * Creates DOM elements programmatically instead of parsing HTML strings.
+ *
+ * @example
+ * h('div', { className: 'panel-row' },
+ *   h('span', { className: 'label' }, 'Score:'),
+ *   h('span', { className: 'value' }, '42'),
+ * )
+ */
+export function h(
+    tag: string,
+    attrs?: Record<string, string | boolean | EventListener | undefined> | null,
+    ...children: (Node | string | null | undefined | false)[]
+): HTMLElement {
+    const el = document.createElement(tag);
+    if (attrs) {
+        for (const [key, value] of Object.entries(attrs)) {
+            if (value === undefined || value === false) continue;
+            if (key === 'className') {
+                el.className = value as string;
+            } else if (key.startsWith('on') && typeof value === 'function') {
+                el.addEventListener(key.slice(2).toLowerCase(), value as EventListener);
+            } else if (value === true) {
+                el.setAttribute(key, '');
+            } else {
+                el.setAttribute(key, value as string);
+            }
+        }
+    }
+    for (const child of children) {
+        if (child === null || child === undefined || child === false) continue;
+        el.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
+    }
+    return el;
+}
+
+/**
+ * PERF-016: Create a text node. Useful as child in h() calls.
+ */
+export function text(content: string): Text {
+    return document.createTextNode(content);
+}

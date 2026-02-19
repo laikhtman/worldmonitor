@@ -143,7 +143,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-016 — Replace `innerHTML` with Incremental DOM Utilities
 
 - **Impact:** 🟡 Medium | **Effort:** ~3 days
-- **Status:** ❌ Not started
+- **Status:** ✅ Completed — `src/utils/dom-utils.ts` provides `h()` hyperscript builder and `text()` helper for programmatic DOM construction without HTML string parsing, enabling granular updates.
 - For dynamic panel content, build a minimal `h()` function that creates elements programmatically instead of parsing HTML strings.
 - **Expected gain:** Eliminates HTML parsing overhead, enables granular updates.
 
