@@ -90,6 +90,26 @@ const VARIANT_META: Record<string, {
       'Market radar signals',
     ],
   },
+  tv: {
+    title: 'IntelHQ TV - Global Intelligence on Your TV',
+    description: 'Real-time global intelligence dashboard for LG Smart TVs. Monitor breaking news, financial markets, geopolitical hotspots, and more from your living room.',
+    keywords: 'intelligence dashboard, smart TV, webOS, LG TV, real-time news, global intelligence, geopolitical, markets, OSINT, TV app',
+    url: 'https://tv.intelhq.io/',
+    siteName: 'IntelHQ TV',
+    shortName: 'IntelHQ',
+    subject: 'Real-Time Global Intelligence for Smart TVs',
+    classification: 'Smart TV Application, Intelligence Dashboard',
+    categories: ['intelligence', 'news', 'tv'],
+    features: [
+      'Real-time news feed',
+      'Global map visualization',
+      'Market data',
+      'AI-powered insights',
+      'Prediction markets',
+      'Earthquake & disaster alerts',
+      'D-pad & Magic Remote navigation',
+    ],
+  },
 };
 
 const activeVariant = process.env.VITE_VARIANT || 'full';

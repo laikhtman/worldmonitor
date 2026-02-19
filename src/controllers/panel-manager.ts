@@ -12,6 +12,7 @@ declare const __APP_VERSION__: string;
 
 import type { AppContext } from './app-context';
 import type { RelatedAsset, ClusteredEvent } from '@/types';
+import { IS_TV } from '@/utils/tv-detection';
 import {
   FEEDS,
   DEFAULT_PANELS,
@@ -680,10 +681,13 @@ export class PanelManager {
       const panel = this.ctx.panels[key];
       if (panel) {
         const el = panel.getElement();
-        this.makeDraggable(el, key);
+        if (!IS_TV) {
+          this.makeDraggable(el, key);
+        }
         panelsGrid.appendChild(el);
       }
     });
+
 
     this.ctx.map.onTimeRangeChanged((range) => {
       this.ctx.currentTimeRange = range;
