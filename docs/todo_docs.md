@@ -143,14 +143,14 @@
 ## 5. Services Documentation
 
 ### 5.1 Create `docs/SERVICES.md`
-- [ ] Document all 70+ services in `src/services/`:
+- [x] Document all 70+ services in `src/services/`:
   - Purpose and responsibility
   - Public API (exported functions/classes)
   - Dependencies (other services, config, external APIs)
   - Caching strategy (Redis / IndexedDB / in-memory)
   - Refresh intervals and polling behavior
   - Error handling and fallback chains
-- [ ] Group services by domain:
+- [x] Group services by domain:
   - **Intelligence Analysis**: `analysis-core`, `signal-aggregator`, `correlation`, `focal-point-detector`, `hotspot-escalation`, `trending-keywords`, `threat-classifier`
   - **Data Ingestion**: `rss`, `conflicts`, `earthquakes`, `climate`, `ais`, `markets`, etc.
   - **ML/AI**: `ml-worker`, `ml-capabilities`, `summarization`, `entity-extraction`, `clustering`
@@ -161,17 +161,17 @@
   - **Content**: `story-data`, `story-renderer`, `story-share`, `meta-tags`
 
 ### 5.2 Document Key Algorithms
-- [ ] **News Clustering** (`clustering.ts`): Jaccard + semantic similarity, threshold tuning
-- [ ] **Threat Classification** (`threat-classifier.ts`): hybrid keyword + LLM pipeline
-- [ ] **Signal Correlation** (`correlation.ts`): cross-source pattern matching logic
-- [ ] **Hotspot Escalation** (`hotspot-escalation.ts`): 4-signal scoring methodology
-- [ ] **Country Instability Index** (`country-instability.ts`): 22-country CII computation
-- [ ] **Temporal Baseline** (`temporal-baseline.ts`): Welford's online algorithm for anomaly detection
-- [ ] **Trending Keywords** (`trending-keywords.ts`): 2h vs 7d window spike detection
-- [ ] **Infrastructure Cascade** (`infrastructure-cascade.ts`): BFS propagation model
-- [ ] **Geo-Convergence** (`geo-convergence.ts`): 1°×1° cell multi-source convergence
+- [x] **News Clustering** (`clustering.ts`): Jaccard + semantic similarity, threshold tuning
+- [x] **Threat Classification** (`threat-classifier.ts`): hybrid keyword + LLM pipeline
+- [x] **Signal Correlation** (`correlation.ts`): cross-source pattern matching logic
+- [x] **Hotspot Escalation** (`hotspot-escalation.ts`): 4-signal scoring methodology
+- [x] **Country Instability Index** (`country-instability.ts`): 22-country CII computation
+- [x] **Temporal Baseline** (`temporal-baseline.ts`): Welford's online algorithm for anomaly detection
+- [x] **Trending Keywords** (`trending-keywords.ts`): 2h vs 7d window spike detection
+- [x] **Infrastructure Cascade** (`infrastructure-cascade.ts`): BFS propagation model
+- [x] **Geo-Convergence** (`geo-convergence.ts`): 1°×1° cell multi-source convergence
 - [ ] **Macro Signals** (api `macro-signals.js`): 7-signal radar BUY/CASH methodology
-- [ ] **Circuit Breaker** (`utils/circuit-breaker.ts`): per-feed failure tracking, 5-min cooldown
+- [x] **Circuit Breaker** (`utils/circuit-breaker.ts`): per-feed failure tracking, 5-min cooldown
 
 ---
 
