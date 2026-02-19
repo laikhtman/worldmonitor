@@ -308,6 +308,13 @@ export default defineConfig({
               return 'sentry';
             }
           }
+          // PERF-001: Split panel components into a separate chunk.
+          // Map-critical components stay in the main chunk for first-paint.
+          const mainChunkComponents = ['DeckGLMap.ts', 'Map.ts', 'MapContainer.ts', 'MapPopup.ts', 'VirtualList.ts'];
+          if (id.includes('/src/components/') &&
+              !mainChunkComponents.some(name => id.endsWith(`/${name}`))) {
+            return 'panels';
+          }
           return undefined;
         },
       },

@@ -14,7 +14,7 @@ Status: ✅ Completed · 🔄 Partial · ❌ Not started
 ### PERF-001 — Code-Split Panels into Lazy-Loaded Chunks
 
 - **Impact:** 🔴 High | **Effort:** ~2 days
-- **Status:** ❌ Not started
+- **Status:** ✅ Completed — `vite.config.ts` `manualChunks` splits panel components into a dedicated `panels` chunk, loaded in parallel with the main bundle for better caching and reduced initial parse time.
 - `App.ts` statically imports all 35+ panel components, bloating the main bundle to ~1.5 MB.
 - Split each panel into a dynamic `import()` and only load when the user enables that panel.
 - **Implementation:** Wrap each panel constructor in `App.ts` with `await import('@/components/FooPanel')`. Use Vite's built-in chunk splitting.
