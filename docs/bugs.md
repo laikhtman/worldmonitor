@@ -22,8 +22,8 @@ Each entry includes severity, description, affected files, and dependencies on o
 | BUG-013 | Medium | 🟢 Low | 1–2 h | ✅ Resolved |
 | BUG-014 | Medium | 🔴 Very High | 24–32 h | Open |
 | BUG-015 | Medium | 🟢 Low | 1 h | ✅ Resolved |
-| BUG-016 | Medium | 🔴 High | 12–16 h | Open |
-| BUG-017 | Low | 🟡 Medium | 3–4 h | Open |
+| BUG-016 | Medium | 🔴 High | 12–16 h | ✅ Resolved |
+| BUG-017 | Low | 🟡 Medium | 3–4 h | ✅ Resolved |
 | BUG-018 | Low | 🔴 High | 10–16 h | Open |
 | BUG-019 | Low | 🟢 Trivial | 0.5 h | ✅ Resolved |
 | BUG-020 | Low | 🔴 Very High | 16–24 h | Open |
@@ -369,7 +369,7 @@ Add `**/ml-*.js` to `globPatterns` exclude (it's in `globIgnores` already — ve
 
 ---
 
-### BUG-016 — `MapPopup.ts` at 113 KB — Largest Component
+### BUG-016 — `MapPopup.ts` at 113 KB — Largest Component ✅ Resolved
 
 | Field | Value |
 |---|---|
@@ -378,6 +378,8 @@ Add `**/ml-*.js` to `globPatterns` exclude (it's in `globIgnores` already — ve
 | **Depends on** | BUG-001 (Phase 2 — independent of `App.ts`, but same decomposition pattern applies) |
 | **Complexity** | 🔴 High — split 113 KB into ~10 per-layer popup renderers + dispatcher, extensive regression testing |
 | **Est. Hours** | 12–16 h |
+| **Status** | ✅ Resolved |
+| **Resolution** | Decomposed into 9 domain popup modules under `src/components/popups/` (conflict, natural-hazard, military, maritime-infra, security, civil, tech, finance) plus shared `popup-types.ts` and `popup-utils.ts`. `MapPopup.ts` reduced from 2,493 lines to ~270 lines — a thin dispatcher class that delegates to imported renderers. Public API unchanged; all 3 consumers (`Map.ts`, `DeckGLMap.ts`, `mobile-map-harness.ts`) unaffected. |
 
 **Description**
 A single file handling popup rendering for every data layer type (conflicts, bases, cables, pipelines, ports, vessels, aircraft, protests, earthquakes, nuclear, datacenters, tech HQs, etc.).
@@ -390,7 +392,7 @@ Split into per-layer popup renderers (e.g., `popups/ConflictPopup.ts`, `popups/M
 
 ## Low
 
-### BUG-017 — Magic Numbers Across Scoring Algorithms
+### BUG-017 — Magic Numbers Across Scoring Algorithms ✅ Resolved
 
 | Field | Value |
 |---|---|
@@ -399,6 +401,8 @@ Split into per-layer popup renderers (e.g., `popups/ConflictPopup.ts`, `popups/M
 | **Depends on** | — |
 | **Complexity** | 🟡 Medium — audit 4 services, extract ~20-30 constants, verify scoring behavior unchanged |
 | **Est. Hours** | 3–4 h |
+| **Status** | ✅ Resolved |
+| **Resolution** | Extracted ~50 constants across 4 domains (CII, Escalation, Surge, Geo-Convergence) into `src/utils/analysis-constants.ts`. All weights, caps, multipliers, thresholds, and timing constants are now centrally tunable. All 4 scoring services import from the shared constants file. Zero TypeScript errors. |
 
 **Description**
 Scoring thresholds (e.g., `0.35`, `0.25`, `0.15`, `min(50, count × 8)`) are scattered as raw numbers.

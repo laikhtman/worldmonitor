@@ -1,5 +1,12 @@
 import type { MilitaryFlight, MilitaryOperator } from '@/types';
 import type { SignalType } from '@/utils/analysis-constants';
+import {
+  SURGE_THRESHOLD, SURGE_BASELINE_WINDOW_HOURS, SURGE_BASELINE_MIN_SAMPLES,
+  SURGE_BASELINE_MINIMUMS, SURGE_MIN_COUNTS, SURGE_PROXIMITY_RADIUS_KM,
+  SURGE_CLEANUP_INTERVAL_MS, SURGE_MAX_HISTORY_HOURS,
+  SURGE_FOREIGN_CONFIDENCE, SURGE_ALERT_CONFIDENCE,
+  SURGE_CII_POSTURE_BOOST, SURGE_POSTURE_TREND_THRESHOLD,
+} from '@/utils/analysis-constants';
 import { MILITARY_BASES_EXPANDED } from '@/config/bases-expanded';
 import { focalPointDetector } from './focal-point-detector';
 import { getCountryScore } from './country-instability';
@@ -150,19 +157,13 @@ const THEATERS: MilitaryTheater[] = [
   },
 ];
 
-const SURGE_THRESHOLD = 2.0;
-const BASELINE_WINDOW_HOURS = 48;
-const BASELINE_MIN_SAMPLES = 6;
 const TRANSPORT_CALLSIGN_PATTERNS = [
   /^RCH/i, /^REACH/i, /^MOOSE/i, /^HERKY/i, /^EVAC/i, /^DUSTOFF/i,
 ];
-const PROXIMITY_RADIUS_KM = 150;
 
 const activityHistory = new Map<string, TheaterActivity[]>();
 const activeSurges = new Map<string, SurgeAlert>();
 let lastCleanup = Date.now();
-const CLEANUP_INTERVAL = 60 * 60 * 1000;
-const MAX_HISTORY_HOURS = 72;
 
 function getTheaterForBase(baseId: string): MilitaryTheater | null {
   for (const theater of THEATERS) {
@@ -187,7 +188,7 @@ function findNearbyBases(lat: number, lon: number): { baseId: string; baseName: 
   const nearby: { baseId: string; baseName: string; distance: number }[] = [];
   for (const base of MILITARY_BASES_EXPANDED) {
     const dist = distanceKm(lat, lon, base.lat, base.lon);
-    if (dist <= PROXIMITY_RADIUS_KM) {
+    if (dist <= SURGE_PROXIMITY_RADIUS_KM) {
       nearby.push({ baseId: base.id, baseName: base.name, distance: dist });
     }
   }
@@ -224,11 +225,11 @@ function getTheaterForFlight(flight: MilitaryFlight): MilitaryTheater | null {
 
 function calculateBaseline(theaterId: string): { transport: number; fighter: number; recon: number } {
   const history = activityHistory.get(theaterId) || [];
-  const cutoff = Date.now() - BASELINE_WINDOW_HOURS * 60 * 60 * 1000;
+  const cutoff = Date.now() - SURGE_BASELINE_WINDOW_HOURS * 60 * 60 * 1000;
   const relevant = history.filter(h => h.timestamp >= cutoff);
 
-  if (relevant.length < BASELINE_MIN_SAMPLES) {
-    return { transport: 3, fighter: 2, recon: 1 };
+  if (relevant.length < SURGE_BASELINE_MIN_SAMPLES) {
+    return { transport: SURGE_BASELINE_MINIMUMS.transport + 1, fighter: SURGE_BASELINE_MINIMUMS.fighter + 1, recon: SURGE_BASELINE_MINIMUMS.recon };
   }
 
   const avgTransport = relevant.reduce((sum, h) => sum + h.transportCount, 0) / relevant.length;
@@ -236,18 +237,18 @@ function calculateBaseline(theaterId: string): { transport: number; fighter: num
   const avgRecon = relevant.reduce((sum, h) => sum + h.reconCount, 0) / relevant.length;
 
   return {
-    transport: Math.max(2, avgTransport),
-    fighter: Math.max(1, avgFighter),
-    recon: Math.max(1, avgRecon),
+    transport: Math.max(SURGE_BASELINE_MINIMUMS.transport, avgTransport),
+    fighter: Math.max(SURGE_BASELINE_MINIMUMS.fighter, avgFighter),
+    recon: Math.max(SURGE_BASELINE_MINIMUMS.recon, avgRecon),
   };
 }
 
 function cleanupOldHistory(): void {
   const now = Date.now();
-  if (now - lastCleanup < CLEANUP_INTERVAL) return;
+  if (now - lastCleanup < SURGE_CLEANUP_INTERVAL_MS) return;
   lastCleanup = now;
 
-  const cutoff = now - MAX_HISTORY_HOURS * 60 * 60 * 1000;
+  const cutoff = now - SURGE_MAX_HISTORY_HOURS * 60 * 60 * 1000;
   for (const [theaterId, history] of activityHistory) {
     const filtered = history.filter(h => h.timestamp >= cutoff);
     if (filtered.length === 0) {
@@ -322,7 +323,7 @@ export function analyzeFlightsForSurge(flights: MilitaryFlight[]): SurgeAlert[] 
 
     const baseline = calculateBaseline(theaterId);
 
-    if (transportCount >= baseline.transport * SURGE_THRESHOLD && transportCount >= 5) {
+    if (transportCount >= baseline.transport * SURGE_THRESHOLD && transportCount >= SURGE_MIN_COUNTS.transport) {
       const surgeId = `airlift-${theaterId}`;
       const surgeMultiple = transportCount / baseline.transport;
 
@@ -351,7 +352,7 @@ export function analyzeFlightsForSurge(flights: MilitaryFlight[]): SurgeAlert[] 
       }
     }
 
-    if (fighterCount >= baseline.fighter * SURGE_THRESHOLD && fighterCount >= 4) {
+    if (fighterCount >= baseline.fighter * SURGE_THRESHOLD && fighterCount >= SURGE_MIN_COUNTS.fighter) {
       const surgeId = `fighter-${theaterId}`;
       const surgeMultiple = fighterCount / baseline.fighter;
 
@@ -534,7 +535,7 @@ export function foreignPresenceToSignal(alert: ForeignPresenceAlert): {
   const severity = isCritical ? 'critical' :
     alert.aircraftCount >= 5 ? 'high' : 'medium';
 
-  const confidence = Math.min(0.95, 0.7 + alert.aircraftCount * 0.05);
+  const confidence = Math.min(SURGE_FOREIGN_CONFIDENCE.cap, SURGE_FOREIGN_CONFIDENCE.base + alert.aircraftCount * SURGE_FOREIGN_CONFIDENCE.step);
 
   // Gather relevant countries for focal point lookup
   const relevantCountries: string[] = [];
@@ -634,7 +635,7 @@ export function surgeAlertToSignal(surge: SurgeAlert): {
   const severity = surge.surgeMultiple >= 4 ? 'critical' :
     surge.surgeMultiple >= 3 ? 'high' : 'medium';
 
-  const confidence = Math.min(0.95, 0.6 + (surge.surgeMultiple - 2) * 0.1);
+  const confidence = Math.min(SURGE_ALERT_CONFIDENCE.cap, SURGE_ALERT_CONFIDENCE.base + (surge.surgeMultiple - SURGE_ALERT_CONFIDENCE.offset) * SURGE_ALERT_CONFIDENCE.step);
 
   const metadata = {
     theaterId: surge.theater.id,
@@ -869,7 +870,7 @@ export function getTheaterPostureSummaries(flights: MilitaryFlight[]): TheaterPo
       older.length > 0 ? older.reduce((a, b) => a + b.totalMilitary, 0) / older.length : total;
     const changePercent = olderAvg > 0 ? Math.round(((recentAvg - olderAvg) / olderAvg) * 100) : 0;
     const trend: 'increasing' | 'stable' | 'decreasing' =
-      changePercent > 10 ? 'increasing' : changePercent < -10 ? 'decreasing' : 'stable';
+      changePercent > SURGE_POSTURE_TREND_THRESHOLD ? 'increasing' : changePercent < -SURGE_POSTURE_TREND_THRESHOLD ? 'decreasing' : 'stable';
 
     const parts: string[] = [];
     if (byType.fighters > 0) parts.push(`${byType.fighters} fighters`);
@@ -960,7 +961,7 @@ export function recalcPostureWithVessels(postures: TheaterPostureSummary[]): voi
       if (code) {
         const cii = getCountryScore(code);
         if (cii !== null) {
-          ciiLevel = cii >= 85 ? 2 : cii >= 70 ? 1 : 0;
+          ciiLevel = cii >= SURGE_CII_POSTURE_BOOST.critical ? 2 : cii >= SURGE_CII_POSTURE_BOOST.elevated ? 1 : 0;
         }
       }
     }

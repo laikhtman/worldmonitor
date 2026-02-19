@@ -1,5 +1,11 @@
 import type { Hotspot, EscalationTrend, MilitaryFlight, MilitaryVessel } from '@/types';
 import { INTEL_HOTSPOTS } from '@/config/geo';
+import {
+  ESCALATION_COMPONENT_WEIGHTS, ESCALATION_BLEND, ESCALATION_NEWS,
+  ESCALATION_DEFAULT_CII, ESCALATION_GEO_TYPE_MULTIPLIER, ESCALATION_MILITARY,
+  ESCALATION_TREND, ESCALATION_SIGNAL, ESCALATION_SIGNAL_COOLDOWN_MS,
+  ESCALATION_HISTORY_WINDOW_MS, ESCALATION_MAX_HISTORY_POINTS,
+} from '@/utils/analysis-constants';
 
 export interface DynamicEscalationScore {
   hotspotId: string;
@@ -53,18 +59,8 @@ const HOTSPOT_COUNTRY_MAP: Record<string, string | string[] | null> = {
   caracas: 'VE',
 };
 
-const COMPONENT_WEIGHTS = {
-  news: 0.35,
-  cii: 0.25,
-  geo: 0.25,
-  military: 0.15,
-};
-
 const scores = new Map<string, DynamicEscalationScore>();
 const lastSignalTime = new Map<string, number>();
-const SIGNAL_COOLDOWN_MS = 2 * 60 * 60 * 1000;
-const HISTORY_WINDOW_MS = 24 * 60 * 60 * 1000;
-const MAX_HISTORY_POINTS = 48;
 
 let ciiGetter: ((code: string) => number | null) | null = null;
 let geoAlertGetter: ((lat: number, lon: number, radiusKm: number) => { score: number; types: number } | null) | null = null;
@@ -101,28 +97,28 @@ function getGeoAlertForHotspot(hotspot: Hotspot): { score: number; types: number
 }
 
 function normalizeNewsActivity(matches: number, hasBreaking: boolean, velocity: number): number {
-  return Math.min(100, matches * 15 + (hasBreaking ? 30 : 0) + velocity * 5);
+  return Math.min(100, matches * ESCALATION_NEWS.matchMultiplier + (hasBreaking ? ESCALATION_NEWS.breakingBoost : 0) + velocity * ESCALATION_NEWS.velocityMultiplier);
 }
 
 function normalizeCII(score: number | null): number {
-  return score ?? 30;
+  return score ?? ESCALATION_DEFAULT_CII;
 }
 
 function normalizeGeo(alertScore: number, alertTypes: number): number {
   if (alertScore === 0) return 0;
-  return Math.min(100, alertScore + alertTypes * 10);
+  return Math.min(100, alertScore + alertTypes * ESCALATION_GEO_TYPE_MULTIPLIER);
 }
 
 function normalizeMilitary(flights: number, vessels: number): number {
-  return Math.min(100, flights * 10 + vessels * 15);
+  return Math.min(100, flights * ESCALATION_MILITARY.flightMultiplier + vessels * ESCALATION_MILITARY.vesselMultiplier);
 }
 
 function calculateDynamicRaw(components: DynamicEscalationScore['components']): number {
   return (
-    components.newsActivity * COMPONENT_WEIGHTS.news +
-    components.ciiContribution * COMPONENT_WEIGHTS.cii +
-    components.geoConvergence * COMPONENT_WEIGHTS.geo +
-    components.militaryActivity * COMPONENT_WEIGHTS.military
+    components.newsActivity * ESCALATION_COMPONENT_WEIGHTS.news +
+    components.ciiContribution * ESCALATION_COMPONENT_WEIGHTS.cii +
+    components.geoConvergence * ESCALATION_COMPONENT_WEIGHTS.geo +
+    components.militaryActivity * ESCALATION_COMPONENT_WEIGHTS.military
   );
 }
 
@@ -131,14 +127,14 @@ function rawToScore(raw: number): number {
 }
 
 function blendScores(staticBaseline: number, dynamicScore: number): number {
-  return staticBaseline * 0.3 + dynamicScore * 0.7;
+  return staticBaseline * ESCALATION_BLEND.static + dynamicScore * ESCALATION_BLEND.dynamic;
 }
 
 function pruneHistory(history: Array<{ timestamp: number; score: number }>): Array<{ timestamp: number; score: number }> {
-  const cutoff = Date.now() - HISTORY_WINDOW_MS;
+  const cutoff = Date.now() - ESCALATION_HISTORY_WINDOW_MS;
   const pruned = history.filter(h => h.timestamp >= cutoff);
-  if (pruned.length > MAX_HISTORY_POINTS) {
-    return pruned.slice(-MAX_HISTORY_POINTS);
+  if (pruned.length > ESCALATION_MAX_HISTORY_POINTS) {
+    return pruned.slice(-ESCALATION_MAX_HISTORY_POINTS);
   }
   return pruned;
 }
@@ -166,8 +162,8 @@ function detectTrend(history: Array<{ timestamp: number; score: number }>): Esca
 
   const slope = (validCount * sumXY - sumX * sumY) / denominator;
 
-  if (slope > 0.1) return 'escalating';
-  if (slope < -0.1) return 'de-escalating';
+  if (slope > ESCALATION_TREND.escalating) return 'escalating';
+  if (slope < ESCALATION_TREND.deEscalating) return 'de-escalating';
   return 'stable';
 }
 
@@ -233,21 +229,21 @@ export interface EscalationSignalReason {
 
 export function shouldEmitSignal(hotspotId: string, oldScore: number | null, newScore: number): EscalationSignalReason | null {
   const lastSignal = lastSignalTime.get(hotspotId) ?? 0;
-  if (Date.now() - lastSignal < SIGNAL_COOLDOWN_MS) return null;
+  if (Date.now() - lastSignal < ESCALATION_SIGNAL_COOLDOWN_MS) return null;
 
   if (oldScore === null) return null;
 
   const oldInt = Math.floor(oldScore);
   const newInt = Math.floor(newScore);
-  if (newInt > oldInt && newScore >= 2) {
+  if (newInt > oldInt && newScore >= ESCALATION_SIGNAL.minimumEmitScore) {
     return { type: 'threshold_crossed', oldScore, newScore, threshold: newInt };
   }
 
-  if (newScore - oldScore >= 0.5) {
+  if (newScore - oldScore >= ESCALATION_SIGNAL.rapidIncrease) {
     return { type: 'rapid_increase', oldScore, newScore };
   }
 
-  if (newScore >= 4.5 && oldScore < 4.5) {
+  if (newScore >= ESCALATION_SIGNAL.criticalScore && oldScore < ESCALATION_SIGNAL.criticalScore) {
     return { type: 'critical_reached', oldScore, newScore };
   }
 
@@ -328,7 +324,7 @@ export function getEscalationChange24h(hotspotId: string): { change: number; sta
   if (!score || score.history.length < 2) return null;
 
   const now = Date.now();
-  const h24Ago = now - HISTORY_WINDOW_MS;
+  const h24Ago = now - ESCALATION_HISTORY_WINDOW_MS;
 
   const oldestInWindow = score.history.find(h => h.timestamp >= h24Ago);
   const newest = score.history[score.history.length - 1];
