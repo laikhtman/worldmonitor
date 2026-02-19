@@ -10,9 +10,9 @@ const sentryDsn = import.meta.env.VITE_SENTRY_DSN?.trim();
 Sentry.init({
   dsn: sentryDsn || undefined,
   release: `worldmonitor@${__APP_VERSION__}`,
-  environment: location.hostname === 'worldmonitor.app' ? 'production'
+  environment: location.hostname === 'intelhq.io' ? 'production'
     : location.hostname.includes('vercel.app') ? 'preview'
-    : 'development',
+      : 'development',
   enabled: Boolean(sentryDsn) && !location.hostname.startsWith('localhost') && !('__TAURI_INTERNALS__' in window),
   sendDefaultPii: true,
   tracesSampleRate: 0.1,
@@ -97,6 +97,15 @@ requestAnimationFrame(() => {
   document.documentElement.classList.remove('no-transition');
 });
 
+// PERF-052: Start Web Vitals tracking early
+import { initWebVitals, maybeShowDebugPanel } from '@/utils/perf-monitor';
+initWebVitals();
+maybeShowDebugPanel();
+
+// PERF-032: Periodic cache eviction to prevent memory bloat
+import { evictStaleCache } from '@/utils/fetch-cache';
+setInterval(() => evictStaleCache(5 * 60_000), 60_000);
+
 const app = new App('app');
 app
   .init()
@@ -144,7 +153,7 @@ if (!('__TAURI_INTERNALS__' in window) && !('__TAURI__' in window)) {
         if (registration) {
           setInterval(async () => {
             if (!navigator.onLine) return;
-            try { await registration.update(); } catch {}
+            try { await registration.update(); } catch { }
           }, 60 * 60 * 1000);
         }
       },
