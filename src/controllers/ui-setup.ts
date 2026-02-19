@@ -178,7 +178,7 @@ export class UISetupController {
       this.updateHeaderThemeIcon();
     });
 
-    // Idle detection - pause animations after 2 minutes of inactivity
+    // Idle detection - pause animations after IDLE_PAUSE_MS of inactivity
     this.setupIdleDetection();
   }
 

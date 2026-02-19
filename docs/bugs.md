@@ -17,7 +17,7 @@ Each entry includes severity, description, affected files, and dependencies on o
 | BUG-008 | High | 🟢 Low | 0.5 h | ✅ Resolved |
 | BUG-009 | High | 🟢 Low | 1–2 h | ✅ Resolved |
 | BUG-010 | High | 🟢 Low | 1 h | ✅ Resolved |
-| BUG-011 | Medium | 🟢 Low | 1 h | Open |
+| BUG-011 | Medium | 🟢 Low | 1 h | ✅ Resolved |
 | BUG-012 | Medium | 🟡 Medium | 3–4 h | Open |
 | BUG-013 | Medium | 🟢 Low | 1–2 h | ✅ Resolved |
 | BUG-014 | Medium | 🔴 Very High | 24–32 h | Open |
@@ -269,7 +269,7 @@ Add `desktop:package:macos:finance`, `desktop:package:windows:finance`, and thei
 
 ## Medium
 
-### BUG-011 — Inconsistent Idle Timeout Values
+### BUG-011 — Inconsistent Idle Timeout Values ✅ Resolved
 
 | Field | Value |
 |---|---|
@@ -277,7 +277,9 @@ Add `desktop:package:macos:finance`, `desktop:package:windows:finance`, and thei
 | **Affected** | `src/App.ts` (2 min), `src/components/LiveNewsPanel.ts` (5 min), `src/components/LiveWebcamsPanel.ts` (5 min) |
 | **Depends on** | — |
 | **Complexity** | 🟢 Low — unify constant or document intentional difference |
-| **Est. Hours** | 1 h |
+| **Est. Hours** | 1 h (completed) |
+| **Status** | ✅ Resolved |
+| **Resolution** | Extracted `IDLE_PAUSE_MS = 5 * 60 * 1000` (5 minutes) into `src/config/variants/base.ts`, exported via `src/config/index.ts`. All three consumers (`App.ts`, `LiveNewsPanel.ts`, `LiveWebcamsPanel.ts`) now import the shared constant. App.ts was the outlier at 2 minutes — unified to 5 minutes to match documentation and panel behavior. |
 
 **Description**
 Documentation says "5 min idle" pauses the stream, but `App.ts` uses a 2-minute `IDLE_PAUSE_MS`.

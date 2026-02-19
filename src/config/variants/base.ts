@@ -25,6 +25,10 @@ export const API_URLS = {
     `/api/hackernews?type=${type}&limit=${limit}`,
 };
 
+// Idle timeout - shared across all variants
+// Time of user inactivity before pausing animations, streams, and webcams
+export const IDLE_PAUSE_MS = 5 * 60 * 1000; // 5 minutes
+
 // Refresh intervals - shared across all variants
 export const REFRESH_INTERVALS = {
   feeds: 5 * 60 * 1000,
