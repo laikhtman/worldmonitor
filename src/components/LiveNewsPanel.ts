@@ -1,6 +1,7 @@
 import { Panel } from './Panel';
 import { fetchLiveVideoId } from '@/services/live-news';
 import { isDesktopRuntime, getRemoteApiBaseUrl } from '@/services/runtime';
+import { IDLE_PAUSE_MS } from '@/config';
 import { t } from '../services/i18n';
 
 // YouTube IFrame Player API types
@@ -83,7 +84,7 @@ export class LiveNewsPanel extends Panel {
   private muteBtn: HTMLButtonElement | null = null;
   private liveBtn: HTMLButtonElement | null = null;
   private idleTimeout: ReturnType<typeof setTimeout> | null = null;
-  private readonly IDLE_PAUSE_MS = 5 * 60 * 1000; // 5 minutes
+  private readonly IDLE_PAUSE_MS = IDLE_PAUSE_MS;
   private boundVisibilityHandler!: () => void;
   private boundIdleResetHandler!: () => void;
 
