@@ -334,6 +334,60 @@ export type TVNetworkType = 'wifi' | 'wired' | 'none';
  * The callback fires immediately with the current state, then on every
  * change. Returns an unsubscribe function.
  */
+/**
+ * Query the webOS system language via Luna Service Bus.
+ * Returns an ISO language code (e.g. 'ko', 'en', 'fr') or null
+ * if not running on webOS or the query fails.
+ *
+ * The result is written to localStorage so i18next's built-in
+ * localStorage detector picks it up on the next init.
+ */
+export async function detectWebOSLanguage(): Promise<string | null> {
+  if (!IS_WEBOS || !('webOS' in window)) return null;
+
+  return new Promise<string | null>((resolve) => {
+    const timeout = setTimeout(() => resolve(null), 2000);
+
+    try {
+      const webOS = (window as unknown as Record<string, unknown>).webOS as {
+        service: {
+          request: (uri: string, params: Record<string, unknown>) => void;
+        };
+      };
+
+      webOS.service.request(
+        'luna://com.webos.settingsservice',
+        {
+          method: 'getSystemSettings',
+          parameters: { keys: ['localeInfo'] },
+          onSuccess: (res: Record<string, unknown>) => {
+            clearTimeout(timeout);
+            const localeInfo = res.settings as {
+              localeInfo?: { locales?: { UI?: string } };
+            } | undefined;
+            const uiLocale = localeInfo?.localeInfo?.locales?.UI; // e.g. 'fr-FR'
+            if (uiLocale) {
+              const lang = uiLocale.split('-')[0] || uiLocale;
+              // Store so i18next localStorage detector picks it up
+              try { localStorage.setItem('i18nextLng', lang); } catch { /* quota */ }
+              resolve(lang);
+            } else {
+              resolve(null);
+            }
+          },
+          onFailure: () => {
+            clearTimeout(timeout);
+            resolve(null);
+          },
+        },
+      );
+    } catch {
+      clearTimeout(timeout);
+      resolve(null);
+    }
+  });
+}
+
 export function watchNetworkStatus(
   callback: (online: boolean, type: TVNetworkType) => void,
 ): () => void {
@@ -343,7 +397,7 @@ export function watchNetworkStatus(
   if (IS_WEBOS && 'webOS' in window) {
     // webOS Luna Service Bus — subscribes to connectivity changes
     try {
-      const webOS = (window as Record<string, unknown>).webOS as {
+      const webOS = (window as unknown as Record<string, unknown>).webOS as {
         service: {
           request: (uri: string, params: Record<string, unknown>) => { cancel: () => void };
         };

@@ -150,7 +150,7 @@ Phase 4 (Polish & Ship)   →  Published on LG Content Store
 | 4.7 | webOS app lifecycle (suspend/resume/relaunch) | 3h | P0 | 1.2 | ✅ Done |
 | 4.8 | Network status detection via Luna API | 2h | P1 | 1.2 | ✅ Done |
 | 4.9 | Offline UI (cached data banner) | 2h | P1 | 4.8 | ✅ Done |
-| 4.10 | i18n: match TV system language | 1h | P1 | 4.8 | ⬜ |
+| 4.10 | i18n: match TV system language | 1h | P1 | 4.8 | ✅ Done |
 | 4.11 | Exit confirmation dialog | 1h | P0 | Phase 2 | ✅ Done |
 | 4.12 | Complete TV test checklist on LG TV | 8h | P0 | all above | ⬜ |
 | 4.13 | Store screenshots (5 min) | 2h | P0 | 4.12 | ⬜ |
