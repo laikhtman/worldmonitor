@@ -205,11 +205,58 @@ function youtubeLivePlugin(): Plugin {
   };
 }
 
+/**
+ * Tree-shake ML modules from TV build.
+ * Replaces `ml-worker.ts` with a no-op stub so Rollup drops the entire ML
+ * dependency tree (@xenova/transformers, onnxruntime-web, worker code).
+ */
+function mlTreeShakePlugin(): Plugin {
+  const STUB_ID = '\0tv-ml-stub';
+  const ML_WORKER_IMPORT = /(?:@\/services\/ml-worker|\.\/ml-worker|services\/ml-worker)/;
+  const ML_WORKER_PATH = /[/\\]services[/\\]ml-worker(?:\.ts)?$/;
+
+  return {
+    name: 'tv-ml-tree-shake',
+    enforce: 'pre',
+
+    resolveId(source) {
+      if (activeVariant !== 'tv') return null;
+      if (ML_WORKER_IMPORT.test(source) || ML_WORKER_PATH.test(source)) {
+        return STUB_ID;
+      }
+      return null;
+    },
+
+    load(id) {
+      if (id !== STUB_ID) return null;
+      // Return a stub that exports the same API shape but does nothing
+      return `
+        const noop = () => Promise.resolve(null);
+        class StubMLWorker {
+          async init() { return { isSupported: false }; }
+          async embed() { return []; }
+          async summarize() { return []; }
+          async sentiment() { return []; }
+          async entities() { return []; }
+          async clusterSemantic() { return []; }
+          async getStatus() { return { loadedModels: [] }; }
+          async resetModels() { return; }
+          isInitialized() { return false; }
+          getCapabilities() { return null; }
+          terminate() {}
+        }
+        export const mlWorker = new StubMLWorker();
+      `;
+    },
+  };
+}
+
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
   plugins: [
+    mlTreeShakePlugin(),
     htmlVariantPlugin(),
     youtubeLivePlugin(),
     VitePWA({

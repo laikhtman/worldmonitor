@@ -95,6 +95,158 @@ export const TV_REFRESH_INTERVALS = {
 export const TV_MAX_CONCURRENT_FETCHES = 3;
 
 /* ------------------------------------------------------------------ */
+/*  TV Render Tier Detection                                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Rendering quality tiers for TV hardware.
+ *
+ * - **full**:   α9 Gen 6+ or webOS 23+ — MapLibre + deck.gl (reduced)
+ * - **lite**:   α7 Gen 5, webOS 5–22 — MapLibre only (no deck.gl)
+ * - **static**: Budget SoC / fallback — static globe image + SVG overlays
+ */
+export type TVRenderTier = 'full' | 'lite' | 'static';
+
+let cachedTier: TVRenderTier | null = null;
+
+/**
+ * Detect the appropriate rendering tier based on WebGL capabilities
+ * and a quick GPU benchmark. Returns a cached result after first call.
+ */
+export function detectTVRenderTier(): TVRenderTier {
+  if (cachedTier) return cachedTier;
+  if (!IS_TV) { cachedTier = 'full'; return cachedTier; }
+
+  // 1. Check WebGL availability
+  const canvas = document.createElement('canvas');
+  const gl = (canvas.getContext('webgl2') ?? canvas.getContext('webgl')) as WebGLRenderingContext | null;
+  if (!gl) {
+    console.warn('[TV] No WebGL support — falling back to static tier');
+    cachedTier = 'static';
+    return cachedTier;
+  }
+
+  // 2. Inspect GPU renderer string for known chipsets
+  const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+  const renderer = debugInfo
+    ? (gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) as string)
+    : 'unknown';
+  console.log('[TV] GPU renderer:', renderer);
+
+  // High-end LG SoCs (α9 Gen 5+/6+) use Mali-G710 or newer
+  const HIGH_END = /Mali-G7[1-9]\d|Mali-G8\d\d|Apple GPU|ANGLE.*Direct3D|NVIDIA|Adreno 7/i;
+  // Mid-range (α7 Gen 5, α5) use Mali-G52/G72
+  const MID_RANGE = /Mali-G[5-7]\d|Adreno [5-6]\d\d|PowerVR/i;
+
+  if (HIGH_END.test(renderer)) {
+    cachedTier = 'full';
+  } else if (MID_RANGE.test(renderer)) {
+    cachedTier = 'lite';
+  } else {
+    // 3. Unknown GPU — run a quick benchmark
+    cachedTier = benchmarkGPU(gl);
+  }
+
+  // Clean up
+  const loseExt = gl.getExtension('WEBGL_lose_context');
+  loseExt?.loseContext();
+
+  console.log('[TV] Render tier:', cachedTier);
+  return cachedTier;
+}
+
+/**
+ * Quick GPU benchmark: draw simple triangles and measure frame time.
+ * Returns the appropriate tier based on measured performance.
+ */
+function benchmarkGPU(gl: WebGLRenderingContext): TVRenderTier {
+  const ITERATIONS = 10;
+  const start = performance.now();
+  for (let i = 0; i < ITERATIONS; i++) {
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.flush();
+  }
+  // gl.finish() blocks until GPU is done
+  gl.finish();
+  const avgMs = (performance.now() - start) / ITERATIONS;
+  console.log('[TV] GPU benchmark: avg frame', avgMs.toFixed(2), 'ms');
+
+  if (avgMs < 16) return 'full';    // Can sustain 60fps simple → 30fps deck.gl
+  if (avgMs < 33) return 'lite';    // Can sustain 30fps MapLibre only
+  return 'static';                  // Too slow for real-time WebGL
+}
+
+/* ------------------------------------------------------------------ */
+/*  Memory Monitoring & Emergency Cleanup                              */
+/* ------------------------------------------------------------------ */
+
+/** Callbacks invoked by the memory monitor when cleanup is needed. */
+export interface TVMemoryCallbacks {
+  /** Called at warning threshold (>70%). Reduce non-essential data. */
+  onWarning?: (usedMB: number, limitMB: number) => void;
+  /** Called at critical threshold (>85%). Aggressive cleanup required. */
+  onCritical?: (usedMB: number, limitMB: number) => void;
+}
+
+interface PerformanceMemory {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
+
+const MEMORY_CHECK_INTERVAL_MS = 30_000;
+const MEMORY_WARNING_THRESHOLD = 0.70;
+const MEMORY_CRITICAL_THRESHOLD = 0.85;
+
+let memoryMonitorTimer: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * Start periodic memory monitoring. Only active on TV (requires
+ * `performance.memory` — Chromium-based browsers / webOS).
+ *
+ * Returns a cleanup function to stop the monitor.
+ */
+export function startMemoryMonitor(callbacks?: TVMemoryCallbacks): () => void {
+  stopMemoryMonitor();
+  if (!IS_TV) return () => { /* noop */ };
+
+  const perf = performance as Performance & { memory?: PerformanceMemory };
+  if (!perf.memory) {
+    console.log('[TV] performance.memory not available — skipping monitor');
+    return () => { /* noop */ };
+  }
+
+  memoryMonitorTimer = setInterval(() => {
+    const mem = (performance as Performance & { memory?: PerformanceMemory }).memory;
+    if (!mem) return;
+
+    const usedMB = mem.usedJSHeapSize / (1024 * 1024);
+    const limitMB = mem.jsHeapSizeLimit / (1024 * 1024);
+    const usage = usedMB / limitMB;
+
+    if (usage > MEMORY_CRITICAL_THRESHOLD) {
+      console.warn(`[TV] CRITICAL memory: ${usedMB.toFixed(0)}/${limitMB.toFixed(0)} MB (${(usage * 100).toFixed(0)}%)`);
+      callbacks?.onCritical?.(usedMB, limitMB);
+    } else if (usage > MEMORY_WARNING_THRESHOLD) {
+      console.warn(`[TV] Memory warning: ${usedMB.toFixed(0)}/${limitMB.toFixed(0)} MB (${(usage * 100).toFixed(0)}%)`);
+      callbacks?.onWarning?.(usedMB, limitMB);
+    }
+  }, MEMORY_CHECK_INTERVAL_MS);
+
+  console.log('[TV] Memory monitor started (interval:', MEMORY_CHECK_INTERVAL_MS / 1000, 's)');
+  return () => stopMemoryMonitor();
+}
+
+/** Stop the memory monitor if running. */
+export function stopMemoryMonitor(): void {
+  if (memoryMonitorTimer) {
+    clearInterval(memoryMonitorTimer);
+    memoryMonitorTimer = null;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /*  webOS Lifecycle Helpers                                            */
 /* ------------------------------------------------------------------ */
 

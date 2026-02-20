@@ -101,26 +101,26 @@ Phase 4 (Polish & Ship)   →  Published on LG Content Store
 
 ### Tasks
 
-| # | Task | Est. | Priority | Dependencies |
-|---|------|------|----------|-------------|
-| 3.1 | Implement tier detection (`detectTVRenderTier()`) | 3h | P0 | Phase 1 |
-| 3.2 | TV-Full tier: reduce deck.gl layers, lower quality settings | 6h | P0 | 3.1 |
-| 3.3 | TV-Lite tier: MapLibre-only rendering (no deck.gl) | 8h | P1 | 3.1 |
-| 3.4 | TV-Static tier: SVG fallback with pre-rendered backgrounds | 4h | P2 | 3.1 |
-| 3.5 | Create minimal TV map style (`tv-dark.json`) | 3h | P1 | 3.2 |
-| 3.6 | MapLibre TV config (maxZoom, tileCache, no rotation) | 2h | P0 | 3.2 |
-| 3.7 | Memory monitoring + emergency cleanup | 2h | P0 | 1.2 |
-| 3.8 | Frame budget enforcement (30fps target) | 2h | P1 | 3.2 |
-| 3.9 | WebGL context loss recovery | 2h | P1 | 3.2 |
-| 3.10 | Disable/simplify CSS animations for TV | 1h | P1 | Phase 1 |
-| 3.11 | Tree-shake ML modules from TV build | 2h | P0 | 1.9 |
-| 3.12 | Concurrent fetch limiting (max 3) | 1h | P1 | Phase 1 |
-| 3.13 | WebSocket throttling for AIS (if enabled) | 1h | P2 | Phase 1 |
-| 3.14 | Bundle font files in IPK | 2h | P1 | Phase 1 |
-| 3.15 | Verify bundle size < 10 MB | 1h | P0 | 3.11 |
-| 3.16 | Test on webOS emulator | 4h | P0 | all above |
-| 3.17 | Test on physical LG TV (if available) | 6h | P0 | all above |
-| 3.18 | Performance E2E tests: `e2e/tv-performance.spec.ts` | 3h | P1 | 3.16 |
+| # | Task | Est. | Priority | Dependencies | Status |
+|---|------|------|----------|-------------|--------|
+| 3.1 | Implement tier detection (`detectTVRenderTier()`) | 3h | P0 | Phase 1 | ✅ Done |
+| 3.2 | TV-Full tier: reduce deck.gl layers, lower quality settings | 6h | P0 | 3.1 | ⬜ |
+| 3.3 | TV-Lite tier: MapLibre-only rendering (no deck.gl) | 8h | P1 | 3.1 | ⬜ |
+| 3.4 | TV-Static tier: SVG fallback with pre-rendered backgrounds | 4h | P2 | 3.1 | ⬜ |
+| 3.5 | Create minimal TV map style (`tv-dark.json`) | 3h | P1 | 3.2 | ⬜ |
+| 3.6 | MapLibre TV config (maxZoom, tileCache, no rotation) | 2h | P0 | 3.2 | ⬜ |
+| 3.7 | Memory monitoring + emergency cleanup | 2h | P0 | 1.2 | ✅ Done |
+| 3.8 | Frame budget enforcement (30fps target) | 2h | P1 | 3.2 | ⬜ |
+| 3.9 | WebGL context loss recovery | 2h | P1 | 3.2 | ⬜ |
+| 3.10 | Disable/simplify CSS animations for TV | 1h | P1 | Phase 1 | ⬜ |
+| 3.11 | Tree-shake ML modules from TV build | 2h | P0 | 1.9 | ✅ Done |
+| 3.12 | Concurrent fetch limiting (max 3) | 1h | P1 | Phase 1 | ⬜ |
+| 3.13 | WebSocket throttling for AIS (if enabled) | 1h | P2 | Phase 1 | ⬜ |
+| 3.14 | Bundle font files in IPK | 2h | P1 | Phase 1 | ⬜ |
+| 3.15 | Verify bundle size < 10 MB | 1h | P0 | 3.11 | ⬜ |
+| 3.16 | Test on webOS emulator | 4h | P0 | all above | ⬜ |
+| 3.17 | Test on physical LG TV (if available) | 6h | P0 | all above | ⬜ |
+| 3.18 | Performance E2E tests: `e2e/tv-performance.spec.ts` | 3h | P1 | 3.16 | ⬜ |
 
 ### Phase 3 Acceptance Criteria
 - [ ] 30+ fps on mid-range LG TV (C-series 2021+)
@@ -139,26 +139,26 @@ Phase 4 (Polish & Ship)   →  Published on LG Content Store
 
 ### Tasks
 
-| # | Task | Est. | Priority | Dependencies |
-|---|------|------|----------|-------------|
-| 4.1 | Create app icons (80×80, 130×130) | 2h | P0 | — |
-| 4.2 | Create splash screen (1920×1080) | 2h | P0 | — |
-| 4.3 | Create `public/webos/appinfo.json` | 1h | P0 | — |
-| 4.4 | Create `scripts/webos-package.mjs` | 2h | P0 | — |
-| 4.5 | Add `npm run package:tv` and `deploy:tv` scripts | 0.5h | P0 | 4.4 |
-| 4.6 | Create `TVSettingsPanel.ts` (simplified in-app settings) | 4h | P1 | Phase 2 |
-| 4.7 | webOS app lifecycle (suspend/resume/relaunch) | 3h | P0 | 1.2 |
-| 4.8 | Network status detection via Luna API | 2h | P1 | 1.2 |
-| 4.9 | Offline UI (cached data banner) | 2h | P1 | 4.8 |
-| 4.10 | i18n: match TV system language | 1h | P1 | 4.8 |
-| 4.11 | Exit confirmation dialog | 1h | P0 | Phase 2 |
-| 4.12 | Complete TV test checklist on LG TV | 8h | P0 | all above |
-| 4.13 | Store screenshots (5 min) | 2h | P0 | 4.12 |
-| 4.14 | Store description (localized) | 2h | P0 | — |
-| 4.15 | Privacy policy page | 1h | P0 | — |
-| 4.16 | Submit to LG Content Store | 1h | P0 | all above |
-| 4.17 | Address LG review feedback (buffer) | 4h | P0 | 4.16 |
-| 4.18 | CI pipeline for TV build (`tv-build.yml`) | 2h | P1 | 4.5 |
+| # | Task | Est. | Priority | Dependencies | Status |
+|---|------|------|----------|-------------|--------|
+| 4.1 | Create app icons (80×80, 130×130) | 2h | P0 | — | ⬜ |
+| 4.2 | Create splash screen (1920×1080) | 2h | P0 | — | ⬜ |
+| 4.3 | Create `public/webos/appinfo.json` | 1h | P0 | — | ✅ Done |
+| 4.4 | Create `scripts/webos-package.mjs` | 2h | P0 | — | ✅ Done |
+| 4.5 | Add `npm run package:tv` and `deploy:tv` scripts | 0.5h | P0 | 4.4 | ✅ Done |
+| 4.6 | Create `TVSettingsPanel.ts` (simplified in-app settings) | 4h | P1 | Phase 2 | ⬜ |
+| 4.7 | webOS app lifecycle (suspend/resume/relaunch) | 3h | P0 | 1.2 | ✅ Done |
+| 4.8 | Network status detection via Luna API | 2h | P1 | 1.2 | ⬜ |
+| 4.9 | Offline UI (cached data banner) | 2h | P1 | 4.8 | ⬜ |
+| 4.10 | i18n: match TV system language | 1h | P1 | 4.8 | ⬜ |
+| 4.11 | Exit confirmation dialog | 1h | P0 | Phase 2 | ✅ Done |
+| 4.12 | Complete TV test checklist on LG TV | 8h | P0 | all above | ⬜ |
+| 4.13 | Store screenshots (5 min) | 2h | P0 | 4.12 | ⬜ |
+| 4.14 | Store description (localized) | 2h | P0 | — | ✅ Done |
+| 4.15 | Privacy policy page | 1h | P0 | — | ✅ Done |
+| 4.16 | Submit to LG Content Store | 1h | P0 | all above | ⬜ |
+| 4.17 | Address LG review feedback (buffer) | 4h | P0 | 4.16 | ⬜ |
+| 4.18 | CI pipeline for TV build (`tv-build.yml`) | 2h | P1 | 4.5 | ⬜ |
 
 ### Phase 4 Acceptance Criteria
 - [ ] IPK packages successfully
@@ -214,23 +214,26 @@ Phase 4 (Polish & Ship)   →  Published on LG Content Store
 | File | Phase | Purpose | Status |
 |------|-------|---------|--------|
 | `src/config/variants/tv.ts` | 1 | TV variant config | ✅ Created |
-| `src/utils/tv-detection.ts` | 1 | webOS detection + helpers | ✅ Created |
+| `src/utils/tv-detection.ts` | 1, 3 | webOS detection + helpers, tier detection, memory monitor | ✅ Created |
 | `src/utils/tv-focus.ts` | 2 | Spatial navigation engine | ✅ Created |
 | `src/utils/tv-remote.ts` | 2 | Remote control key handler | ✅ Created |
 | `src/styles/tv.css` | 1 | TV-specific CSS | ✅ Created |
 | `src/components/TVOverlay.ts` | 2 | Footer hints + status | ✅ Created |
 | `src/controllers/tv-navigation.ts` | 2 | TV navigation orchestrator | ✅ Created |
 | `src/components/TVSettingsPanel.ts` | 4 | Simplified settings | ⬜ |
-| `scripts/webos-package.mjs` | 4 | IPK packaging script | ⬜ |
+| `scripts/webos-package.mjs` | 4 | IPK packaging script | ✅ Created |
 | `scripts/webos-icons/icon.png` | 4 | App icon 80×80 | ⬜ |
 | `scripts/webos-icons/largeIcon.png` | 4 | App icon 130×130 | ⬜ |
 | `scripts/webos-icons/splash.png` | 4 | Splash screen | ⬜ |
-| `public/webos/appinfo.json` | 4 | webOS manifest | ⬜ |
+| `public/webos/appinfo.json` | 4 | webOS manifest | ✅ Created |
 | `public/styles/tv-dark.json` | 3 | Minimal map style | ⬜ |
 | `e2e/tv-navigation.spec.ts` | 2 | Navigation E2E tests | ✅ Created |
 | `e2e/tv-visual.spec.ts` | 2 | Visual regression tests | ⬜ |
 | `e2e/tv-performance.spec.ts` | 3 | Performance tests | ⬜ |
 | `.github/workflows/tv-build.yml` | 4 | CI pipeline | ⬜ |
+| `src/components/TVExitDialog.ts` | 4 | Exit confirmation dialog | ✅ Created |
+| `docs/webos/STORE-LISTING.md` | 4 | LG Content Store listing | ✅ Created |
+| `public/privacy.html` | 4 | Privacy policy page | ✅ Created |
 
 ### Modified Files (12)
 
@@ -238,15 +241,15 @@ Phase 4 (Polish & Ship)   →  Published on LG Content Store
 |------|-------|--------|--------|
 | `src/config/variant.ts` | 1 | Accept `'tv'` variant | ✅ Done |
 | `src/main.ts` | 1 | TV-specific init, disable SW | ✅ Done |
-| `vite.config.ts` | 1 | Add TV variant meta, conditional PWA | ✅ Done |
-| `package.json` | 1 | Add TV scripts | ✅ Done |
+| `vite.config.ts` | 1, 3 | TV variant meta, conditional PWA, ML tree-shake plugin | ✅ Done |
+| `package.json` | 1, 4 | TV scripts, `package:tv`, `deploy:tv` | ✅ Done |
 | `src/services/ml-capabilities.ts` | 1 | Short-circuit on TV | ✅ Done |
 | `src/components/Panel.ts` | 1 | Disable drag/resize on TV | ✅ Done |
 | `src/components/MapContainer.ts` | 3 | TV render tier selection | ⬜ |
 | `src/components/DeckGLMap.ts` | 3 | TV quality settings | ⬜ |
 | `src/components/MapPopup.ts` | 2 | TV centered popup | ✅ Done (CSS) |
 | `src/controllers/ui-setup.ts` | 2 | TV keyboard integration | ✅ Done |
-| `src/App.ts` | 2 | TV navigation init + cleanup | ✅ Done |
+| `src/App.ts` | 2, 3, 4 | TV navigation init + cleanup, memory monitor, lifecycle | ✅ Done |
 | `src/controllers/app-context.ts` | 2 | `tvNavigation` property | ✅ Done |
 | `src/controllers/index.ts` | 2 | TVNavigationController export | ✅ Done |
 | `src/services/storage.ts` | 1 | TV IDB limits | ⬜ |

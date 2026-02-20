@@ -15,6 +15,7 @@
 import { SpatialNavigator } from '@/utils/tv-focus';
 import { TVRemoteHandler } from '@/utils/tv-remote';
 import { TVOverlay } from '@/components/TVOverlay';
+import { TVExitDialog } from '@/components/TVExitDialog';
 import type { AppContext } from './app-context';
 
 /* ------------------------------------------------------------------ */
@@ -25,6 +26,7 @@ export class TVNavigationController {
   readonly navigator: SpatialNavigator;
   readonly remote: TVRemoteHandler;
   readonly overlay: TVOverlay;
+  readonly exitDialog: TVExitDialog;
 
   private ctx: AppContext;
 
@@ -34,6 +36,7 @@ export class TVNavigationController {
     /* --- Core objects --- */
     this.navigator = new SpatialNavigator();
     this.overlay = new TVOverlay();
+    this.exitDialog = new TVExitDialog();
     this.remote = new TVRemoteHandler(this.navigator, {
       openSearch: () => this.openSearch(),
       closeTopModal: () => this.closeTopModal(),
@@ -189,6 +192,7 @@ export class TVNavigationController {
     this.remote.destroy();
     this.navigator.destroy();
     this.overlay.destroy();
+    this.exitDialog.destroy();
   }
 
   /* ================================================================ */
@@ -240,9 +244,8 @@ export class TVNavigationController {
   }
 
   private showExitConfirmation(): void {
-    // On webOS, BACK at root should close the app
-    // For now in browser testing, just log it
-    console.log('[TV] Exit confirmation requested');
+    if (this.exitDialog.isOpen()) return;
+    this.exitDialog.show().catch(console.error);
   }
 
   private toggleMapLayer(layer: string): void {
