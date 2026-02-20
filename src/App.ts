@@ -3,6 +3,7 @@ import {
   DEFAULT_PANELS,
   DEFAULT_MAP_LAYERS,
   MOBILE_DEFAULT_MAP_LAYERS,
+  IDLE_PAUSE_MS,
   STORAGE_KEYS,
   SITE_VARIANT,
   LAYER_TO_SOURCE,
@@ -88,7 +89,7 @@ export class App implements AppContext {
   public idleTimeoutId: ReturnType<typeof setTimeout> | null = null;
   public boundIdleResetHandler: (() => void) | null = null;
   public isIdle = false;
-  public readonly IDLE_PAUSE_MS = 2 * 60 * 1000;
+  public readonly IDLE_PAUSE_MS = IDLE_PAUSE_MS;
   public disabledSources: Set<string> = new Set();
   public mapFlashCache: Map<string, number> = new Map();
   public readonly MAP_FLASH_COOLDOWN_MS = 10 * 60 * 1000;

@@ -2,6 +2,35 @@
 
 All notable changes to World Monitor are documented here.
 
+## [2.4.1] - 2026-02-19
+
+### Architecture
+
+- **App.ts decomposition (BUG-001)** — Refactored the 4,461-line monolithic `App` class into a thin 531-line composition root (88% reduction). Seven focused controllers extracted under `src/controllers/`:
+  - `data-loader.ts` (1,540 lines) — all data loading, news rendering, correlation
+  - `panel-manager.ts` (1,028 lines) — panel creation, layout, drag-and-drop, toggles
+  - `ui-setup.ts` (937 lines) — event listeners, search/source modals, idle detection
+  - `country-intel.ts` (535 lines) — country briefs, timeline, story, CII signals
+  - `refresh-scheduler.ts` (215 lines) — periodic refresh intervals, snapshot saving
+  - `desktop-updater.ts` (195 lines) — Tauri update checking, badge display
+  - `deep-link-handler.ts` (192 lines) — URL state, deep linking, clipboard
+  - `app-context.ts` (169 lines) — `AppContext` interface: shared mutable state surface
+- **Shared `LAYER_TO_SOURCE` constant (BUG-005)** — Extracted duplicate `layerToSource` mapping from App.ts into `src/config/panels.ts`, eliminating maintenance-drift risk between `syncDataFreshnessWithLayers()` and `setupMapLayerHandlers()`
+
+### Fixed
+
+- **YouTube live detection in dev (BUG-003)** — `youtubeLivePlugin()` Vite dev middleware now performs real YouTube live stream detection (HTML scraping + `isLive` check), matching the production edge function behavior
+- **Migration log version (BUG-004)** — Panel-order migration log message now says `v1.9` to match `PANEL_ORDER_MIGRATION_KEY`
+- **News cluster error boundary (BUG-007)** — Both render paths (WindowedList callback and direct `.map()`) wrapped in try/catch; malformed clusters render a fallback placeholder instead of blanking the entire panel
+- **Clock interval leak (BUG-008)** — `UISetupController` stores `clockIntervalId` and exposes `clearClockInterval()`; `App.destroy()` now cleans up the `setInterval` on HMR reload
+- **Deep-link polling cap (BUG-009)** — `checkAndOpen()` and `checkAndOpenBrief()` now stop after `MAX_DEEP_LINK_RETRIES` (60 attempts / 30 seconds) instead of polling indefinitely
+- **Windows npm scripts (BUG-013, BUG-019)** — Installed `cross-env` and prefixed all 17 scripts using `VITE_VARIANT=` or `VITE_DESKTOP_RUNTIME=` for Windows compatibility
+- **SW oversized chunk caching (BUG-015)** — Added `maximumFileSizeToCacheInBytes: 5MB` safety net to Workbox config, preventing ML chunks from inflating the precache
+
+### Added
+
+- **Finance desktop packaging scripts (BUG-010)** — Added `desktop:package:macos:finance`, `desktop:package:windows:finance`, and their `:sign` variants to `package.json`
+
 ## [2.4.0] - 2026-02-19
 
 ### Added

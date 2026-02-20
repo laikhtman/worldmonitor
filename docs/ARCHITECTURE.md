@@ -2,7 +2,7 @@
 
 World Monitor is an AI-powered real-time global intelligence dashboard built as a TypeScript single-page application. It aggregates 30+ external data sources — covering geopolitics, military activity, financial markets, cyber threats, climate events, and more — into a unified operational picture rendered through an interactive 3D globe and a grid of specialised panels.
 
-This document covers the full system architecture: deployment topology, variant configuration, data pipelines, signal intelligence, map rendering, caching, desktop packaging, machine-learning inference, and error handling.
+This document covers the full system architecture: deployment topology, variant configuration, data pipelines, signal intelligence, map rendering, caching, desktop packaging, machine-learning inference, error handling, and the controller decomposition.
 
 ---
 
@@ -17,6 +17,7 @@ This document covers the full system architecture: deployment topology, variant 
 7. [Desktop Architecture](#7-desktop-architecture)
 8. [ML Pipeline](#8-ml-pipeline)
 9. [Error Handling Hierarchy](#9-error-handling-hierarchy)
+10. [Controller Architecture](#10-controller-architecture)
 
 ---
 
@@ -935,3 +936,69 @@ Live data (fresh fetch)
 ```
 
 Each panel independently manages its breaker, so a failure in one data source (e.g., OpenSky API downtime) does not affect other panels. The AI Insights panel aggregates breaker states to provide a system-wide health summary.
+
+---
+
+## 10. Controller Architecture
+
+Prior to v2.4.1, `App.ts` was a 4,461-line monolithic class with 136 methods — the single largest risk in the codebase. BUG-001 (Phase 1 + Phase 2) decomposed it into a **thin composition root** (~530 lines) that wires seven focused controllers.
+
+### Design
+
+```mermaid
+graph TD
+    App["App.ts<br/>~530 lines<br/>Composition Root"]
+    
+    App --> DL["DataLoader<br/>1,540 lines<br/>News, markets, geo data"]
+    App --> PM["PanelManager<br/>1,028 lines<br/>Layout, drag-drop, toggles"]
+    App --> UI["UISetup<br/>937 lines<br/>Events, modals, idle"]
+    App --> CI["CountryIntel<br/>535 lines<br/>Briefs, timeline, CII"]
+    App --> RS["RefreshScheduler<br/>215 lines<br/>Intervals, snapshots"]
+    App --> DU["DesktopUpdater<br/>195 lines<br/>Tauri updates, badge"]
+    App --> DLH["DeepLinkHandler<br/>192 lines<br/>URL state, clipboard"]
+    App --> CTX["AppContext<br/>169 lines<br/>Shared state interface"]
+    
+    DL -.->|reads/writes| CTX
+    PM -.->|reads/writes| CTX
+    UI -.->|reads/writes| CTX
+    CI -.->|reads/writes| CTX
+    RS -.->|reads| CTX
+    DU -.->|reads| CTX
+    DLH -.->|reads| CTX
+```
+
+### Controller Responsibilities
+
+| Controller | File | Lines | Responsibility |
+|---|---|---|---|
+| **AppContext** | `app-context.ts` | 169 | Shared mutable state surface — typed interface exposing `map`, `panels`, `newsItems`, `marketData`, etc. |
+| **DataLoader** | `data-loader.ts` | 1,540 | Orchestrates all `fetch*()` calls, news rendering, clustering, entity correlation, and market data loading |
+| **PanelManager** | `panel-manager.ts` | 1,028 | Creates panel instances, manages grid layout, handles drag-and-drop reordering, panel toggles, and persistence |
+| **UISetup** | `ui-setup.ts` | 937 | Wires DOM event listeners, search/source modals, header clock, idle detection, keyboard shortcuts |
+| **CountryIntel** | `country-intel.ts` | 535 | Country brief pages, CII signals, 7-day timeline, story sharing, stock index integration |
+| **RefreshScheduler** | `refresh-scheduler.ts` | 215 | Manages `setInterval`/`setTimeout` lifecycle for periodic data refresh and snapshot saving |
+| **DesktopUpdater** | `desktop-updater.ts` | 195 | Tauri-specific update checking, version badge, architecture-aware download links |
+| **DeepLinkHandler** | `deep-link-handler.ts` | 192 | URL state parsing, deep link resolution (country/brief), clipboard operations, retry-capped polling |
+
+### Communication Pattern
+
+Controllers do **not** depend on each other directly. They communicate through:
+
+1. **`AppContext`** — a typed interface providing shared mutable state. Each controller receives a reference to `AppContext` at construction time.
+2. **Typed callback interfaces** — `App.ts` wires controllers together using callback contracts:
+   - `RefreshCallbacks` — refresh scheduler → data loader
+   - `DeepLinkCallbacks` — deep link handler → country intel
+   - `DataLoaderCallbacks` — data loader → panel manager (for panel updates)
+   - `PanelManagerCallbacks` — panel manager → UI setup (for event rewiring)
+   - `UICallbacks` — UI setup → data loader (for manual refresh triggers)
+
+This avoids circular dependencies: controllers never `import` each other, and `App.ts` is the sole wiring point.
+
+### App.ts as Composition Root
+
+The remaining `App.ts` class (~530 lines) has three jobs:
+
+1. **Construction** (~150 lines) — instantiates all controllers, map, and panels
+2. **`init()`** (~80 lines) — wires controller callbacks and starts the application
+3. **Bridge methods** — `syncDataFreshnessWithLayers()` and `setupMapLayerHandlers()` bridge the map and freshness system using the shared `LAYER_TO_SOURCE` constant from `src/config/panels.ts`
+4. **`destroy()`** — delegates cleanup to each controller (including clock interval cleanup for HMR stability)

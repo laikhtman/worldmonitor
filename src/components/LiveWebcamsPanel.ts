@@ -1,5 +1,6 @@
 import { Panel } from './Panel';
 import { isDesktopRuntime, getRemoteApiBaseUrl } from '@/services/runtime';
+import { IDLE_PAUSE_MS } from '@/config';
 import { t } from '../services/i18n';
 
 type WebcamRegion = 'middle-east' | 'europe' | 'asia' | 'americas';
@@ -56,7 +57,7 @@ export class LiveWebcamsPanel extends Panel {
   private idleTimeout: ReturnType<typeof setTimeout> | null = null;
   private boundIdleResetHandler!: () => void;
   private boundVisibilityHandler!: () => void;
-  private readonly IDLE_PAUSE_MS = 5 * 60 * 1000;
+  private readonly IDLE_PAUSE_MS = IDLE_PAUSE_MS;
   private isIdle = false;
 
   constructor() {
