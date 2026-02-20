@@ -1,5 +1,6 @@
 import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { compression } from 'vite-plugin-compression2';
 import { resolve } from 'path';
 import pkg from './package.json';
 
@@ -186,8 +187,27 @@ function youtubeLivePlugin(): Plugin {
 }
 
 export default defineConfig({
+  /* PERF-046: Persistent filesystem cache for faster dev-server restarts */
+  cacheDir: '.vite',
+  /* PERF-047: Pre-bundle heavy dependencies for faster dev cold starts */
+  optimizeDeps: {
+    include: [
+      'deck.gl',
+      '@deck.gl/core',
+      '@deck.gl/layers',
+      '@deck.gl/geo-layers',
+      '@deck.gl/aggregation-layers',
+      '@deck.gl/mapbox',
+      'maplibre-gl',
+      'd3',
+      'i18next',
+      'topojson-client',
+    ],
+  },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    /* PERF-050: Compile-time flag for desktop vs web builds */
+    __DESKTOP__: JSON.stringify(!!process.env.VITE_DESKTOP_RUNTIME),
   },
   plugins: [
     htmlVariantPlugin(),
@@ -297,6 +317,11 @@ export default defineConfig({
         enabled: false,
       },
     }),
+    compression({
+      algorithm: 'brotliCompress',
+      exclude: [/\.(br|gz)$/],
+      threshold: 1024,
+    }),
   ],
   resolve: {
     alias: {
@@ -333,6 +358,13 @@ export default defineConfig({
             if (id.includes('/@sentry/')) {
               return 'sentry';
             }
+          }
+          // PERF-001: Split panel components into a separate chunk.
+          // Map-critical components stay in the main chunk for first-paint.
+          const mainChunkComponents = ['DeckGLMap.ts', 'Map.ts', 'MapContainer.ts', 'MapPopup.ts', 'VirtualList.ts'];
+          if (id.includes('/src/components/') &&
+              !mainChunkComponents.some(name => id.endsWith(`/${name}`))) {
+            return 'panels';
           }
           return undefined;
         },

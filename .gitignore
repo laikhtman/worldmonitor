@@ -16,6 +16,7 @@ CLAUDE.md
 .env.vercel-export
 .agent/
 .factory/
+.vite/
 .windsurf/
 skills/
 ideas/

@@ -1,8 +1,12 @@
 import { Panel } from './Panel';
+import { WindowedList } from './VirtualList';
 import { escapeHtml } from '@/utils/sanitize';
 import type { UnhcrSummary, CountryDisplacement } from '@/types';
 import { formatPopulation } from '@/services/unhcr';
 import { t } from '@/services/i18n';
+
+/** PERF-008: Threshold for enabling virtual scrolling */
+const VIRTUAL_SCROLL_THRESHOLD = 20;
 
 type DisplacementTab = 'origins' | 'hosts';
 
@@ -10,6 +14,7 @@ export class DisplacementPanel extends Panel {
   private data: UnhcrSummary | null = null;
   private activeTab: DisplacementTab = 'origins';
   private onCountryClick?: (lat: number, lon: number) => void;
+  private windowedList: WindowedList<CountryDisplacement> | null = null;
 
   constructor() {
     super({
@@ -20,6 +25,20 @@ export class DisplacementPanel extends Panel {
       infoTooltip: t('components.displacement.infoTooltip'),
     });
     this.showLoading(t('common.loadingDisplacement'));
+    this.initWindowedList();
+  }
+
+  /** PERF-008: Initialize windowed list for virtual scrolling of country rows */
+  private initWindowedList(): void {
+    this.windowedList = new WindowedList<CountryDisplacement>(
+      {
+        container: this.content,
+        chunkSize: 10,
+        bufferChunks: 1,
+      },
+      (country) => this.renderCountryRow(country),
+      () => this.bindRowEvents()
+    );
   }
 
   public setCountryClickHandler(handler: (lat: number, lon: number) => void): void {
@@ -30,6 +49,41 @@ export class DisplacementPanel extends Panel {
     this.data = data;
     this.setCount(data.countries.length);
     this.renderContent();
+  }
+
+  /** Render a single country row as HTML */
+  private renderCountryRow(c: CountryDisplacement): string {
+    const hostTotal = c.hostTotal || 0;
+    const count = this.activeTab === 'origins' ? c.refugees + c.asylumSeekers : hostTotal;
+    const total = this.activeTab === 'origins' ? c.totalDisplaced : hostTotal;
+    const badgeCls = total >= 1_000_000 ? 'disp-crisis'
+      : total >= 500_000 ? 'disp-high'
+        : total >= 100_000 ? 'disp-elevated'
+          : '';
+    const badgeLabel = total >= 1_000_000 ? t('components.displacement.badges.crisis')
+      : total >= 500_000 ? t('components.displacement.badges.high')
+        : total >= 100_000 ? t('components.displacement.badges.elevated')
+          : '';
+    const badgeHtml = badgeLabel
+      ? `<span class="disp-badge ${badgeCls}">${badgeLabel}</span>`
+      : '';
+
+    return `<tr class="disp-row" data-lat="${c.lat || ''}" data-lon="${c.lon || ''}">
+      <td class="disp-name">${escapeHtml(c.name)}</td>
+      <td class="disp-status">${badgeHtml}</td>
+      <td class="disp-count">${formatPopulation(count)}</td>
+    </tr>`;
+  }
+
+  /** Bind click events on rendered rows */
+  private bindRowEvents(): void {
+    this.content.querySelectorAll('.disp-row').forEach(el => {
+      el.addEventListener('click', () => {
+        const lat = Number((el as HTMLElement).dataset.lat);
+        const lon = Number((el as HTMLElement).dataset.lon);
+        if (Number.isFinite(lat) && Number.isFinite(lon)) this.onCountryClick?.(lat, lon);
+      });
+    });
   }
 
   private renderContent(): void {
@@ -69,54 +123,7 @@ export class DisplacementPanel extends Panel {
         .sort((a, b) => (b.hostTotal || 0) - (a.hostTotal || 0));
     }
 
-    const displayed = countries.slice(0, 30);
-    let tableHtml: string;
-
-    if (displayed.length === 0) {
-      tableHtml = `<div class="panel-empty">${t('common.noDataShort')}</div>`;
-    } else {
-      const rows = displayed.map(c => {
-        const hostTotal = c.hostTotal || 0;
-        const count = this.activeTab === 'origins' ? c.refugees + c.asylumSeekers : hostTotal;
-        const total = this.activeTab === 'origins' ? c.totalDisplaced : hostTotal;
-        const badgeCls = total >= 1_000_000 ? 'disp-crisis'
-          : total >= 500_000 ? 'disp-high'
-            : total >= 100_000 ? 'disp-elevated'
-              : '';
-        const badgeLabel = total >= 1_000_000 ? t('components.displacement.badges.crisis')
-          : total >= 500_000 ? t('components.displacement.badges.high')
-            : total >= 100_000 ? t('components.displacement.badges.elevated')
-              : '';
-        const badgeHtml = badgeLabel
-          ? `<span class="disp-badge ${badgeCls}">${badgeLabel}</span>`
-          : '';
-
-        return `<tr class="disp-row" data-lat="${c.lat || ''}" data-lon="${c.lon || ''}">
-          <td class="disp-name">${escapeHtml(c.name)}</td>
-          <td class="disp-status">${badgeHtml}</td>
-          <td class="disp-count">${formatPopulation(count)}</td>
-        </tr>`;
-      }).join('');
-
-      tableHtml = `
-        <table class="disp-table">
-          <thead>
-            <tr>
-              <th>${t('components.displacement.country')}</th>
-              <th>${t('components.displacement.status')}</th>
-              <th>${t('components.displacement.count')}</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>`;
-    }
-
-    this.setContent(`
-      <div class="disp-panel-content">
-        <div class="disp-stats-grid">${statsHtml}</div>
-        ${tabsHtml}
-        ${tableHtml}
-      </div>
+    const panelStyle = `
       <style>
         .disp-panel-content { font-size: 12px; }
         .disp-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px; }
@@ -145,21 +152,75 @@ export class DisplacementPanel extends Panel {
         .disp-elevated { background: color-mix(in srgb, var(--semantic-elevated) 12%, transparent); color: var(--semantic-elevated); }
         .disp-count { text-align: right; font-variant-numeric: tabular-nums; }
       </style>
-    `);
+    `;
 
-    this.content.querySelectorAll('.disp-tab').forEach(btn => {
-      btn.addEventListener('click', () => {
-        this.activeTab = (btn as HTMLElement).dataset.tab as DisplacementTab;
-        this.renderContent();
-      });
-    });
+    // PERF-008: Use WindowedList for large lists, direct render for small
+    if (countries.length > VIRTUAL_SCROLL_THRESHOLD && this.windowedList) {
+      this.setContent(`
+        <div class="disp-panel-content">
+          <div class="disp-stats-grid">${statsHtml}</div>
+          ${tabsHtml}
+          <table class="disp-table">
+            <thead>
+              <tr>
+                <th>${t('components.displacement.country')}</th>
+                <th>${t('components.displacement.status')}</th>
+                <th>${t('components.displacement.count')}</th>
+              </tr>
+            </thead>
+          </table>
+        </div>
+        ${panelStyle}
+      `);
 
-    this.content.querySelectorAll('.disp-row').forEach(el => {
-      el.addEventListener('click', () => {
-        const lat = Number((el as HTMLElement).dataset.lat);
-        const lon = Number((el as HTMLElement).dataset.lon);
-        if (Number.isFinite(lat) && Number.isFinite(lon)) this.onCountryClick?.(lat, lon);
+      this.content.querySelectorAll('.disp-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          this.activeTab = (btn as HTMLElement).dataset.tab as DisplacementTab;
+          this.renderContent();
+        });
       });
-    });
+
+      this.windowedList.setItems(countries);
+    } else {
+      // Direct render for small lists
+      const displayed = countries.slice(0, 30);
+      let tableHtml: string;
+
+      if (displayed.length === 0) {
+        tableHtml = `<div class="panel-empty">${t('common.noDataShort')}</div>`;
+      } else {
+        const rows = displayed.map(c => this.renderCountryRow(c)).join('');
+
+        tableHtml = `
+          <table class="disp-table">
+            <thead>
+              <tr>
+                <th>${t('components.displacement.country')}</th>
+                <th>${t('components.displacement.status')}</th>
+                <th>${t('components.displacement.count')}</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>`;
+      }
+
+      this.setContent(`
+        <div class="disp-panel-content">
+          <div class="disp-stats-grid">${statsHtml}</div>
+          ${tabsHtml}
+          ${tableHtml}
+        </div>
+        ${panelStyle}
+      `);
+
+      this.content.querySelectorAll('.disp-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          this.activeTab = (btn as HTMLElement).dataset.tab as DisplacementTab;
+          this.renderContent();
+        });
+      });
+
+      this.bindRowEvents();
+    }
   }
 }

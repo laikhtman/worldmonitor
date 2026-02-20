@@ -358,6 +358,8 @@ export class Panel {
 
   public hide(): void {
     this.element.classList.add('hidden');
+    // PERF-034: Allow subclasses to release data on collapse
+    this.onDataRelease();
   }
 
   public toggle(visible: boolean): void {
@@ -413,6 +415,14 @@ export class Panel {
     const spans = loadPanelSpans();
     delete spans[this.panelId];
     localStorage.setItem(PANEL_SPANS_KEY, JSON.stringify(spans));
+  }
+
+  /**
+   * PERF-034: Override in subclasses to release large data arrays on panel collapse.
+   * Called when the panel is collapsed. Re-fetch data on next expand.
+   */
+  protected onDataRelease(): void {
+    // Default: no-op. Subclasses override to release memory.
   }
 
   /**

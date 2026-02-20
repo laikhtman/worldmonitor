@@ -152,4 +152,16 @@ export { getCSSColor, invalidateColorCache } from './theme-colors';
 export { getStoredTheme, getCurrentTheme, setTheme, applyStoredTheme } from './theme-manager';
 export type { Theme } from './theme-manager';
 
+/**
+ * PERF-003: Defer non-critical work to idle periods.
+ * Uses requestIdleCallback with setTimeout fallback.
+ */
+export function deferToIdle(fn: () => void, timeoutMs = 5000): void {
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(fn, { timeout: timeoutMs });
+  } else {
+    setTimeout(fn, timeoutMs);
+  }
+}
+
 import { getCurrentLanguage } from '../services/i18n';
