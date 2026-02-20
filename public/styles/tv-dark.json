@@ -1,0 +1,35 @@
+{
+  "version": 8,
+  "name": "IntelHQ TV Dark",
+  "sources": {
+    "carto-raster": {
+      "type": "raster",
+      "tiles": [
+        "https://basemaps.cartocdn.com/rastertiles/dark_nolabels/{z}/{x}/{y}@1x.png"
+      ],
+      "tileSize": 256,
+      "maxzoom": 12,
+      "attribution": "&copy; CARTO, &copy; OpenStreetMap contributors"
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#020a08"
+      }
+    },
+    {
+      "id": "carto-tiles",
+      "type": "raster",
+      "source": "carto-raster",
+      "paint": {
+        "raster-opacity": 0.85,
+        "raster-brightness-max": 0.6,
+        "raster-contrast": 0.1,
+        "raster-saturation": -0.5
+      }
+    }
+  ]
+}

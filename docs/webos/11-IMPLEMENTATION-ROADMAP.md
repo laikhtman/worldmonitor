@@ -104,23 +104,23 @@ Phase 4 (Polish & Ship)   →  Published on LG Content Store
 | # | Task | Est. | Priority | Dependencies | Status |
 |---|------|------|----------|-------------|--------|
 | 3.1 | Implement tier detection (`detectTVRenderTier()`) | 3h | P0 | Phase 1 | ✅ Done |
-| 3.2 | TV-Full tier: reduce deck.gl layers, lower quality settings | 6h | P0 | 3.1 | ⬜ |
-| 3.3 | TV-Lite tier: MapLibre-only rendering (no deck.gl) | 8h | P1 | 3.1 | ⬜ |
-| 3.4 | TV-Static tier: SVG fallback with pre-rendered backgrounds | 4h | P2 | 3.1 | ⬜ |
-| 3.5 | Create minimal TV map style (`tv-dark.json`) | 3h | P1 | 3.2 | ⬜ |
-| 3.6 | MapLibre TV config (maxZoom, tileCache, no rotation) | 2h | P0 | 3.2 | ⬜ |
+| 3.2 | TV-Full tier: reduce deck.gl layers, lower quality settings | 6h | P0 | 3.1 | ✅ Done |
+| 3.3 | TV-Lite tier: MapLibre-only rendering (no deck.gl) | 8h | P1 | 3.1 | ✅ Done |
+| 3.4 | TV-Static tier: SVG fallback with pre-rendered backgrounds | 4h | P2 | 3.1 | ✅ Done |
+| 3.5 | Create minimal TV map style (`tv-dark.json`) | 3h | P1 | 3.2 | ✅ Done |
+| 3.6 | MapLibre TV config (maxZoom, tileCache, no rotation) | 2h | P0 | 3.2 | ✅ Done |
 | 3.7 | Memory monitoring + emergency cleanup | 2h | P0 | 1.2 | ✅ Done |
-| 3.8 | Frame budget enforcement (30fps target) | 2h | P1 | 3.2 | ⬜ |
-| 3.9 | WebGL context loss recovery | 2h | P1 | 3.2 | ⬜ |
-| 3.10 | Disable/simplify CSS animations for TV | 1h | P1 | Phase 1 | ⬜ |
+| 3.8 | Frame budget enforcement (30fps target) | 2h | P1 | 3.2 | ✅ Done |
+| 3.9 | WebGL context loss recovery | 2h | P1 | 3.2 | ✅ Done |
+| 3.10 | Disable/simplify CSS animations for TV | 1h | P1 | Phase 1 | ✅ Done |
 | 3.11 | Tree-shake ML modules from TV build | 2h | P0 | 1.9 | ✅ Done |
-| 3.12 | Concurrent fetch limiting (max 3) | 1h | P1 | Phase 1 | ⬜ |
-| 3.13 | WebSocket throttling for AIS (if enabled) | 1h | P2 | Phase 1 | ⬜ |
-| 3.14 | Bundle font files in IPK | 2h | P1 | Phase 1 | ⬜ |
-| 3.15 | Verify bundle size < 10 MB | 1h | P0 | 3.11 | ⬜ |
+| 3.12 | Concurrent fetch limiting (max 3) | 1h | P1 | Phase 1 | ✅ Done |
+| 3.13 | AIS HTTP polling throttle (30s on TV) | 1h | P2 | Phase 1 | ✅ Done |
+| 3.14 | Remove dead font preconnects from index.html | 2h | P1 | Phase 1 | ✅ Done |
+| 3.15 | Verify bundle size < 10 MB | 1h | P0 | 3.11 | ✅ Done (4870 KiB) |
 | 3.16 | Test on webOS emulator | 4h | P0 | all above | ⬜ |
 | 3.17 | Test on physical LG TV (if available) | 6h | P0 | all above | ⬜ |
-| 3.18 | Performance E2E tests: `e2e/tv-performance.spec.ts` | 3h | P1 | 3.16 | ⬜ |
+| 3.18 | Performance E2E tests: `e2e/tv-performance.spec.ts` | 3h | P1 | 3.16 | ✅ Done |
 
 ### Phase 3 Acceptance Criteria
 - [ ] 30+ fps on mid-range LG TV (C-series 2021+)
@@ -226,10 +226,10 @@ Phase 4 (Polish & Ship)   →  Published on LG Content Store
 | `scripts/webos-icons/largeIcon.png` | 4 | App icon 130×130 | ⬜ |
 | `scripts/webos-icons/splash.png` | 4 | Splash screen | ⬜ |
 | `public/webos/appinfo.json` | 4 | webOS manifest | ✅ Created |
-| `public/styles/tv-dark.json` | 3 | Minimal map style | ⬜ |
+| `public/styles/tv-dark.json` | 3 | Minimal map style | ✅ Created |
 | `e2e/tv-navigation.spec.ts` | 2 | Navigation E2E tests | ✅ Created |
 | `e2e/tv-visual.spec.ts` | 2 | Visual regression tests | ⬜ |
-| `e2e/tv-performance.spec.ts` | 3 | Performance tests | ⬜ |
+| `e2e/tv-performance.spec.ts` | 3 | Performance tests | ✅ Created |
 | `.github/workflows/tv-build.yml` | 4 | CI pipeline | ⬜ |
 | `src/components/TVExitDialog.ts` | 4 | Exit confirmation dialog | ✅ Created |
 | `docs/webos/STORE-LISTING.md` | 4 | LG Content Store listing | ✅ Created |
@@ -245,15 +245,18 @@ Phase 4 (Polish & Ship)   →  Published on LG Content Store
 | `package.json` | 1, 4 | TV scripts, `package:tv`, `deploy:tv` | ✅ Done |
 | `src/services/ml-capabilities.ts` | 1 | Short-circuit on TV | ✅ Done |
 | `src/components/Panel.ts` | 1 | Disable drag/resize on TV | ✅ Done |
-| `src/components/MapContainer.ts` | 3 | TV render tier selection | ⬜ |
-| `src/components/DeckGLMap.ts` | 3 | TV quality settings | ⬜ |
+| `src/components/MapContainer.ts` | 3 | TV render tier selection | ✅ Done |
+| `src/components/DeckGLMap.ts` | 3 | TV quality settings | ✅ Done |
 | `src/components/MapPopup.ts` | 2 | TV centered popup | ✅ Done (CSS) |
 | `src/controllers/ui-setup.ts` | 2 | TV keyboard integration | ✅ Done |
 | `src/App.ts` | 2, 3, 4 | TV navigation init + cleanup, memory monitor, lifecycle | ✅ Done |
 | `src/controllers/app-context.ts` | 2 | `tvNavigation` property | ✅ Done |
 | `src/controllers/index.ts` | 2 | TVNavigationController export | ✅ Done |
 | `src/services/storage.ts` | 1 | TV IDB limits | ⬜ |
-| `index.html` | 1 | TV CSP policy | ⬜ |
+| `src/utils/fetch-cache.ts` | 3 | TV fetch semaphore (max 3 concurrent) | ✅ Done |
+| `src/services/ais.ts` | 3 | TV AIS poll throttle (30s) | ✅ Done |
+| `src/utils/tv-maplibre-layers.ts` | 3 | MapLibre native layers for TV-Lite | ✅ Created |
+| `index.html` | 1, 3 | TV CSP policy, removed dead font preconnects | ✅ Done |
 | `src/config/panels.ts` | 1 | TV panels/layers + `selectVariant()` helper | ✅ Done |
 | `src/controllers/panel-manager.ts` | 1 | Skip `makeDraggable()` on TV | ✅ Done |
 | `src/controllers/refresh-scheduler.ts` | 1 | 2× refresh multiplier for TV | ✅ Done |
