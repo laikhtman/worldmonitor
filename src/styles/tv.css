@@ -759,3 +759,34 @@ body.tv-mode .webgl-recovery-text {
   font-size: 24px;
   color: #88bbaa;
 }
+
+/* ================================================================
+   22. Offline Banner
+   ================================================================ */
+
+.tv-offline-banner {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10001;
+  background: rgba(180, 40, 40, 0.92);
+  color: #fff;
+  padding: 8px 32px;
+  border-radius: 0 0 8px 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+}
+
+.tv-offline-banner .offline-icon {
+  font-size: 1.3rem;
+}
+
+.tv-offline-banner .offline-text {
+  white-space: nowrap;
+}

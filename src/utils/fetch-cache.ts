@@ -7,7 +7,7 @@
  * - AbortController support (PERF-018)
  */
 
-import { IS_TV, TV_MAX_CONCURRENT_FETCHES } from '@/utils/tv-detection';
+import { IS_TV, TV_MAX_CONCURRENT_FETCHES, appendTVLimits } from '@/utils/tv-detection';
 
 interface CacheEntry<T = unknown> {
     data: T;
@@ -109,9 +109,10 @@ async function revalidate<T>(
     }
 
     await tvAcquire();
+    const fetchUrl = appendTVLimits(url);
     let response: Response;
     try {
-        response = await fetch(url, fetchOpts);
+        response = await fetch(fetchUrl, fetchOpts);
     } catch (err) {
         tvRelease();
         // If we have stale cache, return it on error

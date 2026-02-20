@@ -10,7 +10,7 @@
  * so the user always sees relevant key bindings.
  */
 
-import { IS_TV } from '@/utils/tv-detection';
+import { IS_TV, watchNetworkStatus, type TVNetworkType } from '@/utils/tv-detection';
 
 /* ------------------------------------------------------------------ */
 /*  Hint definitions per context                                       */
@@ -56,6 +56,8 @@ export class TVOverlay {
   private statusEl: HTMLElement | null = null;
   private crosshairEl: HTMLElement | null = null;
   private currentContext: 'panels' | 'map' | 'modal' = 'panels';
+  private offlineBannerEl: HTMLElement | null = null;
+  private networkCleanup: (() => void) | null = null;
 
   constructor() {
     this.container = document.createElement('div');
@@ -67,6 +69,7 @@ export class TVOverlay {
     this.render();
     document.body.appendChild(this.container);
     this.createStatusBadge();
+    this.startNetworkWatch();
   }
 
   /* ================================================================ */
@@ -89,16 +92,19 @@ export class TVOverlay {
     }
   }
 
-  /** Update the connection status indicator. */
-  setOnline(online: boolean): void {
+  /** Update the connection status indicator and offline banner. */
+  setOnline(online: boolean, type: TVNetworkType = 'wifi'): void {
     const dot = this.statusEl?.querySelector('.status-dot');
     const label = this.statusEl?.querySelector('.status-label');
     if (dot) {
       dot.classList.toggle('offline', !online);
     }
     if (label) {
-      label.textContent = online ? 'Live' : 'Offline';
+      label.textContent = online
+        ? (type === 'wired' ? 'Wired' : 'Wi-Fi')
+        : 'Offline';
     }
+    this.toggleOfflineBanner(!online);
   }
 
   /** Install the map crosshair into the map container. */
@@ -118,9 +124,11 @@ export class TVOverlay {
 
   /** Clean up. */
   destroy(): void {
+    this.networkCleanup?.();
     this.container.remove();
     this.statusEl?.remove();
     this.crosshairEl?.remove();
+    this.offlineBannerEl?.remove();
   }
 
   /* ================================================================ */
@@ -157,5 +165,26 @@ export class TVOverlay {
     this.footerEl.innerHTML = hints
       .map(h => `<span class="hint"><span class="hint-key ${h.cssClass}">${h.key}</span> ${h.label}</span>`)
       .join('');
+  }
+
+  private startNetworkWatch(): void {
+    this.networkCleanup = watchNetworkStatus((online, type) => {
+      this.setOnline(online, type);
+    });
+  }
+
+  private toggleOfflineBanner(show: boolean): void {
+    if (show && !this.offlineBannerEl) {
+      this.offlineBannerEl = document.createElement('div');
+      this.offlineBannerEl.className = 'tv-offline-banner';
+      this.offlineBannerEl.innerHTML = `
+        <span class="offline-icon">⚠</span>
+        <span class="offline-text">No Internet — showing cached data</span>
+      `;
+      document.body.appendChild(this.offlineBannerEl);
+    } else if (!show && this.offlineBannerEl) {
+      this.offlineBannerEl.remove();
+      this.offlineBannerEl = null;
+    }
   }
 }

@@ -94,6 +94,41 @@ export const TV_REFRESH_INTERVALS = {
 /** Maximum concurrent API fetches on TV to avoid saturating WiFi / CPU. */
 export const TV_MAX_CONCURRENT_FETCHES = 3;
 
+/**
+ * Per-endpoint response-size limits for TV.
+ * Reduces bandwidth and JSON parse time on constrained hardware.
+ */
+const TV_API_LIMITS: Record<string, Record<string, string>> = {
+  '/api/rss-proxy':       { limit: '30' },
+  '/api/earthquakes':     { limit: '50' },
+  '/api/acled':           { limit: '50' },
+  '/api/gdelt-doc':       { limit: '20', timespan: '24h' },
+  '/api/gdelt-geo':       { limit: '100' },
+  '/api/cyber-threats':   { limit: '20' },
+  '/api/polymarket':      { limit: '20' },
+  '/api/hackernews':      { limit: '15' },
+  '/api/github-trending': { limit: '10' },
+};
+
+/**
+ * Append TV-specific query-string limits to an API URL.
+ * On non-TV variants this is a no-op (returns the URL unchanged).
+ */
+export function appendTVLimits(url: string): string {
+  if (!IS_TV) return url;
+
+  for (const [path, params] of Object.entries(TV_API_LIMITS)) {
+    if (url.includes(path)) {
+      const u = new URL(url, location.origin);
+      for (const [key, value] of Object.entries(params)) {
+        u.searchParams.set(key, value);
+      }
+      return u.toString();
+    }
+  }
+  return url;
+}
+
 /* ------------------------------------------------------------------ */
 /*  TV Render Tier Detection                                           */
 /* ------------------------------------------------------------------ */
@@ -284,4 +319,72 @@ export function registerWebOSLifecycle(callbacks?: {
       console.log('[webOS] App closing');
     };
   }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Network Status Detection                                           */
+/* ------------------------------------------------------------------ */
+
+export type TVNetworkType = 'wifi' | 'wired' | 'none';
+
+/**
+ * Monitor network connectivity. Uses the webOS Luna Service Bus when
+ * available, otherwise falls back to standard `navigator.onLine` events.
+ *
+ * The callback fires immediately with the current state, then on every
+ * change. Returns an unsubscribe function.
+ */
+export function watchNetworkStatus(
+  callback: (online: boolean, type: TVNetworkType) => void,
+): () => void {
+  // Immediate state
+  callback(navigator.onLine, navigator.onLine ? 'wifi' : 'none');
+
+  if (IS_WEBOS && 'webOS' in window) {
+    // webOS Luna Service Bus — subscribes to connectivity changes
+    try {
+      const webOS = (window as Record<string, unknown>).webOS as {
+        service: {
+          request: (uri: string, params: Record<string, unknown>) => { cancel: () => void };
+        };
+      };
+
+      const req = webOS.service.request(
+        'luna://com.webos.service.connectionmanager',
+        {
+          method: 'getStatus',
+          parameters: { subscribe: true },
+          onSuccess: (res: Record<string, unknown>) => {
+            const isOnline = res.isInternetConnectionAvailable as boolean;
+            const wired = res.wired as { state?: string } | undefined;
+            const wifi = res.wifi as { state?: string } | undefined;
+            const type: TVNetworkType =
+              wired?.state === 'connected' ? 'wired'
+                : wifi?.state === 'connected' ? 'wifi'
+                  : 'none';
+            callback(isOnline, type);
+          },
+          onFailure: () => {
+            // Fallback: treat current state as wifi
+            callback(navigator.onLine, navigator.onLine ? 'wifi' : 'none');
+          },
+        },
+      );
+
+      return () => { try { req.cancel(); } catch { /* already cancelled */ } };
+    } catch {
+      // Luna not available — fall through to standard events
+    }
+  }
+
+  // Standard browser online/offline events
+  const onOnline = () => callback(true, 'wifi');
+  const onOffline = () => callback(false, 'none');
+  window.addEventListener('online', onOnline);
+  window.addEventListener('offline', onOffline);
+
+  return () => {
+    window.removeEventListener('online', onOnline);
+    window.removeEventListener('offline', onOffline);
+  };
 }

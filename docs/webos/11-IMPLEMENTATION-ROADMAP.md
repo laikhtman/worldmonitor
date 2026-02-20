@@ -34,14 +34,14 @@ Phase 4 (Polish & Ship)   →  Published on LG Content Store
 | 1.11 | Disable panel drag-drop and resize on TV | 1h | P1 | 1.2 | ✅ Done |
 | 1.12 | Disable MobileWarningModal and DownloadBanner on TV | 0.5h | P1 | 1.2 | ✅ Done |
 | 1.13 | Adjust refresh intervals for TV (`TV_REFRESH_INTERVALS`) | 1h | P1 | 1.1 | ✅ Done |
-| 1.14 | Add TV API limits (`appendTVLimits` function) | 2h | P1 | 1.2 | ⬜ Open |
+| 1.14 | Add TV API limits (`appendTVLimits` function) | 2h | P1 | 1.2 | ✅ Done |
 | 1.15 | Create TV layout (60/40 map/panels, 2-panel max) | 4h | P0 | 1.6 | ✅ Done |
 | 1.16 | TypeScript strict mode passes: `npm run typecheck` | 1h | P0 | all above | ✅ Done |
 | 1.17 | All 3 existing variants still build: `build:full`, `build:tech`, `build:finance` | 1h | P0 | all above | ✅ Done |
 | 1.18 | TV variant builds successfully: `npm run build:tv` | 1h | P0 | all above | ✅ Done |
 | 1.19 | Visual smoke test at 1920×1080 in Chrome | 2h | P0 | 1.18 | ⬜ Open |
 
-**Phase 1 Progress: 17/19 tasks complete.** Committed `a367d90` on `feature/webos-phase1`.
+**Phase 1 Progress: 18/19 tasks complete.** Committed `a367d90` on `feature/webos-phase1`.
 
 ### Phase 1 Acceptance Criteria
 - [x] `npm run build:tv` succeeds with zero errors
@@ -148,8 +148,8 @@ Phase 4 (Polish & Ship)   →  Published on LG Content Store
 | 4.5 | Add `npm run package:tv` and `deploy:tv` scripts | 0.5h | P0 | 4.4 | ✅ Done |
 | 4.6 | Create `TVSettingsPanel.ts` (simplified in-app settings) | 4h | P1 | Phase 2 | ⬜ |
 | 4.7 | webOS app lifecycle (suspend/resume/relaunch) | 3h | P0 | 1.2 | ✅ Done |
-| 4.8 | Network status detection via Luna API | 2h | P1 | 1.2 | ⬜ |
-| 4.9 | Offline UI (cached data banner) | 2h | P1 | 4.8 | ⬜ |
+| 4.8 | Network status detection via Luna API | 2h | P1 | 1.2 | ✅ Done |
+| 4.9 | Offline UI (cached data banner) | 2h | P1 | 4.8 | ✅ Done |
 | 4.10 | i18n: match TV system language | 1h | P1 | 4.8 | ⬜ |
 | 4.11 | Exit confirmation dialog | 1h | P0 | Phase 2 | ✅ Done |
 | 4.12 | Complete TV test checklist on LG TV | 8h | P0 | all above | ⬜ |
