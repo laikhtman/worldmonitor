@@ -62,34 +62,36 @@ Phase 4 (Polish & Ship)   →  Published on LG Content Store
 
 ### Tasks
 
-| # | Task | Est. | Priority | Dependencies |
-|---|------|------|----------|-------------|
-| 2.1 | Create `src/utils/tv-focus.ts` — SpatialNavigator class | 8h | P0 | Phase 1 |
-| 2.2 | Create `src/utils/tv-remote.ts` — TVRemoteHandler with key mapping | 4h | P0 | 2.1 |
-| 2.3 | Register focus zones for header, map, panels | 3h | P0 | 2.1 |
-| 2.4 | Implement D-pad panel scrolling (↑↓ scroll, item snap) | 4h | P0 | 2.1 |
-| 2.5 | Implement panel switching (←→ between panels, CH+/CH-) | 2h | P0 | 2.1 |
-| 2.6 | Implement map navigation mode (D-pad pan, OK click at center) | 6h | P0 | 2.2 |
-| 2.7 | Add map crosshair cursor for D-pad mode | 2h | P1 | 2.6 |
-| 2.8 | Implement BACK button navigation stack | 3h | P0 | 2.2 |
-| 2.9 | Color button bindings (RED/GREEN/YELLOW/BLUE) | 2h | P1 | 2.2 |
-| 2.10 | Create `src/components/TVOverlay.ts` — footer hints + status | 3h | P1 | 2.9 |
-| 2.11 | Adapt MapPopup for TV (centered, larger, focusable close) | 2h | P1 | 2.2 |
-| 2.12 | Adapt SearchModal for D-pad (BLUE button trigger) | 2h | P1 | 2.2 |
-| 2.13 | Adapt CountryIntelModal for D-pad | 1h | P2 | 2.2 |
-| 2.14 | Focus ring CSS polish (visibility, contrast, animation) | 2h | P0 | 2.1 |
-| 2.15 | Magic Remote cursor hiding/showing logic | 1h | P1 | 2.2 |
-| 2.16 | E2E tests: `e2e/tv-navigation.spec.ts` | 4h | P1 | all above |
+| # | Task | Est. | Priority | Dependencies | Status |
+|---|------|------|----------|-------------|--------|
+| 2.1 | Create `src/utils/tv-focus.ts` — SpatialNavigator class | 8h | P0 | Phase 1 | ✅ Done |
+| 2.2 | Create `src/utils/tv-remote.ts` — TVRemoteHandler with key mapping | 4h | P0 | 2.1 | ✅ Done |
+| 2.3 | Register focus zones for header, map, panels | 3h | P0 | 2.1 | ✅ Done |
+| 2.4 | Implement D-pad panel scrolling (↑↓ scroll, item snap) | 4h | P0 | 2.1 | ✅ Done |
+| 2.5 | Implement panel switching (←→ between panels, CH+/CH-) | 2h | P0 | 2.1 | ✅ Done |
+| 2.6 | Implement map navigation mode (D-pad pan, OK click at center) | 6h | P0 | 2.2 | ✅ Done |
+| 2.7 | Add map crosshair cursor for D-pad mode | 2h | P1 | 2.6 | ✅ Done |
+| 2.8 | Implement BACK button navigation stack | 3h | P0 | 2.2 | ✅ Done |
+| 2.9 | Color button bindings (RED/GREEN/YELLOW/BLUE) | 2h | P1 | 2.2 | ✅ Done |
+| 2.10 | Create `src/components/TVOverlay.ts` — footer hints + status | 3h | P1 | 2.9 | ✅ Done |
+| 2.11 | Adapt MapPopup for TV (centered, larger, focusable close) | 2h | P1 | 2.2 | ✅ Done |
+| 2.12 | Adapt SearchModal for D-pad (BLUE button trigger) | 2h | P1 | 2.2 | ✅ Done |
+| 2.13 | Adapt CountryIntelModal for D-pad | 1h | P2 | 2.2 | ✅ Done |
+| 2.14 | Focus ring CSS polish (visibility, contrast, animation) | 2h | P0 | 2.1 | ✅ Done |
+| 2.15 | Magic Remote cursor hiding/showing logic | 1h | P1 | 2.2 | ✅ Done |
+| 2.16 | E2E tests: `e2e/tv-navigation.spec.ts` | 4h | P1 | all above | ✅ Done |
+
+**Phase 2 Progress: 16/16 tasks complete.** Branch `feature/webos-phase2`.
 
 ### Phase 2 Acceptance Criteria
-- [ ] All UI navigable with arrow keys + Enter only
-- [ ] BACK closes modals/popups in correct order
-- [ ] Map pannable with D-pad, features clickable with OK
-- [ ] Color buttons toggle layers / open settings
-- [ ] Focus ring always visible during D-pad navigation
-- [ ] Magic Remote (mouse) still works
-- [ ] No focus traps
-- [ ] E2E navigation tests pass
+- [x] All UI navigable with arrow keys + Enter only
+- [x] BACK closes modals/popups in correct order
+- [x] Map pannable with D-pad, features clickable with OK
+- [x] Color buttons toggle layers / open settings
+- [x] Focus ring always visible during D-pad navigation
+- [x] Magic Remote (mouse) still works
+- [x] No focus traps
+- [x] E2E navigation tests pass
 
 ---
 
@@ -213,10 +215,11 @@ Phase 4 (Polish & Ship)   →  Published on LG Content Store
 |------|-------|---------|--------|
 | `src/config/variants/tv.ts` | 1 | TV variant config | ✅ Created |
 | `src/utils/tv-detection.ts` | 1 | webOS detection + helpers | ✅ Created |
-| `src/utils/tv-focus.ts` | 2 | Spatial navigation engine | ⬜ |
-| `src/utils/tv-remote.ts` | 2 | Remote control key handler | ⬜ |
+| `src/utils/tv-focus.ts` | 2 | Spatial navigation engine | ✅ Created |
+| `src/utils/tv-remote.ts` | 2 | Remote control key handler | ✅ Created |
 | `src/styles/tv.css` | 1 | TV-specific CSS | ✅ Created |
-| `src/components/TVOverlay.ts` | 2 | Footer hints + status | ⬜ |
+| `src/components/TVOverlay.ts` | 2 | Footer hints + status | ✅ Created |
+| `src/controllers/tv-navigation.ts` | 2 | TV navigation orchestrator | ✅ Created |
 | `src/components/TVSettingsPanel.ts` | 4 | Simplified settings | ⬜ |
 | `scripts/webos-package.mjs` | 4 | IPK packaging script | ⬜ |
 | `scripts/webos-icons/icon.png` | 4 | App icon 80×80 | ⬜ |
@@ -224,7 +227,7 @@ Phase 4 (Polish & Ship)   →  Published on LG Content Store
 | `scripts/webos-icons/splash.png` | 4 | Splash screen | ⬜ |
 | `public/webos/appinfo.json` | 4 | webOS manifest | ⬜ |
 | `public/styles/tv-dark.json` | 3 | Minimal map style | ⬜ |
-| `e2e/tv-navigation.spec.ts` | 2 | Navigation E2E tests | ⬜ |
+| `e2e/tv-navigation.spec.ts` | 2 | Navigation E2E tests | ✅ Created |
 | `e2e/tv-visual.spec.ts` | 2 | Visual regression tests | ⬜ |
 | `e2e/tv-performance.spec.ts` | 3 | Performance tests | ⬜ |
 | `.github/workflows/tv-build.yml` | 4 | CI pipeline | ⬜ |
@@ -241,8 +244,11 @@ Phase 4 (Polish & Ship)   →  Published on LG Content Store
 | `src/components/Panel.ts` | 1 | Disable drag/resize on TV | ✅ Done |
 | `src/components/MapContainer.ts` | 3 | TV render tier selection | ⬜ |
 | `src/components/DeckGLMap.ts` | 3 | TV quality settings | ⬜ |
-| `src/components/MapPopup.ts` | 2 | TV centered popup | ⬜ |
-| `src/controllers/ui-setup.ts` | 2 | TV keyboard integration | ⬜ |
+| `src/components/MapPopup.ts` | 2 | TV centered popup | ✅ Done (CSS) |
+| `src/controllers/ui-setup.ts` | 2 | TV keyboard integration | ✅ Done |
+| `src/App.ts` | 2 | TV navigation init + cleanup | ✅ Done |
+| `src/controllers/app-context.ts` | 2 | `tvNavigation` property | ✅ Done |
+| `src/controllers/index.ts` | 2 | TVNavigationController export | ✅ Done |
 | `src/services/storage.ts` | 1 | TV IDB limits | ⬜ |
 | `index.html` | 1 | TV CSP policy | ⬜ |
 | `src/config/panels.ts` | 1 | TV panels/layers + `selectVariant()` helper | ✅ Done |

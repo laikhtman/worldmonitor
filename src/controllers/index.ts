@@ -20,3 +20,4 @@ export { DataLoaderController } from './data-loader';
 export type { DataLoaderCallbacks } from './data-loader';
 export { PanelManager } from './panel-manager';
 export type { PanelManagerCallbacks } from './panel-manager';
+export { TVNavigationController } from './tv-navigation';

@@ -46,6 +46,8 @@ import {
 import { CountryBriefPage } from '@/components/CountryBriefPage';
 import { CountryTimeline } from '@/components/CountryTimeline';
 import { PlaybackControl, PizzIntIndicator } from '@/components';
+import { IS_TV } from '@/utils/tv-detection';
+import { TVNavigationController } from '@/controllers/tv-navigation';
 
 const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true';
 
@@ -105,6 +107,7 @@ export class App implements AppContext {
   public updateCheckIntervalId: ReturnType<typeof setInterval> | null = null;
   public intelligenceCache: IntelligenceCache = {};
   public cyberThreatsCache: CyberThreat[] | null = null;
+  public tvNavigation: TVNavigationController | null = null;
 
   /* ---- Controllers ---- */
   private refreshScheduler!: RefreshScheduler;
@@ -314,6 +317,16 @@ export class App implements AppContext {
     this.setupMapLayerHandlers();
     this.countryIntel.setupCountryIntel();
     this.uiSetup.setupEventListeners();
+
+    // --- TV Navigation (Phase 2) ---
+    if (IS_TV) {
+      this.tvNavigation = new TVNavigationController(this);
+      // Defer zone registration until after initial data load
+      requestAnimationFrame(() => {
+        this.tvNavigation?.registerZones();
+      });
+    }
+
     // Capture ?country= BEFORE URL sync overwrites it
     const initState = parseMapUrlState(window.location.search, this.mapLayers);
     this.pendingDeepLinkCountry = initState.country ?? null;
@@ -506,5 +519,9 @@ export class App implements AppContext {
     // Clean up map and AIS
     this.map?.destroy();
     disconnectAisStream();
+
+    // Clean up TV navigation
+    this.tvNavigation?.destroy();
+    this.tvNavigation = null;
   }
 }

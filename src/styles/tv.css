@@ -143,6 +143,11 @@ body.tv-mode .panel.dragging {
    5. Focus Ring — high-visibility for D-pad navigation
    ============================================================ */
 
+/* Base focusable element styling */
+body.tv-mode .tv-focusable {
+  position: relative;
+}
+
 body.tv-mode *:focus {
   outline: 3px solid var(--green, #44ff88);
   outline-offset: 2px;
@@ -160,7 +165,28 @@ body.tv-mode *:focus-visible {
   box-shadow: 0 0 0 6px rgba(68, 255, 136, 0.25);
 }
 
-body.tv-mode .panel:focus-visible {
+/* Active focused element (set by SpatialNavigator) — always visible */
+body.tv-mode .tv-focused {
+  outline: 3px solid var(--green, #44ff88) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 6px rgba(68, 255, 136, 0.3),
+              0 0 16px rgba(68, 255, 136, 0.15) !important;
+  z-index: 10;
+  transition: outline-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Pulse animation for focused item accessibility */
+@keyframes tv-focus-pulse {
+  0%, 100% { box-shadow: 0 0 0 6px rgba(68, 255, 136, 0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(68, 255, 136, 0.5); }
+}
+
+body.tv-mode .tv-focused {
+  animation: tv-focus-pulse 2s ease-in-out infinite;
+}
+
+body.tv-mode .panel:focus-visible,
+body.tv-mode .panel.tv-focused {
   outline: 3px solid var(--green, #44ff88);
   outline-offset: -1px;
   z-index: 10;
@@ -168,10 +194,34 @@ body.tv-mode .panel:focus-visible {
 
 body.tv-mode .news-item:focus-visible,
 body.tv-mode .market-item:focus-visible,
-body.tv-mode .prediction-card:focus-visible {
+body.tv-mode .prediction-card:focus-visible,
+body.tv-mode .news-item.tv-focused,
+body.tv-mode .market-item.tv-focused,
+body.tv-mode .prediction-card.tv-focused {
   outline: 2px solid var(--green, #44ff88);
   outline-offset: 1px;
   background: var(--surface-hover);
+}
+
+/* Header tabs focused */
+body.tv-mode .header-tab.tv-focused,
+body.tv-mode .header-tab:focus-visible {
+  outline: 2px solid var(--green, #44ff88);
+  outline-offset: 2px;
+  background: rgba(68, 255, 136, 0.1);
+  border-radius: 4px;
+}
+
+/* Map zone focused (border around map section) */
+body.tv-mode .map-section.tv-zone-active {
+  outline: 3px solid var(--green, #44ff88);
+  outline-offset: -3px;
+}
+
+/* Suppress default focus on elements not in D-pad mode */
+body.tv-mode *:focus:not(.tv-focused):not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
 }
 
 /* Make interactive items focusable */
@@ -179,7 +229,7 @@ body.tv-mode .news-item,
 body.tv-mode .market-item,
 body.tv-mode .prediction-card,
 body.tv-mode .monitor-card {
-  /* tabindex will be set by JS in Phase 2 */
+  /* tabindex will be set by SpatialNavigator */
 }
 
 /* ============================================================
@@ -325,4 +375,251 @@ body.tv-mode .market-price {
 
 body.tv-mode .market-change {
   font-size: 18px;
+}
+
+/* ============================================================
+   14. Map Crosshair — virtual cursor for D-pad map navigation
+   ============================================================ */
+
+body.tv-mode .tv-map-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+body.tv-mode.tv-map-active .tv-map-crosshair {
+  opacity: 1;
+}
+
+body.tv-mode .tv-map-crosshair .crosshair-h {
+  position: absolute;
+  width: 40px;
+  height: 2px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(68, 255, 136, 0.7);
+  box-shadow: 0 0 4px rgba(68, 255, 136, 0.4);
+}
+
+body.tv-mode .tv-map-crosshair .crosshair-v {
+  position: absolute;
+  width: 2px;
+  height: 40px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(68, 255, 136, 0.7);
+  box-shadow: 0 0 4px rgba(68, 255, 136, 0.4);
+}
+
+body.tv-mode .tv-map-crosshair .crosshair-center {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid rgba(68, 255, 136, 0.9);
+  background: transparent;
+}
+
+body.tv-mode .tv-map-crosshair .crosshair-label {
+  position: absolute;
+  top: calc(50% + 28px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  color: rgba(68, 255, 136, 0.8);
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* ============================================================
+   15. Magic Remote Cursor Hiding
+   ============================================================ */
+
+body.tv-mode.tv-cursor-hidden {
+  cursor: none;
+}
+
+body.tv-mode.tv-cursor-hidden * {
+  cursor: none !important;
+}
+
+/* ============================================================
+   16. TVOverlay — footer hint bar + status indicators
+   ============================================================ */
+
+body.tv-mode .tv-overlay {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+body.tv-mode .tv-overlay-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 12px 96px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  transition: opacity 0.3s ease;
+}
+
+body.tv-mode .tv-overlay-footer .hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+body.tv-mode .tv-overlay-footer .hint-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Colour-coded key badges */
+body.tv-mode .tv-overlay-footer .hint-key.key-red {
+  background: #d32f2f;
+  color: #fff;
+}
+body.tv-mode .tv-overlay-footer .hint-key.key-green {
+  background: #388e3c;
+  color: #fff;
+}
+body.tv-mode .tv-overlay-footer .hint-key.key-yellow {
+  background: #f9a825;
+  color: #000;
+}
+body.tv-mode .tv-overlay-footer .hint-key.key-blue {
+  background: #1976d2;
+  color: #fff;
+}
+body.tv-mode .tv-overlay-footer .hint-key.key-back {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+body.tv-mode .tv-overlay-footer .hint-key.key-ok {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Status badge in overlay */
+body.tv-mode .tv-overlay-status {
+  position: fixed;
+  top: 54px;
+  right: 96px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  z-index: 1001;
+}
+
+body.tv-mode .tv-overlay-status .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #44ff88;
+}
+
+body.tv-mode .tv-overlay-status .status-dot.offline {
+  background: #ff4444;
+}
+
+/* ============================================================
+   17. MapPopup TV adaptation — centered, larger, focusable
+   ============================================================ */
+
+body.tv-mode .map-popup {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  max-width: 50vw;
+  max-height: 60vh;
+  overflow-y: auto;
+  z-index: 500;
+  font-size: 18px;
+}
+
+body.tv-mode .map-popup .popup-close {
+  width: 44px;
+  height: 44px;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+body.tv-mode .map-popup .popup-close.tv-focused {
+  outline: 2px solid var(--green, #44ff88);
+}
+
+/* ============================================================
+   18. Search Modal TV — larger, adapted for D-pad
+   ============================================================ */
+
+body.tv-mode .search-modal {
+  max-width: 50vw;
+  font-size: 20px;
+}
+
+body.tv-mode .search-input {
+  font-size: 22px;
+  padding: 16px;
+}
+
+body.tv-mode .search-result-item {
+  padding: 12px 16px;
+  min-height: 48px;
+}
+
+body.tv-mode .search-result-item.tv-focused,
+body.tv-mode .search-result-item:focus-visible {
+  outline: 2px solid var(--green, #44ff88);
+  background: var(--surface-hover);
+}
+
+body.tv-mode .search-footer {
+  font-size: 16px;
+}
+
+/* ============================================================
+   19. Country Intel Modal TV — D-pad navigable
+   ============================================================ */
+
+body.tv-mode .country-intel-modal {
+  max-width: 60vw;
+  font-size: 20px;
+}
+
+body.tv-mode .country-intel-close {
+  width: 48px;
+  height: 48px;
+  font-size: 28px;
+}
+
+body.tv-mode .country-intel-close.tv-focused {
+  outline: 2px solid var(--green, #44ff88);
 }
