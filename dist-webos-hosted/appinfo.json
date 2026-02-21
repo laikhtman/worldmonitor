@@ -1,0 +1,30 @@
+{
+    "id": "com.intelhq.tv",
+    "version": "1.0.0",
+    "vendor": "IntelHQ",
+    "type": "web",
+    "main": "index.html",
+    "title": "IntelHQ",
+    "icon": "icon.png",
+    "largeIcon": "largeIcon.png",
+    "resolution": "1920x1080",
+    "transparent": false,
+    "handlesRelaunch": true,
+    "disableBackHistoryAPI": false,
+    "enableBackHistory": true,
+    "requiredPermissions": [
+        "time.query",
+        "activity.operation",
+        "settings.read"
+    ],
+    "accessibleUrl": [
+        "https://intelhq.io/*",
+        "https://*.intelhq.io/*",
+        "https://api.maptiler.com/*",
+        "https://*.basemaps.cartocdn.com/*",
+        "https://earthquake.usgs.gov/*",
+        "https://fonts.googleapis.com/*",
+        "https://fonts.gstatic.com/*",
+        "wss://stream.aisstream.io/*"
+    ]
+}
