@@ -40,6 +40,7 @@ import type {
 import type { ExportPanel, ParsedMapUrlState } from '@/utils';
 import type { CountryBriefPage } from '@/components/CountryBriefPage';
 import type { CountryTimeline } from '@/components/CountryTimeline';
+import type { TVNavigationController } from '@/controllers/tv-navigation';
 
 /* ------------------------------------------------------------------ */
 /*  Intelligence cache                                                 */
@@ -118,6 +119,7 @@ export interface AppContext {
   pizzintIndicator: PizzIntIndicator | null;
   mobileWarningModal: MobileWarningModal | null;
   languageSelector: LanguageSelector | null;
+  tvNavigation: TVNavigationController | null;
   criticalBannerEl: HTMLElement | null;
 
   /* ---- Flags / lifecycle ---- */

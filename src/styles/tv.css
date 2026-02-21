@@ -1,0 +1,792 @@
+/* ============================================================
+   TV Variant Styles — webOS / LG Smart TV
+   ============================================================
+   Applied only when body.tv-mode is present.
+   Follows the 10-foot UI guidelines: larger fonts, safe zones,
+   simplified layout, focus-ring visibility.
+   ============================================================ */
+
+/* ============================================================
+   1. Safe Zone — 5% title-safe margin (96×54 px at 1080p)
+   ============================================================ */
+
+body.tv-mode #app {
+  padding: 54px 96px;
+  box-sizing: border-box;
+}
+
+/* ============================================================
+   2. Typography Scale — 2× base for 10-foot viewing distance
+   ============================================================ */
+
+body.tv-mode {
+  font-size: 22px;
+  line-height: 1.6;
+  /* Disable user-select — no text cursor on TV */
+  user-select: none;
+  -webkit-user-select: none;
+  /* Disable text-size-adjust on TV */
+  -webkit-text-size-adjust: none;
+  cursor: default;
+}
+
+body.tv-mode .header {
+  height: 64px;
+  padding: 12px 24px;
+}
+
+body.tv-mode .header .logo {
+  font-size: 28px;
+}
+
+body.tv-mode .variant-switcher {
+  font-size: 20px;
+}
+
+body.tv-mode .header-clock {
+  font-size: 24px;
+}
+
+body.tv-mode .panel-title {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+body.tv-mode .panel-count {
+  font-size: 18px;
+}
+
+body.tv-mode .panel-header {
+  padding: 12px 16px;
+  min-height: 44px;
+}
+
+body.tv-mode .panel-content {
+  font-size: 20px;
+  line-height: 1.6;
+}
+
+body.tv-mode .panel-data-badge {
+  font-size: 14px;
+}
+
+/* News items need larger text */
+body.tv-mode .news-item .news-item-title {
+  font-size: 22px;
+  line-height: 1.4;
+}
+
+body.tv-mode .news-item .news-meta {
+  font-size: 16px;
+}
+
+body.tv-mode .news-item .news-source {
+  font-size: 16px;
+}
+
+/* ============================================================
+   3. Layout Grid — TV-optimised 60/40 map/panels split
+   ============================================================ */
+
+body.tv-mode .main-content {
+  display: grid;
+  grid-template-columns: 60fr 40fr;
+  gap: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+body.tv-mode .map-section {
+  height: 100%;
+  min-height: unset;
+}
+
+body.tv-mode .panels-grid {
+  grid-template-columns: 1fr;
+  grid-auto-rows: minmax(200px, 1fr);
+  gap: 4px;
+  padding: 4px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 100%;
+  /* Smooth scrolling for D-pad navigation */
+  scroll-behavior: smooth;
+  /* Snap panels for D-pad scrolling */
+  scroll-snap-type: y proximity;
+}
+
+body.tv-mode .panels-grid > .panel {
+  scroll-snap-align: start;
+}
+
+/* ============================================================
+   4. Panel Overrides — disable drag/resize, simplify
+   ============================================================ */
+
+/* Disable drag cursor */
+body.tv-mode .panel {
+  cursor: default;
+}
+
+/* Hide resize handles */
+body.tv-mode .panel-resize-handle {
+  display: none !important;
+}
+
+/* Disable dragging visual feedback */
+body.tv-mode .panel.dragging {
+  opacity: 1;
+  transform: none;
+}
+
+/* ============================================================
+   5. Focus Ring — high-visibility for D-pad navigation
+   ============================================================ */
+
+/* Base focusable element styling */
+body.tv-mode .tv-focusable {
+  position: relative;
+}
+
+body.tv-mode *:focus {
+  outline: 3px solid var(--green, #44ff88);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px rgba(68, 255, 136, 0.25);
+}
+
+body.tv-mode *:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+body.tv-mode *:focus-visible {
+  outline: 3px solid var(--green, #44ff88);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px rgba(68, 255, 136, 0.25);
+}
+
+/* Active focused element (set by SpatialNavigator) — always visible */
+body.tv-mode .tv-focused {
+  outline: 3px solid var(--green, #44ff88) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 6px rgba(68, 255, 136, 0.3),
+              0 0 16px rgba(68, 255, 136, 0.15) !important;
+  z-index: 10;
+  transition: outline-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Pulse animation for focused item accessibility */
+@keyframes tv-focus-pulse {
+  0%, 100% { box-shadow: 0 0 0 6px rgba(68, 255, 136, 0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(68, 255, 136, 0.5); }
+}
+
+body.tv-mode .tv-focused {
+  animation: tv-focus-pulse 2s ease-in-out infinite;
+}
+
+body.tv-mode .panel:focus-visible,
+body.tv-mode .panel.tv-focused {
+  outline: 3px solid var(--green, #44ff88);
+  outline-offset: -1px;
+  z-index: 10;
+}
+
+body.tv-mode .news-item:focus-visible,
+body.tv-mode .market-item:focus-visible,
+body.tv-mode .prediction-card:focus-visible,
+body.tv-mode .news-item.tv-focused,
+body.tv-mode .market-item.tv-focused,
+body.tv-mode .prediction-card.tv-focused {
+  outline: 2px solid var(--green, #44ff88);
+  outline-offset: 1px;
+  background: var(--surface-hover);
+}
+
+/* Header tabs focused */
+body.tv-mode .header-tab.tv-focused,
+body.tv-mode .header-tab:focus-visible {
+  outline: 2px solid var(--green, #44ff88);
+  outline-offset: 2px;
+  background: rgba(68, 255, 136, 0.1);
+  border-radius: 4px;
+}
+
+/* Map zone focused (border around map section) */
+body.tv-mode .map-section.tv-zone-active {
+  outline: 3px solid var(--green, #44ff88);
+  outline-offset: -3px;
+}
+
+/* Suppress default focus on elements not in D-pad mode */
+body.tv-mode *:focus:not(.tv-focused):not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Make interactive items focusable */
+body.tv-mode .news-item,
+body.tv-mode .market-item,
+body.tv-mode .prediction-card,
+body.tv-mode .monitor-card {
+  /* tabindex will be set by SpatialNavigator */
+}
+
+/* ============================================================
+   6. Animation Reduction — lighter for TV GPU
+   ============================================================
+   webOS TV GPU cannot sustain 60+ concurrent CSS animations.
+   Kill all keyframe animations globally and clamp transitions.
+   ============================================================ */
+
+body.tv-mode *,
+body.tv-mode *::before,
+body.tv-mode *::after {
+  /* Kill all keyframe animations */
+  animation: none !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  /* Clamp transitions to fast values */
+  transition-duration: 0.1s !important;
+  transition-delay: 0s !important;
+}
+
+/* Re-enable only the TV focus ring pulse (essential for navigation) */
+body.tv-mode .tv-focused {
+  animation: tv-focus-pulse 2s ease-in-out infinite !important;
+}
+
+/* Disable radar/spinner elements entirely */
+body.tv-mode .panel-radar-sweep,
+body.tv-mode .panel-loading-radar,
+body.tv-mode .scan-line,
+body.tv-mode .radar-sweep {
+  display: none !important;
+}
+
+body.tv-mode .panel-loading {
+  /* Simple loading text without radar animation */
+}
+
+body.tv-mode .panel-loading-text {
+  font-size: 20px;
+}
+
+/* Disable map pulse animations (deck.gl handles its own) */
+body.tv-mode .map-flash,
+body.tv-mode .hotspot-pulse,
+body.tv-mode .quake-pulse-ring {
+  display: none !important;
+}
+
+/* Remove box-shadow animations (GPU-expensive) */
+body.tv-mode .breaking-news-item,
+body.tv-mode .alert-badge {
+  box-shadow: none !important;
+}
+
+/* ============================================================
+   7. Scrollbar — larger touch target for TV
+   ============================================================ */
+
+body.tv-mode ::-webkit-scrollbar {
+  width: 10px;
+}
+
+body.tv-mode ::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 5px;
+  min-height: 60px;
+}
+
+/* ============================================================
+   8. Map Overrides
+   ============================================================ */
+
+/* Map controls need to be larger on TV */
+body.tv-mode .maplibregl-ctrl-group button {
+  width: 44px;
+  height: 44px;
+}
+
+body.tv-mode .maplibregl-ctrl-group button span {
+  font-size: 22px;
+}
+
+/* Map popups need larger text */
+body.tv-mode .maplibregl-popup-content {
+  font-size: 18px;
+  padding: 16px;
+  max-width: 500px;
+}
+
+body.tv-mode .maplibregl-popup-close-button {
+  font-size: 28px;
+  width: 36px;
+  height: 36px;
+}
+
+/* ============================================================
+   9. Header Overrides — simplify for TV
+   ============================================================ */
+
+/* Hide elements not useful on TV */
+body.tv-mode .search-toggle-btn,
+body.tv-mode .variant-switcher,
+body.tv-mode .download-btn {
+  display: none !important;
+}
+
+/* ============================================================
+   10. Tooltips — disabled on TV (no hover)
+   ============================================================ */
+
+body.tv-mode .panel-info-tooltip,
+body.tv-mode [title] {
+  /* Tooltips rely on hover — not useful on TV */
+}
+
+body.tv-mode .panel-info-btn {
+  display: none;
+}
+
+/* ============================================================
+   11. Modals — centred and larger for TV
+   ============================================================ */
+
+body.tv-mode .modal-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.tv-mode .modal-content {
+  max-width: 60vw;
+  max-height: 70vh;
+  font-size: 20px;
+}
+
+body.tv-mode .modal-close-btn {
+  width: 48px;
+  height: 48px;
+  font-size: 28px;
+}
+
+/* ============================================================
+   12. Strategic Risk / Insights panels — larger meters
+   ============================================================ */
+
+body.tv-mode .risk-meter,
+body.tv-mode .threat-indicator {
+  min-height: 48px;
+  font-size: 18px;
+}
+
+body.tv-mode .risk-score {
+  font-size: 36px;
+}
+
+/* ============================================================
+   13. Markets panel — readable at distance
+   ============================================================ */
+
+body.tv-mode .market-ticker {
+  font-size: 22px;
+}
+
+body.tv-mode .market-price {
+  font-size: 24px;
+}
+
+body.tv-mode .market-change {
+  font-size: 18px;
+}
+
+/* ============================================================
+   14. Map Crosshair — virtual cursor for D-pad map navigation
+   ============================================================ */
+
+body.tv-mode .tv-map-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+body.tv-mode.tv-map-active .tv-map-crosshair {
+  opacity: 1;
+}
+
+body.tv-mode .tv-map-crosshair .crosshair-h {
+  position: absolute;
+  width: 40px;
+  height: 2px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(68, 255, 136, 0.7);
+  box-shadow: 0 0 4px rgba(68, 255, 136, 0.4);
+}
+
+body.tv-mode .tv-map-crosshair .crosshair-v {
+  position: absolute;
+  width: 2px;
+  height: 40px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(68, 255, 136, 0.7);
+  box-shadow: 0 0 4px rgba(68, 255, 136, 0.4);
+}
+
+body.tv-mode .tv-map-crosshair .crosshair-center {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid rgba(68, 255, 136, 0.9);
+  background: transparent;
+}
+
+body.tv-mode .tv-map-crosshair .crosshair-label {
+  position: absolute;
+  top: calc(50% + 28px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  color: rgba(68, 255, 136, 0.8);
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* ============================================================
+   15. Magic Remote Cursor Hiding
+   ============================================================ */
+
+body.tv-mode.tv-cursor-hidden {
+  cursor: none;
+}
+
+body.tv-mode.tv-cursor-hidden * {
+  cursor: none !important;
+}
+
+/* ============================================================
+   16. TVOverlay — footer hint bar + status indicators
+   ============================================================ */
+
+body.tv-mode .tv-overlay {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+body.tv-mode .tv-overlay-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 12px 96px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  transition: opacity 0.3s ease;
+}
+
+body.tv-mode .tv-overlay-footer .hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+body.tv-mode .tv-overlay-footer .hint-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Colour-coded key badges */
+body.tv-mode .tv-overlay-footer .hint-key.key-red {
+  background: #d32f2f;
+  color: #fff;
+}
+body.tv-mode .tv-overlay-footer .hint-key.key-green {
+  background: #388e3c;
+  color: #fff;
+}
+body.tv-mode .tv-overlay-footer .hint-key.key-yellow {
+  background: #f9a825;
+  color: #000;
+}
+body.tv-mode .tv-overlay-footer .hint-key.key-blue {
+  background: #1976d2;
+  color: #fff;
+}
+body.tv-mode .tv-overlay-footer .hint-key.key-back {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+body.tv-mode .tv-overlay-footer .hint-key.key-ok {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Status badge in overlay */
+body.tv-mode .tv-overlay-status {
+  position: fixed;
+  top: 54px;
+  right: 96px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  z-index: 1001;
+}
+
+body.tv-mode .tv-overlay-status .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #44ff88;
+}
+
+body.tv-mode .tv-overlay-status .status-dot.offline {
+  background: #ff4444;
+}
+
+/* ============================================================
+   17. MapPopup TV adaptation — centered, larger, focusable
+   ============================================================ */
+
+body.tv-mode .map-popup {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  max-width: 50vw;
+  max-height: 60vh;
+  overflow-y: auto;
+  z-index: 500;
+  font-size: 18px;
+}
+
+body.tv-mode .map-popup .popup-close {
+  width: 44px;
+  height: 44px;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+body.tv-mode .map-popup .popup-close.tv-focused {
+  outline: 2px solid var(--green, #44ff88);
+}
+
+/* ============================================================
+   18. Search Modal TV — larger, adapted for D-pad
+   ============================================================ */
+
+body.tv-mode .search-modal {
+  max-width: 50vw;
+  font-size: 20px;
+}
+
+body.tv-mode .search-input {
+  font-size: 22px;
+  padding: 16px;
+}
+
+body.tv-mode .search-result-item {
+  padding: 12px 16px;
+  min-height: 48px;
+}
+
+body.tv-mode .search-result-item.tv-focused,
+body.tv-mode .search-result-item:focus-visible {
+  outline: 2px solid var(--green, #44ff88);
+  background: var(--surface-hover);
+}
+
+body.tv-mode .search-footer {
+  font-size: 16px;
+}
+
+/* ============================================================
+   19. Country Intel Modal TV — D-pad navigable
+   ============================================================ */
+
+body.tv-mode .country-intel-modal {
+  max-width: 60vw;
+  font-size: 20px;
+}
+
+body.tv-mode .country-intel-close {
+  width: 48px;
+  height: 48px;
+  font-size: 28px;
+}
+
+body.tv-mode .country-intel-close.tv-focused {
+  outline: 2px solid var(--green, #44ff88);
+}
+
+/* ====================================================================
+   20. Exit Confirmation Dialog
+   ==================================================================== */
+
+.tv-exit-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+}
+
+.tv-exit-dialog {
+  background: #1a2420;
+  border: 2px solid #44ff8866;
+  border-radius: 16px;
+  padding: 48px 64px;
+  text-align: center;
+  min-width: 420px;
+  box-shadow: 0 0 60px rgba(68, 255, 136, 0.15);
+}
+
+.tv-exit-title {
+  font-size: 32px;
+  font-weight: 600;
+  color: #e0ffe8;
+  margin: 0 0 16px;
+}
+
+.tv-exit-message {
+  font-size: 20px;
+  color: #88aa99;
+  margin: 0 0 36px;
+}
+
+.tv-exit-actions {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+}
+
+.tv-exit-btn {
+  padding: 14px 48px;
+  font-size: 22px;
+  font-weight: 600;
+  border: 2px solid #44ff8844;
+  border-radius: 8px;
+  background: transparent;
+  color: #e0ffe8;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.tv-exit-btn:focus,
+.tv-exit-btn.tv-focused {
+  outline: none;
+  border-color: #44ff88;
+  box-shadow: 0 0 16px rgba(68, 255, 136, 0.4);
+  background: rgba(68, 255, 136, 0.1);
+}
+
+.tv-exit-close:focus,
+.tv-exit-close.tv-focused {
+  border-color: #ff5555;
+  box-shadow: 0 0 16px rgba(255, 85, 85, 0.4);
+  background: rgba(255, 85, 85, 0.1);
+  color: #ff8888;
+}
+
+/* ============================================================
+   21. WebGL Context Loss Recovery Overlay
+   ============================================================ */
+
+body.tv-mode .webgl-recovery-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 10, 8, 0.9);
+  backdrop-filter: blur(4px);
+}
+
+body.tv-mode .webgl-recovery-content {
+  text-align: center;
+}
+
+body.tv-mode .webgl-recovery-spinner {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  border: 3px solid rgba(68, 255, 136, 0.2);
+  border-top-color: #44ff88;
+  border-radius: 50%;
+  /* Exception: re-enable spin for this element specifically */
+  animation: tv-recovery-spin 1s linear infinite !important;
+}
+
+@keyframes tv-recovery-spin {
+  to { transform: rotate(360deg); }
+}
+
+body.tv-mode .webgl-recovery-text {
+  font-size: 24px;
+  color: #88bbaa;
+}
+
+/* ================================================================
+   22. Offline Banner
+   ================================================================ */
+
+.tv-offline-banner {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10001;
+  background: rgba(180, 40, 40, 0.92);
+  color: #fff;
+  padding: 8px 32px;
+  border-radius: 0 0 8px 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+}
+
+.tv-offline-banner .offline-icon {
+  font-size: 1.3rem;
+}
+
+.tv-offline-banner .offline-text {
+  white-space: nowrap;
+}

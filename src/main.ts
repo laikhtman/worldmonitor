@@ -3,6 +3,14 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import * as Sentry from '@sentry/browser';
 import { inject } from '@vercel/analytics';
 import { App } from './App';
+import { IS_TV, registerWebOSLifecycle } from '@/utils/tv-detection';
+
+// TV variant: inject TV-specific styles and add body class
+if (IS_TV) {
+  import('./styles/tv.css');
+  document.body.classList.add('tv-mode');
+  registerWebOSLifecycle();
+}
 
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN?.trim();
 
@@ -146,7 +154,7 @@ if ('__TAURI_INTERNALS__' in window || '__TAURI__' in window) {
   });
 }
 
-if (!('__TAURI_INTERNALS__' in window) && !('__TAURI__' in window)) {
+if (!('__TAURI_INTERNALS__' in window) && !('__TAURI__' in window) && !IS_TV) {
   import('virtual:pwa-register').then(({ registerSW }) => {
     registerSW({
       onRegisteredSW(_swUrl, registration) {

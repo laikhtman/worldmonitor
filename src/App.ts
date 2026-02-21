@@ -46,6 +46,8 @@ import {
 import { CountryBriefPage } from '@/components/CountryBriefPage';
 import { CountryTimeline } from '@/components/CountryTimeline';
 import { PlaybackControl, PizzIntIndicator } from '@/components';
+import { IS_TV, startMemoryMonitor, registerWebOSLifecycle } from '@/utils/tv-detection';
+import { TVNavigationController } from '@/controllers/tv-navigation';
 
 const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true';
 
@@ -105,6 +107,8 @@ export class App implements AppContext {
   public updateCheckIntervalId: ReturnType<typeof setInterval> | null = null;
   public intelligenceCache: IntelligenceCache = {};
   public cyberThreatsCache: CyberThreat[] | null = null;
+  public tvNavigation: TVNavigationController | null = null;
+  private stopMemoryMonitor: (() => void) | null = null;
 
   /* ---- Controllers ---- */
   private refreshScheduler!: RefreshScheduler;
@@ -314,6 +318,58 @@ export class App implements AppContext {
     this.setupMapLayerHandlers();
     this.countryIntel.setupCountryIntel();
     this.uiSetup.setupEventListeners();
+
+    // --- TV Navigation (Phase 2) + Memory Monitor (Phase 3) ---
+    if (IS_TV) {
+      this.tvNavigation = new TVNavigationController(this);
+      // Defer zone registration until after initial data load
+      requestAnimationFrame(() => {
+        this.tvNavigation?.registerZones();
+      });
+
+      // Phase 3: Start memory monitoring with emergency cleanup
+      this.stopMemoryMonitor = startMemoryMonitor({
+        onWarning: () => {
+          // Evict non-essential caches
+          this.intelligenceCache = {};
+          this.cyberThreatsCache = null;
+          this.mapFlashCache.clear();
+        },
+        onCritical: () => {
+          // Aggressive cleanup: reduce visible data
+          this.intelligenceCache = {};
+          this.cyberThreatsCache = null;
+          this.mapFlashCache.clear();
+          this.allNews = this.allNews.slice(0, 30);
+          for (const key of Object.keys(this.newsByCategory)) {
+            const items = this.newsByCategory[key];
+            if (items) this.newsByCategory[key] = items.slice(0, 20);
+          }
+        },
+      });
+
+      // Phase 4: webOS lifecycle — pause/resume data fetching
+      registerWebOSLifecycle({
+        onRelaunch: () => {
+          // App re-opened while still running — refresh data immediately
+          this.dataLoader.loadAllData().catch(console.error);
+        },
+        onBackground: () => {
+          // Suspend all refresh timers to save CPU/network while backgrounded
+          for (const timeoutId of this.refreshTimeoutIds.values()) {
+            clearTimeout(timeoutId);
+          }
+          this.refreshTimeoutIds.clear();
+          console.log('[webOS] Refresh timers suspended');
+        },
+        onForeground: () => {
+          // Resume — trigger immediate data refresh
+          console.log('[webOS] Resuming — reloading data');
+          this.dataLoader.loadAllData().catch(console.error);
+        },
+      });
+    }
+
     // Capture ?country= BEFORE URL sync overwrites it
     const initState = parseMapUrlState(window.location.search, this.mapLayers);
     this.pendingDeepLinkCountry = initState.country ?? null;
@@ -506,5 +562,11 @@ export class App implements AppContext {
     // Clean up map and AIS
     this.map?.destroy();
     disconnectAisStream();
+
+    // Clean up TV navigation + memory monitor
+    this.tvNavigation?.destroy();
+    this.tvNavigation = null;
+    this.stopMemoryMonitor?.();
+    this.stopMemoryMonitor = null;
   }
 }

@@ -3,6 +3,7 @@
  * Renders DeckGLMap (WebGL) on desktop, fallback to D3/SVG MapComponent on mobile
  */
 import { isMobileDevice } from '@/utils';
+import { IS_TV, detectTVRenderTier } from '@/utils/tv-detection';
 import { MapComponent } from './Map';
 import { DeckGLMap, type DeckMapView, type CountryClickPayload } from './DeckGLMap';
 import type {
@@ -72,8 +73,15 @@ export class MapContainer {
     this.initialState = initialState;
     this.isMobile = isMobileDevice();
 
-    // Use deck.gl on desktop with WebGL support, SVG on mobile
-    this.useDeckGL = !this.isMobile && this.hasWebGLSupport();
+    if (IS_TV) {
+      // TV tier routing: full/lite → DeckGLMap (lite uses MapLibre-only layers),
+      // static → SVG fallback
+      const tier = detectTVRenderTier();
+      this.useDeckGL = tier !== 'static';
+    } else {
+      // Desktop: deck.gl if WebGL supported; mobile: SVG fallback
+      this.useDeckGL = !this.isMobile && this.hasWebGLSupport();
+    }
 
     this.init();
   }

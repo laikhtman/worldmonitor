@@ -43,6 +43,8 @@ import type { WeatherAlert } from '@/services/weather';
 import { escapeHtml } from '@/utils/sanitize';
 import { t } from '@/services/i18n';
 import { debounce, rafSchedule, getCurrentTheme } from '@/utils/index';
+import { IS_TV, detectTVRenderTier } from '@/utils/tv-detection';
+import { addTVLiteLayers, updateTVLiteEarthquakes, removeTVLiteLayers } from '@/utils/tv-maplibre-layers';
 import {
   INTEL_HOTSPOTS,
   CONFLICT_ZONES,
@@ -289,6 +291,7 @@ export class DeckGLMap {
   private renderScheduled = false;
   private renderPaused = false;
   private renderPending = false;
+  private lastFrameTime = 0;
   private webglLost = false;
   private resizeObserver: ResizeObserver | null = null;
 
@@ -326,7 +329,7 @@ export class DeckGLMap {
       if (this.renderPaused || this.webglLost) return;
       this.maplibreMap?.resize();
       this.deckOverlay?.setProps({ layers: this.buildLayers() });
-    }, 150);
+    }, IS_TV ? 500 : 150);
     this.rafUpdateLayers = rafSchedule(() => {
       if (this.renderPaused || this.webglLost) return;
       this.deckOverlay?.setProps({ layers: this.buildLayers() });
@@ -348,6 +351,10 @@ export class DeckGLMap {
     this.maplibreMap?.on('load', () => {
       this.initDeck();
       this.loadCountryBoundaries();
+      // TV-Lite: add native MapLibre layers for essential data
+      if (IS_TV && detectTVRenderTier() === 'lite' && this.maplibreMap) {
+        addTVLiteLayers(this.maplibreMap);
+      }
       this.render();
     });
 
@@ -378,6 +385,18 @@ export class DeckGLMap {
     const preset = VIEW_PRESETS[this.state.view];
     const initialTheme = getCurrentTheme();
 
+    // TV-specific MapLibre options — reduce GPU/memory usage
+    const tvMapOptions: Partial<maplibregl.MapOptions> = IS_TV ? {
+      maxZoom: 12,
+      pixelRatio: 1,
+      fadeDuration: 0,
+      maxTileCacheSize: 50,
+      maxPitch: 0,
+      pitchWithRotate: false,
+      dragRotate: false,
+      touchPitch: false,
+    } : {};
+
     this.maplibreMap = new maplibregl.Map({
       container: 'deckgl-basemap',
       style: initialTheme === 'light' ? LIGHT_STYLE : DARK_STYLE,
@@ -386,7 +405,8 @@ export class DeckGLMap {
       renderWorldCopies: false,
       attributionControl: false,
       interactive: true,
-      ...(MAP_INTERACTION_MODE === 'flat'
+      ...tvMapOptions,
+      ...(MAP_INTERACTION_MODE === 'flat' && !IS_TV
         ? {
           maxPitch: 0,
           pitchWithRotate: false,
@@ -400,12 +420,23 @@ export class DeckGLMap {
     canvas.addEventListener('webglcontextlost', (e) => {
       e.preventDefault();
       this.webglLost = true;
-      console.warn('[DeckGLMap] WebGL context lost — will restore when browser recovers');
+      this.stopPulseAnimation();
+      console.warn('[DeckGLMap] WebGL context lost — pausing rendering');
+      // TV: show reconnecting overlay
+      if (IS_TV) {
+        this.showWebGLRecoveryOverlay(true);
+      }
     });
     canvas.addEventListener('webglcontextrestored', () => {
       this.webglLost = false;
-      console.info('[DeckGLMap] WebGL context restored');
+      console.info('[DeckGLMap] WebGL context restored — rebuilding layers');
+      if (IS_TV) {
+        this.showWebGLRecoveryOverlay(false);
+      }
       this.maplibreMap?.triggerRepaint();
+      // Rebuild all deck.gl layers from current data
+      this.deckOverlay?.setProps({ layers: this.buildLayers() });
+      this.syncPulseAnimation();
     });
   }
 
@@ -417,8 +448,8 @@ export class DeckGLMap {
       layers: this.buildLayers(),
       getTooltip: (info: PickingInfo) => this.getTooltip(info),
       onClick: (info: PickingInfo) => this.handleClick(info),
-      pickingRadius: 10,
-      useDevicePixels: window.devicePixelRatio > 2 ? 2 : true,
+      pickingRadius: IS_TV ? 20 : 10,
+      useDevicePixels: IS_TV ? false : (window.devicePixelRatio > 2 ? 2 : true),
       onError: (error: Error) => console.warn('[DeckGLMap] Render error (non-fatal):', error.message),
     });
 
@@ -900,6 +931,29 @@ export class DeckGLMap {
     return zoom >= threshold.minZoom;
   }
 
+  /**
+   * TV layer allow-list. On TV-Full tier, only a subset of layers render
+   * via deck.gl to stay within GPU budget. Returns false for layers
+   * that should be entirely disabled on TV.
+   */
+  private isTVLayerAllowed(layerKey: string): boolean {
+    if (!IS_TV) return true;
+    const tier = detectTVRenderTier();
+    if (tier !== 'full') return false; // lite/static don't use deck.gl layers at all
+
+    const TV_ALLOWED_LAYERS = new Set([
+      'hotspots', 'conflicts', 'natural', 'fires', 'weather', 'outages',
+      'cyberThreats', 'ais', 'protests', 'military', 'flights',
+      'ucdpEvents', 'datacenters', 'techHQs', 'techEvents', 'newsLocations',
+    ]);
+    return TV_ALLOWED_LAYERS.has(layerKey);
+  }
+
+  /** Cap array length for TV to stay within feature budget. */
+  private tvCap<T>(arr: T[], max: number): T[] {
+    return IS_TV && arr.length > max ? arr.slice(0, max) : arr;
+  }
+
   private buildLayers(): LayersList {
     const startTime = performance.now();
     // Refresh theme-aware overlay colors on each rebuild
@@ -919,12 +973,12 @@ export class DeckGLMap {
     const filteredUcdpEvents = this.filterByTime(this.ucdpEvents, (event) => event.date_start);
 
     // Undersea cables layer
-    if (mapLayers.cables) {
+    if (mapLayers.cables && this.isTVLayerAllowed('cables')) {
       layers.push(this.createCablesLayer());
     }
 
     // Pipelines layer
-    if (mapLayers.pipelines) {
+    if (mapLayers.pipelines && this.isTVLayerAllowed('pipelines')) {
       layers.push(this.createPipelinesLayer());
     }
 
@@ -934,24 +988,24 @@ export class DeckGLMap {
     }
 
     // Military bases layer — hidden at low zoom (E: progressive disclosure) + ghost
-    if (mapLayers.bases && this.isLayerVisible('bases')) {
+    if (mapLayers.bases && this.isLayerVisible('bases') && this.isTVLayerAllowed('bases')) {
       layers.push(this.createBasesLayer());
       layers.push(this.createGhostLayer('bases-layer', MILITARY_BASES, d => [d.lon, d.lat], { radiusMinPixels: 12 }));
     }
 
     // Nuclear facilities layer — hidden at low zoom + ghost
-    if (mapLayers.nuclear && this.isLayerVisible('nuclear')) {
+    if (mapLayers.nuclear && this.isLayerVisible('nuclear') && this.isTVLayerAllowed('nuclear')) {
       layers.push(this.createNuclearLayer());
       layers.push(this.createGhostLayer('nuclear-layer', NUCLEAR_FACILITIES.filter(f => f.status !== 'decommissioned'), d => [d.lon, d.lat], { radiusMinPixels: 12 }));
     }
 
     // Gamma irradiators layer — hidden at low zoom
-    if (mapLayers.irradiators && this.isLayerVisible('irradiators')) {
+    if (mapLayers.irradiators && this.isLayerVisible('irradiators') && this.isTVLayerAllowed('irradiators')) {
       layers.push(this.createIrradiatorsLayer());
     }
 
     // Spaceports layer — hidden at low zoom
-    if (mapLayers.spaceports && this.isLayerVisible('spaceports')) {
+    if (mapLayers.spaceports && this.isLayerVisible('spaceports') && this.isTVLayerAllowed('spaceports')) {
       layers.push(this.createSpaceportsLayer());
     }
 
@@ -972,29 +1026,34 @@ export class DeckGLMap {
 
     // Earthquakes layer + ghost for easier picking
     if (mapLayers.natural && filteredEarthquakes.length > 0) {
-      layers.push(this.createEarthquakesLayer(filteredEarthquakes));
-      layers.push(this.createGhostLayer('earthquakes-layer', filteredEarthquakes, d => [d.lon, d.lat], { radiusMinPixels: 12 }));
+      const eqData = this.tvCap(filteredEarthquakes, 100);
+      layers.push(this.createEarthquakesLayer(eqData));
+      layers.push(this.createGhostLayer('earthquakes-layer', eqData, d => [d.lon, d.lat], { radiusMinPixels: 12 }));
     }
 
     // Natural events layer
     if (mapLayers.natural && filteredNaturalEvents.length > 0) {
-      layers.push(this.createNaturalEventsLayer(filteredNaturalEvents));
+      layers.push(this.createNaturalEventsLayer(this.tvCap(filteredNaturalEvents, 50)));
     }
 
-    // Satellite fires layer (NASA FIRMS)
+    // Satellite fires layer (NASA FIRMS) — cap at 100 on TV
     if (mapLayers.fires && this.firmsFireData.length > 0) {
+      if (IS_TV && this.firmsFireData.length > 100) {
+        this.firmsFireData = this.firmsFireData.slice(0, 100);
+      }
       layers.push(this.createFiresLayer());
     }
 
     // Weather alerts layer
     if (mapLayers.weather && filteredWeatherAlerts.length > 0) {
-      layers.push(this.createWeatherLayer(filteredWeatherAlerts));
+      layers.push(this.createWeatherLayer(this.tvCap(filteredWeatherAlerts, 50)));
     }
 
     // Internet outages layer + ghost for easier picking
     if (mapLayers.outages && filteredOutages.length > 0) {
-      layers.push(this.createOutagesLayer(filteredOutages));
-      layers.push(this.createGhostLayer('outages-layer', filteredOutages, d => [d.lon, d.lat], { radiusMinPixels: 12 }));
+      const outData = this.tvCap(filteredOutages, 50);
+      layers.push(this.createOutagesLayer(outData));
+      layers.push(this.createGhostLayer('outages-layer', outData, d => [d.lon, d.lat], { radiusMinPixels: 12 }));
     }
 
     // Cyber threat IOC layer
@@ -1030,7 +1089,7 @@ export class DeckGLMap {
 
     // Flight delays layer
     if (mapLayers.flights && filteredFlightDelays.length > 0) {
-      layers.push(this.createFlightDelaysLayer(filteredFlightDelays));
+      layers.push(this.createFlightDelaysLayer(this.tvCap(filteredFlightDelays, 20)));
     }
 
     // Protests layer (Supercluster-based deck.gl layers)
@@ -1040,85 +1099,85 @@ export class DeckGLMap {
 
     // Military vessels layer
     if (mapLayers.military && filteredMilitaryVessels.length > 0) {
-      layers.push(this.createMilitaryVesselsLayer(filteredMilitaryVessels));
+      layers.push(this.createMilitaryVesselsLayer(this.tvCap(filteredMilitaryVessels, 50)));
     }
 
     // Military vessel clusters layer
     if (mapLayers.military && filteredMilitaryVesselClusters.length > 0) {
-      layers.push(this.createMilitaryVesselClustersLayer(filteredMilitaryVesselClusters));
+      layers.push(this.createMilitaryVesselClustersLayer(this.tvCap(filteredMilitaryVesselClusters, 20)));
     }
 
     // Military flights layer
     if (mapLayers.military && filteredMilitaryFlights.length > 0) {
-      layers.push(this.createMilitaryFlightsLayer(filteredMilitaryFlights));
+      layers.push(this.createMilitaryFlightsLayer(this.tvCap(filteredMilitaryFlights, 50)));
     }
 
     // Military flight clusters layer
     if (mapLayers.military && filteredMilitaryFlightClusters.length > 0) {
-      layers.push(this.createMilitaryFlightClustersLayer(filteredMilitaryFlightClusters));
+      layers.push(this.createMilitaryFlightClustersLayer(this.tvCap(filteredMilitaryFlightClusters, 20)));
     }
 
     // Strategic waterways layer
-    if (mapLayers.waterways) {
+    if (mapLayers.waterways && this.isTVLayerAllowed('waterways')) {
       layers.push(this.createWaterwaysLayer());
     }
 
     // Economic centers layer — hidden at low zoom
-    if (mapLayers.economic && this.isLayerVisible('economic')) {
+    if (mapLayers.economic && this.isLayerVisible('economic') && this.isTVLayerAllowed('economic')) {
       layers.push(this.createEconomicCentersLayer());
     }
 
     // Finance variant layers
-    if (mapLayers.stockExchanges) {
+    if (mapLayers.stockExchanges && this.isTVLayerAllowed('stockExchanges')) {
       layers.push(this.createStockExchangesLayer());
     }
-    if (mapLayers.financialCenters) {
+    if (mapLayers.financialCenters && this.isTVLayerAllowed('financialCenters')) {
       layers.push(this.createFinancialCentersLayer());
     }
-    if (mapLayers.centralBanks) {
+    if (mapLayers.centralBanks && this.isTVLayerAllowed('centralBanks')) {
       layers.push(this.createCentralBanksLayer());
     }
-    if (mapLayers.commodityHubs) {
+    if (mapLayers.commodityHubs && this.isTVLayerAllowed('commodityHubs')) {
       layers.push(this.createCommodityHubsLayer());
     }
 
     // Critical minerals layer
-    if (mapLayers.minerals) {
+    if (mapLayers.minerals && this.isTVLayerAllowed('minerals')) {
       layers.push(this.createMineralsLayer());
     }
 
     // APT Groups layer (geopolitical variant only - always shown, no toggle)
-    if (SITE_VARIANT !== 'tech') {
+    if (SITE_VARIANT !== 'tech' && this.isTVLayerAllowed('apt')) {
       layers.push(this.createAPTGroupsLayer());
     }
 
     // UCDP georeferenced events layer
     if (mapLayers.ucdpEvents && filteredUcdpEvents.length > 0) {
-      layers.push(this.createUcdpEventsLayer(filteredUcdpEvents));
+      layers.push(this.createUcdpEventsLayer(this.tvCap(filteredUcdpEvents, 50)));
     }
 
     // Displacement flows arc layer
-    if (mapLayers.displacement && this.displacementFlows.length > 0) {
+    if (mapLayers.displacement && this.displacementFlows.length > 0 && this.isTVLayerAllowed('displacement')) {
       layers.push(this.createDisplacementArcsLayer());
     }
 
     // Climate anomalies heatmap layer
-    if (mapLayers.climate && this.climateAnomalies.length > 0) {
+    if (mapLayers.climate && this.climateAnomalies.length > 0 && this.isTVLayerAllowed('climate')) {
       layers.push(this.createClimateHeatmapLayer());
     }
 
     // Tech variant layers (Supercluster-based deck.gl layers for HQs and events)
     if (SITE_VARIANT === 'tech') {
-      if (mapLayers.startupHubs) {
+      if (mapLayers.startupHubs && this.isTVLayerAllowed('startupHubs')) {
         layers.push(this.createStartupHubsLayer());
       }
       if (mapLayers.techHQs) {
         layers.push(...this.createTechHQClusterLayers());
       }
-      if (mapLayers.accelerators) {
+      if (mapLayers.accelerators && this.isTVLayerAllowed('accelerators')) {
         layers.push(this.createAcceleratorsLayer());
       }
-      if (mapLayers.cloudRegions) {
+      if (mapLayers.cloudRegions && this.isTVLayerAllowed('cloudRegions')) {
         layers.push(this.createCloudRegionsLayer());
       }
       if (mapLayers.techEvents && this.techEvents.length > 0) {
@@ -1127,7 +1186,7 @@ export class DeckGLMap {
     }
 
     // Gulf FDI investments layer
-    if (mapLayers.gulfInvestments) {
+    if (mapLayers.gulfInvestments && this.isTVLayerAllowed('gulfInvestments')) {
       layers.push(this.createGulfInvestmentsLayer());
     }
 
@@ -3036,8 +3095,15 @@ export class DeckGLMap {
     if (this.renderScheduled) return;
     this.renderScheduled = true;
 
-    requestAnimationFrame(() => {
+    requestAnimationFrame((time) => {
       this.renderScheduled = false;
+      // TV: enforce 30fps frame budget (33ms minimum between frames)
+      if (IS_TV && time - this.lastFrameTime < 33) {
+        // Behind schedule — skip this frame, request next one
+        this.renderScheduled = false;
+        return;
+      }
+      this.lastFrameTime = time;
       this.updateLayers();
     });
   }
@@ -3074,11 +3140,19 @@ export class DeckGLMap {
     const preset = VIEW_PRESETS[view];
 
     if (this.maplibreMap) {
-      this.maplibreMap.flyTo({
-        center: [preset.longitude, preset.latitude],
-        zoom: preset.zoom,
-        duration: 1000,
-      });
+      if (IS_TV) {
+        // TV: jump instantly — flyTo animations stress the GPU
+        this.maplibreMap.jumpTo({
+          center: [preset.longitude, preset.latitude],
+          zoom: preset.zoom,
+        });
+      } else {
+        this.maplibreMap.flyTo({
+          center: [preset.longitude, preset.latitude],
+          zoom: preset.zoom,
+          duration: 1000,
+        });
+      }
     }
 
     const viewSelect = this.container.querySelector('.view-select') as HTMLSelectElement;
@@ -3220,6 +3294,10 @@ export class DeckGLMap {
   public setEarthquakes(earthquakes: Earthquake[]): void {
     this.earthquakes = earthquakes;
     this.render();
+    // TV-Lite: update MapLibre native earthquake layer
+    if (IS_TV && detectTVRenderTier() === 'lite' && this.maplibreMap) {
+      updateTVLiteEarthquakes(this.maplibreMap, this.earthquakes);
+    }
   }
 
   public setWeatherAlerts(alerts: WeatherAlert[]): void {
@@ -3829,6 +3907,26 @@ export class DeckGLMap {
     } catch { /* layers may not be ready */ }
   }
 
+  /** Show/hide a "Reconnecting..." overlay when WebGL context is lost on TV. */
+  private showWebGLRecoveryOverlay(show: boolean): void {
+    const existingOverlay = this.container.querySelector('.webgl-recovery-overlay');
+    if (!show) {
+      existingOverlay?.remove();
+      return;
+    }
+    if (existingOverlay) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'webgl-recovery-overlay';
+    overlay.innerHTML = `
+      <div class="webgl-recovery-content">
+        <div class="webgl-recovery-spinner"></div>
+        <div class="webgl-recovery-text">Reconnecting display...</div>
+      </div>
+    `;
+    this.container.appendChild(overlay);
+  }
+
   public destroy(): void {
     if (this.moveTimeoutId) {
       clearTimeout(this.moveTimeoutId);
@@ -3843,6 +3941,11 @@ export class DeckGLMap {
     }
 
     this.layerCache.clear();
+
+    // Clean up TV-Lite layers
+    if (this.maplibreMap) {
+      removeTVLiteLayers(this.maplibreMap);
+    }
 
     this.deckOverlay?.finalize();
     this.maplibreMap?.remove();

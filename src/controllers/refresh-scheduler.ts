@@ -9,9 +9,13 @@
 
 import type { AppContext } from './app-context';
 import { REFRESH_INTERVALS, SITE_VARIANT } from '@/config';
+import { IS_TV, TV_FEATURES } from '@/utils/tv-detection';
 import { saveSnapshot } from '@/services/storage';
 
 const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true';
+
+/** Apply TV refresh multiplier when running in TV mode. */
+const tvMul = IS_TV ? TV_FEATURES.refreshMultiplier : 1;
 
 /* ------------------------------------------------------------------ */
 /*  Callback interface                                                 */
@@ -120,35 +124,35 @@ export class RefreshScheduler {
    */
   setupRefreshIntervals(cb: RefreshCallbacks): void {
     // Always refresh news, markets, predictions, pizzint
-    this.scheduleRefresh('news', () => cb.loadNews(), REFRESH_INTERVALS.feeds);
-    this.scheduleRefresh('markets', () => cb.loadMarkets(), REFRESH_INTERVALS.markets);
-    this.scheduleRefresh('predictions', () => cb.loadPredictions(), REFRESH_INTERVALS.predictions);
-    this.scheduleRefresh('pizzint', () => cb.loadPizzInt(), 10 * 60 * 1000);
+    this.scheduleRefresh('news', () => cb.loadNews(), REFRESH_INTERVALS.feeds * tvMul);
+    this.scheduleRefresh('markets', () => cb.loadMarkets(), REFRESH_INTERVALS.markets * tvMul);
+    this.scheduleRefresh('predictions', () => cb.loadPredictions(), REFRESH_INTERVALS.predictions * tvMul);
+    this.scheduleRefresh('pizzint', () => cb.loadPizzInt(), 10 * 60 * 1000 * tvMul);
 
     // Only refresh layer data if layer is enabled
-    this.scheduleRefresh('natural', () => cb.loadNatural(), 5 * 60 * 1000, () => this.ctx.mapLayers.natural);
-    this.scheduleRefresh('weather', () => cb.loadWeatherAlerts(), 10 * 60 * 1000, () => this.ctx.mapLayers.weather);
-    this.scheduleRefresh('fred', () => cb.loadFredData(), 30 * 60 * 1000);
-    this.scheduleRefresh('oil', () => cb.loadOilAnalytics(), 30 * 60 * 1000);
-    this.scheduleRefresh('spending', () => cb.loadGovernmentSpending(), 60 * 60 * 1000);
+    this.scheduleRefresh('natural', () => cb.loadNatural(), 5 * 60 * 1000 * tvMul, () => this.ctx.mapLayers.natural);
+    this.scheduleRefresh('weather', () => cb.loadWeatherAlerts(), 10 * 60 * 1000 * tvMul, () => this.ctx.mapLayers.weather);
+    this.scheduleRefresh('fred', () => cb.loadFredData(), 30 * 60 * 1000 * tvMul);
+    this.scheduleRefresh('oil', () => cb.loadOilAnalytics(), 30 * 60 * 1000 * tvMul);
+    this.scheduleRefresh('spending', () => cb.loadGovernmentSpending(), 60 * 60 * 1000 * tvMul);
 
     // Refresh intelligence signals for CII (geopolitical variant only)
-    if (SITE_VARIANT === 'full') {
+    if (SITE_VARIANT === 'full' || SITE_VARIANT === 'tv') {
       this.scheduleRefresh('intelligence', () => {
         this.ctx.intelligenceCache = {};
         return cb.loadIntelligenceSignals();
-      }, 5 * 60 * 1000);
+      }, 5 * 60 * 1000 * tvMul);
     }
 
     // Non-intelligence layer refreshes only
-    this.scheduleRefresh('firms', () => cb.loadFirmsData(), 30 * 60 * 1000);
-    this.scheduleRefresh('ais', () => cb.loadAisSignals(), REFRESH_INTERVALS.ais, () => this.ctx.mapLayers.ais);
-    this.scheduleRefresh('cables', () => cb.loadCableActivity(), 30 * 60 * 1000, () => this.ctx.mapLayers.cables);
-    this.scheduleRefresh('flights', () => cb.loadFlightDelays(), 10 * 60 * 1000, () => this.ctx.mapLayers.flights);
+    this.scheduleRefresh('firms', () => cb.loadFirmsData(), 30 * 60 * 1000 * tvMul);
+    this.scheduleRefresh('ais', () => cb.loadAisSignals(), REFRESH_INTERVALS.ais * tvMul, () => this.ctx.mapLayers.ais);
+    this.scheduleRefresh('cables', () => cb.loadCableActivity(), 30 * 60 * 1000 * tvMul, () => this.ctx.mapLayers.cables);
+    this.scheduleRefresh('flights', () => cb.loadFlightDelays(), 10 * 60 * 1000 * tvMul, () => this.ctx.mapLayers.flights);
     this.scheduleRefresh('cyberThreats', () => {
       this.ctx.cyberThreatsCache = null;
       return cb.loadCyberThreats();
-    }, 10 * 60 * 1000, () => CYBER_LAYER_ENABLED && this.ctx.mapLayers.cyberThreats);
+    }, 10 * 60 * 1000 * tvMul, () => CYBER_LAYER_ENABLED && this.ctx.mapLayers.cyberThreats);
   }
 
   /* ---------------------------------------------------------------- */

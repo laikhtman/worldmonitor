@@ -1,5 +1,6 @@
 import { t } from '@/services/i18n';
 import { isMobileDevice } from '@/utils';
+import { IS_TV } from '@/utils/tv-detection';
 
 const STORAGE_KEY = 'mobile-warning-dismissed';
 
@@ -62,6 +63,7 @@ export class MobileWarningModal {
   }
 
   public static shouldShow(): boolean {
+    if (IS_TV) return false;
     if (localStorage.getItem(STORAGE_KEY) === 'true') return false;
     return isMobileDevice();
   }

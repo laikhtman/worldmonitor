@@ -5,6 +5,7 @@
 
 import { isMobileDevice } from '@/utils';
 import { ML_THRESHOLDS } from '@/config/ml-config';
+import { IS_TV } from '@/utils/tv-detection';
 
 export interface MLCapabilities {
   isSupported: boolean;
@@ -22,6 +23,23 @@ let cachedCapabilities: MLCapabilities | null = null;
 
 export async function detectMLCapabilities(): Promise<MLCapabilities> {
   if (cachedCapabilities) return cachedCapabilities;
+
+  // TV hardware cannot run ML models — return unsupported immediately
+  if (IS_TV) {
+    cachedCapabilities = {
+      isSupported: false,
+      isDesktop: false,
+      hasWebGL: true,  // webOS has WebGL but it's reserved for map rendering
+      hasWebGPU: false,
+      hasSIMD: false,
+      hasThreads: false,
+      estimatedMemoryMB: 0,
+      recommendedExecutionProvider: 'wasm',
+      recommendedThreads: 1,
+    };
+    console.log('[MLCapabilities] TV detected — ML disabled');
+    return cachedCapabilities;
+  }
 
   const isDesktop = !isMobileDevice();
 
