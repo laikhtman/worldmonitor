@@ -350,6 +350,11 @@ export class TVRemoteHandler {
       return;
     }
 
+    // BUG-TV-004: Even without a navStack entry, try to close any visible modal
+    // (e.g. Sources modal opened via direct click rather than TV navigation)
+    const closedAny = this.callbacks.closeTopModal?.();
+    if (closedAny) return;
+
     // Nothing to go back to — show exit confirmation
     this.callbacks.showExitConfirmation?.();
   }
@@ -369,9 +374,9 @@ export class TVRemoteHandler {
     let dlon = 0;
 
     switch (direction) {
-      case 'up':    dlat = MAP_PAN_STEP; break;
-      case 'down':  dlat = -MAP_PAN_STEP; break;
-      case 'left':  dlon = -MAP_PAN_STEP; break;
+      case 'up': dlat = MAP_PAN_STEP; break;
+      case 'down': dlat = -MAP_PAN_STEP; break;
+      case 'left': dlon = -MAP_PAN_STEP; break;
       case 'right': dlon = MAP_PAN_STEP; break;
     }
 

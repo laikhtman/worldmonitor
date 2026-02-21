@@ -33,10 +33,44 @@ body.tv-mode {
 body.tv-mode .header {
   height: 64px;
   padding: 12px 24px;
+  /* BUG-TV-005: ensure header is visible on dark backgrounds */
+  background: rgba(2, 10, 8, 0.85);
+  border-bottom: 1px solid rgba(68, 255, 136, 0.15);
+  z-index: 100;
+}
+
+/* BUG-TV-005: header text must be readable on TV */
+body.tv-mode .header .header-left,
+body.tv-mode .header .header-right,
+body.tv-mode .header .header-center {
+  color: rgba(224, 255, 232, 0.9);
+}
+
+body.tv-mode .header .logo {
+  color: #44ff88 !important;
+}
+
+body.tv-mode .header .header-clock {
+  color: rgba(224, 255, 232, 0.85) !important;
+}
+
+body.tv-mode .header .sources-btn {
+  color: rgba(224, 255, 232, 0.85);
+  border-color: rgba(68, 255, 136, 0.3);
+}
+
+body.tv-mode .header .status-badge,
+body.tv-mode .header .live-badge {
+  color: #44ff88;
+}
+
+body.tv-mode .header .defcon-badge {
+  color: #fff;
 }
 
 body.tv-mode .header .logo {
   font-size: 28px;
+  color: #44ff88;
 }
 
 body.tv-mode .variant-switcher {
@@ -115,7 +149,7 @@ body.tv-mode .panels-grid {
   scroll-snap-type: y proximity;
 }
 
-body.tv-mode .panels-grid > .panel {
+body.tv-mode .panels-grid>.panel {
   scroll-snap-align: start;
 }
 
@@ -170,15 +204,22 @@ body.tv-mode .tv-focused {
   outline: 3px solid var(--green, #44ff88) !important;
   outline-offset: 2px !important;
   box-shadow: 0 0 0 6px rgba(68, 255, 136, 0.3),
-              0 0 16px rgba(68, 255, 136, 0.15) !important;
+    0 0 16px rgba(68, 255, 136, 0.15) !important;
   z-index: 10;
   transition: outline-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 /* Pulse animation for focused item accessibility */
 @keyframes tv-focus-pulse {
-  0%, 100% { box-shadow: 0 0 0 6px rgba(68, 255, 136, 0.3); }
-  50% { box-shadow: 0 0 0 8px rgba(68, 255, 136, 0.5); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 6px rgba(68, 255, 136, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(68, 255, 136, 0.5);
+  }
 }
 
 body.tv-mode .tv-focused {
@@ -354,7 +395,10 @@ body.tv-mode .panel-info-btn {
    11. Modals — centred and larger for TV
    ============================================================ */
 
-body.tv-mode .modal-overlay {
+/* BUG-TV-001 FIX: Only show modals when .active class is present.
+   Previously this forced display:flex unconditionally, making
+   the Sources modal always visible on TV. */
+body.tv-mode .modal-overlay.active {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -526,23 +570,28 @@ body.tv-mode .tv-overlay-footer .hint-key.key-red {
   background: #d32f2f;
   color: #fff;
 }
+
 body.tv-mode .tv-overlay-footer .hint-key.key-green {
   background: #388e3c;
   color: #fff;
 }
+
 body.tv-mode .tv-overlay-footer .hint-key.key-yellow {
   background: #f9a825;
   color: #000;
 }
+
 body.tv-mode .tv-overlay-footer .hint-key.key-blue {
   background: #1976d2;
   color: #fff;
 }
+
 body.tv-mode .tv-overlay-footer .hint-key.key-back {
   background: rgba(255, 255, 255, 0.15);
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
+
 body.tv-mode .tv-overlay-footer .hint-key.key-ok {
   background: rgba(255, 255, 255, 0.15);
   color: #fff;
@@ -752,7 +801,9 @@ body.tv-mode .webgl-recovery-spinner {
 }
 
 @keyframes tv-recovery-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 body.tv-mode .webgl-recovery-text {
@@ -780,7 +831,7 @@ body.tv-mode .webgl-recovery-text {
   align-items: center;
   gap: 10px;
   pointer-events: none;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
 }
 
 .tv-offline-banner .offline-icon {
@@ -789,4 +840,20 @@ body.tv-mode .webgl-recovery-text {
 
 .tv-offline-banner .offline-text {
   white-space: nowrap;
+}
+
+/* ============================================================
+   23. BUG-TV-007: Suppress toast notifications on TV
+   ============================================================
+   Toast popups overlap the TV footer nav hints.
+   Hide them entirely on TV — passive display doesn't need them. */
+
+body.tv-mode .toast-notification {
+  display: none !important;
+}
+
+/* Also suppress the download / community banners on TV */
+body.tv-mode .download-banner,
+body.tv-mode .community-banner {
+  display: none !important;
 }

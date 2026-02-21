@@ -222,11 +222,16 @@ export class TVNavigationController {
       return true;
     }
 
-    // Try any generic modal overlay
+    // Try any generic modal overlay (BUG-TV-008: also match .modal-close)
     const genericModal = document.querySelector('.modal-overlay.active, .modal-overlay:not(.hidden)');
     if (genericModal) {
-      const closeBtn = genericModal.querySelector('.modal-close-btn, .close-btn') as HTMLElement | null;
-      closeBtn?.click();
+      const closeBtn = genericModal.querySelector('.modal-close-btn, .modal-close, .close-btn') as HTMLElement | null;
+      if (closeBtn) {
+        closeBtn.click();
+        return true;
+      }
+      // Fallback: remove 'active' class directly
+      genericModal.classList.remove('active');
       return true;
     }
 
