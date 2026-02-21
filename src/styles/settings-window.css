@@ -598,7 +598,77 @@ tr.diag-err td { color: var(--settings-red); }
 
 /* ── World Monitor tab ── */
 .wm-tab {
-  max-width: 560px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Hero banner */
+.wm-hero {
+  text-align: center;
+  padding: 28px 24px;
+  margin-bottom: 28px;
+  border: 1px solid rgba(52, 211, 153, 0.15);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(52, 211, 153, 0.04) 0%, transparent 100%);
+}
+
+.wm-hero-title {
+  margin: 0 0 12px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--settings-text);
+  letter-spacing: -0.01em;
+}
+
+.wm-hero-desc {
+  margin: 0;
+  font-size: 14px;
+  color: var(--settings-text-secondary);
+  line-height: 1.6;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* OR divider */
+.wm-divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 24px 0;
+  color: var(--settings-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.wm-divider::before,
+.wm-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--settings-border);
+}
+
+/* BYOK footer */
+.wm-byok {
+  margin-top: 28px;
+  padding: 16px 20px;
+  background: var(--settings-surface);
+  border-radius: 8px;
+  border: 1px solid var(--settings-border);
+}
+
+.wm-byok-title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--settings-text);
+}
+
+.wm-byok-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--settings-text-secondary);
+  line-height: 1.5;
 }
 
 .wm-section {

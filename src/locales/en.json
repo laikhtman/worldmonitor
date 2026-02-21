@@ -289,23 +289,28 @@
       "logCleared": "Log cleared.",
       "worldMonitor": {
         "tabLabel": "World Monitor",
+        "heroTitle": "One key. Everything included.",
+        "heroDescription": "A single World Monitor license replaces every API key and LLM provider you'd otherwise configure yourself. AI summaries, real-time intelligence, market data, conflict tracking, fire detection, satellite imagery — all powered, all managed, zero setup.",
         "apiKey": {
-          "title": "API Key",
-          "placeholder": "Enter your WorldMonitor API key",
-          "description": "Required for cloud fallback access from the desktop app.",
-          "statusValid": "Key set",
-          "statusMissing": "No key configured"
+          "title": "License Key",
+          "placeholder": "wm_xxxxxxxxxxxxxxxxxxxxxxxx",
+          "description": "Paste your license to unlock every data source and AI feature instantly.",
+          "statusValid": "LICENSED",
+          "statusMissing": "NO LICENSE"
         },
+        "dividerOr": "OR",
         "register": {
-          "title": "Register Interest",
-          "description": "Sign up to receive a WorldMonitor API key when available.",
+          "title": "Reserve Your Spot",
+          "description": "We're preparing to launch World Monitor licenses. Sign up now and be first in line — early members get priority access and founding-member pricing.",
           "emailPlaceholder": "your@email.com",
-          "submitBtn": "Register Interest",
+          "submitBtn": "Join Waitlist",
           "submitting": "Submitting...",
-          "success": "Registered! We'll be in touch.",
-          "alreadyRegistered": "You're already registered.",
+          "success": "You're on the list! We'll notify you first.",
+          "alreadyRegistered": "You're already on the waitlist.",
           "error": "Registration failed. Please try again."
-        }
+        },
+        "byokTitle": "Or bring your own keys",
+        "byokDescription": "Prefer full control? Head to the API Keys and LLMs tabs to configure each data source and AI provider individually."
       },
       "table": {
         "time": "Time",

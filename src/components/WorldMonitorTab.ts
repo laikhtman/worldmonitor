@@ -26,6 +26,10 @@ export class WorldMonitorTab {
     const statusClass = state.present ? 'ok' : 'warn';
 
     this.el.innerHTML = `
+      <div class="wm-hero">
+        <h2 class="wm-hero-title">${t('modals.settingsWindow.worldMonitor.heroTitle')}</h2>
+        <p class="wm-hero-desc">${t('modals.settingsWindow.worldMonitor.heroDescription')}</p>
+      </div>
       <section class="wm-section">
         <h2 class="wm-section-title">${t('modals.settingsWindow.worldMonitor.apiKey.title')}</h2>
         <p class="wm-section-desc">${t('modals.settingsWindow.worldMonitor.apiKey.description')}</p>
@@ -38,6 +42,7 @@ export class WorldMonitorTab {
           <span class="wm-badge ${statusClass}" data-wm-badge>${statusText}</span>
         </div>
       </section>
+      <div class="wm-divider"><span>${t('modals.settingsWindow.worldMonitor.dividerOr')}</span></div>
       <section class="wm-section">
         <h2 class="wm-section-title">${t('modals.settingsWindow.worldMonitor.register.title')}</h2>
         <p class="wm-section-desc">${t('modals.settingsWindow.worldMonitor.register.description')}</p>
@@ -48,6 +53,10 @@ export class WorldMonitorTab {
         </div>
         <p class="wm-reg-status" data-wm-reg-status></p>
       </section>
+      <div class="wm-byok">
+        <h3 class="wm-byok-title">${t('modals.settingsWindow.worldMonitor.byokTitle')}</h3>
+        <p class="wm-byok-desc">${t('modals.settingsWindow.worldMonitor.byokDescription')}</p>
+      </div>
     `;
 
     this.keyInput = this.el.querySelector('[data-wm-key-input]')!;

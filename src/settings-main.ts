@@ -115,25 +115,32 @@ async function initSettingsWindow(): Promise<void> {
     void (async () => {
       try {
         const hasWmChanges = wmTab.hasPendingChanges();
-        if (!panels.some(p => p.hasPendingChanges()) && !hasWmChanges) {
+        const dirtyPanels = panels.filter(p => p.hasPendingChanges());
+
+        if (dirtyPanels.length === 0 && !hasWmChanges) {
           closeSettingsWindow();
           return;
         }
+
         if (hasWmChanges) await wmTab.save();
-        setActionStatus(t('modals.settingsWindow.validating'), 'ok');
-        const missingRequired = panels.flatMap(p => p.getMissingRequiredSecrets());
-        if (missingRequired.length > 0) {
-          setActionStatus(`Missing required: ${missingRequired.join(', ')}`, 'error');
-          return;
+
+        if (dirtyPanels.length > 0) {
+          setActionStatus(t('modals.settingsWindow.validating'), 'ok');
+          const missingRequired = dirtyPanels.flatMap(p => p.getMissingRequiredSecrets());
+          if (missingRequired.length > 0) {
+            setActionStatus(`Missing required: ${missingRequired.join(', ')}`, 'error');
+            return;
+          }
+          const allErrors = (await Promise.all(dirtyPanels.map(p => p.verifyPendingSecrets()))).flat();
+          await Promise.all(dirtyPanels.map(p => p.commitVerifiedSecrets()));
+          if (allErrors.length > 0) {
+            setActionStatus(t('modals.settingsWindow.verifyFailed', { errors: allErrors.join(', ') }), 'error');
+            return;
+          }
         }
-        const allErrors = (await Promise.all(panels.map(p => p.verifyPendingSecrets()))).flat();
-        await Promise.all(panels.map(p => p.commitVerifiedSecrets()));
-        if (allErrors.length > 0) {
-          setActionStatus(t('modals.settingsWindow.verifyFailed', { errors: allErrors.join(', ') }), 'error');
-        } else {
-          setActionStatus(t('modals.settingsWindow.saved'), 'ok');
-          closeSettingsWindow();
-        }
+
+        setActionStatus(t('modals.settingsWindow.saved'), 'ok');
+        closeSettingsWindow();
       } catch (err) {
         console.error('[settings] save error:', err);
         setActionStatus(t('modals.settingsWindow.failed', { error: String(err) }), 'error');
