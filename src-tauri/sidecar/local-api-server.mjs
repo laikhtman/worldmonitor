@@ -713,6 +713,34 @@ async function dispatch(requestUrl, req, routes, context) {
     }
     return json({ verboseMode });
   }
+  // Registration proxy — forward to cloud (bypasses Vercel bot protection)
+  if (requestUrl.pathname === '/api/register-interest' && req.method === 'POST') {
+    try {
+      const body = await new Promise((resolve, reject) => {
+        const chunks = [];
+        req.on('data', c => chunks.push(c));
+        req.on('end', () => resolve(Buffer.concat(chunks).toString()));
+        req.on('error', reject);
+      });
+      const response = await fetchWithTimeout('https://worldmonitor.app/api/register-interest', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Origin': 'https://worldmonitor.app',
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+        body,
+      }, 15000);
+      const responseBody = await response.text();
+      return new Response(responseBody || '{}', {
+        status: response.status,
+        headers: { 'content-type': 'application/json' },
+      });
+    } catch (e) {
+      return json({ error: 'Registration service unreachable' }, 502);
+    }
+  }
+
   // RSS proxy — fetch public feeds directly from desktop, no auth needed
   if (requestUrl.pathname === '/api/rss-proxy') {
     const feedUrl = requestUrl.searchParams.get('url');
@@ -726,8 +754,9 @@ async function dispatch(requestUrl, req, routes, context) {
           'Accept-Language': 'en-US,en;q=0.9',
         },
       }, parsed.hostname.includes('news.google.com') ? 20000 : 12000);
-      const contentType = response.headers?.['content-type'] || 'application/xml';
-      return new Response(response.body || '', {
+      const contentType = response.headers?.get?.('content-type') || 'application/xml';
+      const rssBody = await response.text();
+      return new Response(rssBody || '', {
         status: response.status,
         headers: { 'content-type': contentType },
       });

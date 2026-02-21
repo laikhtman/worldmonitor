@@ -246,6 +246,7 @@
         "some": "Some features need API keys"
       },
       "openSettings": "Open Settings",
+      "skipSetup": "Skip the setup \u2014 a single World Monitor license unlocks everything. Join the waitlist for early access.",
       "summary": {
         "desktop": "Desktop mode",
         "web": "Web mode (read-only, server-managed credentials)",

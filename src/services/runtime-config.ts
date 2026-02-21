@@ -472,7 +472,7 @@ export async function loadDesktopSecrets(): Promise<void> {
     const allSecrets = await invokeTauri<Record<string, string>>('get_all_secrets');
 
     const syncResults = await Promise.allSettled(
-      Object.entries(allSecrets).map(async ([key, value]) => {
+      Object.entries(allSecrets).filter(([, value]) => value && value.trim().length > 0).map(async ([key, value]) => {
         runtimeConfig.secrets[key as RuntimeSecretKey] = { value, source: 'vault' };
         try {
           await pushSecretToSidecar(key as RuntimeSecretKey, value);

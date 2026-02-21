@@ -9,14 +9,17 @@
   <body style="background:#1a1c1e;color:#e8eaed;margin:0">
     <div class="settings-shell">
       <div class="settings-tabs" role="tablist">
-        <button class="settings-tab active" role="tab" aria-selected="true" aria-controls="tabPanelLLMs" data-tab="llms">LLMs</button>
+        <button class="settings-tab active" role="tab" aria-selected="true" aria-controls="tabPanelWorldMonitor" data-tab="worldmonitor">World Monitor</button>
+        <button class="settings-tab" role="tab" aria-selected="false" aria-controls="tabPanelLLMs" data-tab="llms">LLMs</button>
         <button class="settings-tab" role="tab" aria-selected="false" aria-controls="tabPanelKeys" data-tab="keys">API Keys</button>
         <button class="settings-tab" role="tab" aria-selected="false" aria-controls="tabPanelDebug" data-tab="debug">Debug &amp; Logs</button>
-        <button class="settings-tab" role="tab" aria-selected="false" aria-controls="tabPanelWorldMonitor" data-tab="worldmonitor">World Monitor</button>
       </div>
       <p id="settingsActionStatus" class="settings-action-status" aria-live="polite"></p>
       <div class="settings-tab-panels">
-        <div id="tabPanelLLMs" class="settings-tab-panel active" role="tabpanel">
+        <div id="tabPanelWorldMonitor" class="settings-tab-panel active" role="tabpanel">
+          <main id="worldmonitorApp" class="settings-content"></main>
+        </div>
+        <div id="tabPanelLLMs" class="settings-tab-panel" role="tabpanel">
           <main id="llmApp" class="settings-content"><div style="display:flex;align-items:center;justify-content:center;padding:60px 0;color:#9aa0a6;font-size:14px;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="animation:spin 1s linear infinite"><style>@keyframes spin{to{transform:rotate(360deg)}}</style><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="31 31"/></svg>Loading...</div></main>
         </div>
         <div id="tabPanelKeys" class="settings-tab-panel" role="tabpanel">
@@ -45,9 +48,6 @@
             </div>
             <div id="trafficLog" class="diag-traffic-log"></div>
           </section>
-        </div>
-        <div id="tabPanelWorldMonitor" class="settings-tab-panel" role="tabpanel">
-          <main id="worldmonitorApp" class="settings-content"></main>
         </div>
       </div>
       <footer class="settings-footer">

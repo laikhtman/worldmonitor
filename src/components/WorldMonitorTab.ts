@@ -1,5 +1,4 @@
 import { getSecretState, setSecretValue, type RuntimeSecretKey } from '@/services/runtime-config';
-import { getRemoteApiBaseUrl } from '@/services/runtime';
 import { t } from '@/services/i18n';
 
 const WM_KEY: RuntimeSecretKey = 'WORLDMONITOR_API_KEY';
@@ -90,7 +89,7 @@ export class WorldMonitorTab {
     btn.textContent = t('modals.settingsWindow.worldMonitor.register.submitting');
 
     try {
-      const res = await fetch(`${getRemoteApiBaseUrl()}/api/register-interest`, {
+      const res = await fetch('/api/register-interest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, source: 'desktop-settings' }),
