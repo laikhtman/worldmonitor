@@ -2,6 +2,7 @@ import './styles/main.css';
 import './styles/settings-window.css';
 import { RuntimeConfigPanel } from '@/components/RuntimeConfigPanel';
 import { WorldMonitorTab } from '@/components/WorldMonitorTab';
+import { EnvKeyStatusPanel } from '@/components/EnvKeyStatusPanel';
 import { RUNTIME_FEATURES, loadDesktopSecrets } from '@/services/runtime-config';
 import { tryInvokeTauri } from '@/services/tauri-bridge';
 import { escapeHtml } from '@/utils/sanitize';
@@ -98,6 +99,14 @@ async function initSettingsWindow(): Promise<void> {
   mountPanel(llmPanel, llmMount);
   mountPanel(apiPanel, apiMount);
 
+  // Mount env key status dashboard above the API Keys desktop panel
+  const envKeyMount = document.getElementById('envKeyStatusMount');
+  let envKeyStatusPanel: EnvKeyStatusPanel | null = null;
+  if (envKeyMount) {
+    envKeyStatusPanel = new EnvKeyStatusPanel();
+    envKeyMount.appendChild(envKeyStatusPanel.getElement());
+  }
+
   const wmTab = new WorldMonitorTab();
   if (wmMount) {
     wmMount.innerHTML = '';
@@ -109,6 +118,7 @@ async function initSettingsWindow(): Promise<void> {
   window.addEventListener('beforeunload', () => {
     panels.forEach(p => p.destroy());
     wmTab.destroy();
+    envKeyStatusPanel?.destroy();
   });
 
   document.getElementById('okBtn')?.addEventListener('click', () => {
@@ -257,8 +267,96 @@ function initDiagnostics(): void {
   startAutoRefresh();
 }
 
+// ── Password gate ──────────────────────────────────────────────────
+// If SETTINGS_PASSWORD is set server-side, block access until verified.
+// Desktop (Tauri) always bypasses — it's a local-only window.
+
+async function checkPasswordGate(): Promise<boolean> {
+  // Desktop runtime — always allowed
+  const { isDesktopRuntime, getRemoteApiBaseUrl } = await import('@/services/runtime');
+  if (isDesktopRuntime()) return true;
+
+  // Already authenticated this session
+  if (sessionStorage.getItem('wm-settings-auth') === '1') return true;
+
+  const apiBase = isDesktopRuntime() ? getRemoteApiBaseUrl() : '';
+
+  try {
+    const res = await fetch(`${apiBase}/api/settings-auth`);
+    const data = await res.json() as { protected: boolean };
+    if (!data.protected) return true; // No password configured
+  } catch {
+    // If we can't reach the API, allow access (dev / offline)
+    return true;
+  }
+
+  // Show password gate
+  const gate = document.getElementById('settingsPasswordGate');
+  const shell = document.getElementById('settingsShell');
+  if (!gate || !shell) return true;
+
+  shell.style.display = 'none';
+  gate.style.display = 'flex';
+
+  return new Promise((resolve) => {
+    const form = document.getElementById('settingsPasswordForm') as HTMLFormElement | null;
+    const input = document.getElementById('settingsPasswordInput') as HTMLInputElement | null;
+    const error = document.getElementById('settingsPasswordError');
+    if (!form || !input) { resolve(true); return; }
+
+    input.focus();
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const password = input.value.trim();
+      if (!password) return;
+
+      // Disable form while verifying
+      const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Verifying…'; }
+      input.disabled = true;
+
+      void (async () => {
+        try {
+          const res = await fetch(`${apiBase}/api/settings-auth`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password }),
+          });
+          const data = await res.json() as { ok: boolean; error?: string; locked?: boolean };
+
+          if (data.ok) {
+            sessionStorage.setItem('wm-settings-auth', '1');
+            gate.style.display = 'none';
+            shell.style.display = '';
+            resolve(true);
+            return;
+          }
+
+          if (error) {
+            error.textContent = data.locked
+              ? '🔒 Too many attempts. Try again in 15 minutes.'
+              : data.error || 'Wrong password';
+          }
+          input.disabled = false;
+          input.value = '';
+          input.focus();
+        } catch {
+          if (error) error.textContent = 'Connection error — try again';
+          input.disabled = false;
+        }
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Unlock'; }
+      })();
+    });
+  });
+}
+
+
 // Signal main window that settings is open (suppresses alert popups)
 localStorage.setItem('wm-settings-open', '1');
 window.addEventListener('beforeunload', () => localStorage.removeItem('wm-settings-open'));
 
-void initSettingsWindow();
+void (async () => {
+  const allowed = await checkPasswordGate();
+  if (allowed) void initSettingsWindow();
+})();
