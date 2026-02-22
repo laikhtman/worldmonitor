@@ -20,6 +20,7 @@ import {
   STORAGE_KEYS,
 } from '@/config';
 import { BETA_MODE } from '@/config/beta';
+import { APP_ORIGIN } from '@/config/branding';
 import { saveToStorage, getCurrentTheme } from '@/utils';
 import { escapeHtml } from '@/utils/sanitize';
 import { focusInvestmentOnMap } from '@/services/investments-focus';
@@ -143,7 +144,7 @@ export class PanelManager {
       <div class="header">
         <div class="header-left">
           <div class="variant-switcher">
-            <a href="${this.ctx.isDesktopApp ? '#' : (SITE_VARIANT === 'full' ? '#' : 'https://worldmonitor.app')}"
+            <a href="${this.ctx.isDesktopApp ? '#' : (SITE_VARIANT === 'full' ? '#' : APP_ORIGIN)}"
                class="variant-option ${SITE_VARIANT === 'full' ? 'active' : ''}"
                data-variant="full"
                ${!this.ctx.isDesktopApp && SITE_VARIANT !== 'full' ? 'target="_blank" rel="noopener"' : ''}

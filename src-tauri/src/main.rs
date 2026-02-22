@@ -421,7 +421,7 @@ fn open_settings_window(app: &AppHandle) -> Result<(), String> {
     }
 
     let _settings_window = WebviewWindowBuilder::new(app, "settings", WebviewUrl::App("settings.html".into()))
-        .title("World Monitor Settings")
+        .title("IntelHQ Settings")
         .inner_size(980.0, 760.0)
         .min_inner_size(820.0, 620.0)
         .resizable(true)
@@ -450,14 +450,14 @@ fn build_app_menu(handle: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         Submenu::with_items(handle, "File", true, &[&settings_item, &separator, &quit_item])?;
 
     let about_metadata = AboutMetadata {
-        name: Some("World Monitor".into()),
+        name: Some("IntelHQ".into()),
         version: Some(env!("CARGO_PKG_VERSION").into()),
-        copyright: Some("\u{00a9} 2025 Elie Habib".into()),
-        website: Some("https://worldmonitor.app".into()),
-        website_label: Some("worldmonitor.app".into()),
+        copyright: Some("\u{00a9} 2025 IntelHQ".into()),
+        website: Some("https://intelhq.io".into()),
+        website_label: Some("intelhq.io".into()),
         ..Default::default()
     };
-    let about_item = PredefinedMenuItem::about(handle, Some("About World Monitor"), Some(about_metadata))?;
+    let about_item = PredefinedMenuItem::about(handle, Some("About IntelHQ"), Some(about_metadata))?;
     let github_item = MenuItem::with_id(
         handle,
         MENU_HELP_GITHUB_ID,
@@ -503,7 +503,7 @@ fn handle_menu_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
             }
         }
         MENU_HELP_GITHUB_ID => {
-            let _ = open_in_shell("https://github.com/koala73/worldmonitor");
+            let _ = open_in_shell("https://github.com/laikhtman/worldmonitor");
         }
         MENU_HELP_DEVTOOLS_ID => {
             if let Some(window) = app.get_webview_window("main") {

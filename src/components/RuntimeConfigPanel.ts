@@ -41,6 +41,13 @@ const SIGNUP_URLS: Partial<Record<RuntimeSecretKey, string>> = {
 
 const MASKED_SENTINEL = '__WM_MASKED__';
 
+const PLAINTEXT_KEYS = new Set<RuntimeSecretKey>([
+  'OLLAMA_API_URL',
+  'OLLAMA_MODEL',
+  'WS_RELAY_URL',
+  'VITE_OPENSKY_RELAY_URL',
+]);
+
 interface RuntimeConfigPanelOptions {
   mode?: 'full' | 'alert';
   buffered?: boolean;

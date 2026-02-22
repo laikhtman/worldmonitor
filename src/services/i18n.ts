@@ -153,8 +153,8 @@ export const LANGUAGES = [
 ];
 
 // Env-configurable language filter: only these appear in the UI dropdown.
-// Default: English, Russian, Arabic if not set.
-const _enabledCodes = (import.meta.env.VITE_ENABLED_LANGUAGES as string || 'en,ru,ar')
+// Default: English, Hebrew, Russian, Arabic if not set.
+const _enabledCodes = (import.meta.env.VITE_ENABLED_LANGUAGES as string || 'en,he,ru,ar')
   .split(',')
   .map(c => c.trim().toLowerCase())
   .filter(c => SUPPORTED_LANGUAGE_SET.has(c as SupportedLanguage));

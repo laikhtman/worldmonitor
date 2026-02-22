@@ -38,7 +38,8 @@ export type RuntimeFeatureId =
   | 'aisRelay'
   | 'openskyRelay'
   | 'finnhubMarkets'
-  | 'nasaFirms';
+  | 'nasaFirms'
+  | 'aiOllama';
 
 export interface RuntimeFeatureDefinition {
   id: RuntimeFeatureId;
@@ -78,6 +79,7 @@ const defaultToggles: Record<RuntimeFeatureId, boolean> = {
   openskyRelay: true,
   finnhubMarkets: true,
   nasaFirms: true,
+  aiOllama: true,
 };
 
 export const RUNTIME_FEATURES: RuntimeFeatureDefinition[] = [

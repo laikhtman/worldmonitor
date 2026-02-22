@@ -3,6 +3,7 @@ import { createCircuitBreaker } from '@/utils';
 import { SITE_VARIANT } from '@/config';
 import { isDesktopRuntime } from '@/services/runtime';
 import { tryInvokeTauri } from '@/services/tauri-bridge';
+import { APP_ORIGIN } from '@/config/branding';
 
 interface PolymarketMarket {
   question: string;
@@ -136,7 +137,7 @@ async function polyFetch(endpoint: 'events' | 'markets', params: Record<string, 
   } catch { /* local proxy failed */ }
 
   // Final fallback: hit production endpoint directly
-  return fetch(`https://intelhq.io/api/polymarket?${proxyQs}`);
+  return fetch(`${APP_ORIGIN}/api/polymarket?${proxyQs}`);
 }
 
 const GEOPOLITICAL_TAGS = [

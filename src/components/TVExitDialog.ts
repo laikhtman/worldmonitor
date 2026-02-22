@@ -8,11 +8,12 @@
  */
 
 import { IS_WEBOS } from '@/utils/tv-detection';
+import { APP_TITLE } from '@/config/branding';
 
 const EXIT_DIALOG_HTML = `
 <div class="tv-exit-dialog-overlay" aria-modal="true" role="dialog" aria-label="Exit confirmation">
   <div class="tv-exit-dialog">
-    <h2 class="tv-exit-title">Exit IntelHQ?</h2>
+    <h2 class="tv-exit-title">Exit ${APP_TITLE}?</h2>
     <p class="tv-exit-message">Are you sure you want to close the application?</p>
     <div class="tv-exit-actions">
       <button class="tv-exit-btn tv-exit-stay" data-tv-focusable autofocus>Stay</button>

@@ -1,8 +1,6 @@
-const DEFAULT_REMOTE_HOSTS: Record<string, string> = {
-  tech: 'https://tech.intelhq.io',
-  full: 'https://intelhq.io',
-  world: 'https://intelhq.io',
-};
+import { REMOTE_HOSTS, APP_ORIGIN, isAppHost } from '@/config/branding';
+
+const DEFAULT_REMOTE_HOSTS = REMOTE_HOSTS;
 
 const DEFAULT_LOCAL_API_BASE = 'http://127.0.0.1:46123';
 const FORCE_DESKTOP_RUNTIME = import.meta.env.VITE_DESKTOP_RUNTIME === '1';
@@ -82,7 +80,7 @@ export function getRemoteApiBaseUrl(): string {
   }
 
   const variant = import.meta.env.VITE_VARIANT || 'full';
-  return DEFAULT_REMOTE_HOSTS[variant] ?? DEFAULT_REMOTE_HOSTS.full ?? 'https://intelhq.io';
+  return DEFAULT_REMOTE_HOSTS[variant] ?? DEFAULT_REMOTE_HOSTS.full ?? APP_ORIGIN;
 }
 
 export function toRuntimeUrl(path: string): string {
@@ -98,19 +96,10 @@ export function toRuntimeUrl(path: string): string {
   return `${baseUrl}${path}`;
 }
 
-const APP_HOSTS = new Set([
-  'intelhq.io',
-  'www.intelhq.io',
-  'tech.intelhq.io',
-  'localhost',
-  '127.0.0.1',
-]);
-
 function isAppOriginUrl(urlStr: string): boolean {
   try {
     const u = new URL(urlStr);
-    const host = u.hostname;
-    return APP_HOSTS.has(host) || host.endsWith('.intelhq.io');
+    return isAppHost(u.hostname);
   } catch {
     return false;
   }
@@ -183,6 +172,12 @@ export function installRuntimeFetchPatch(): void {
 
   const nativeFetch = window.fetch.bind(window);
   const localBase = getApiBaseUrl();
+  function isLocalOnlyApiTarget(target: string): boolean {
+    // Security boundary: endpoints that can carry local secrets must use the
+    // `/api/local-*` prefix so cloud fallback is automatically blocked.
+    return target.startsWith('/api/local-');
+  }
+
   let localApiToken: string | null = null;
 
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {

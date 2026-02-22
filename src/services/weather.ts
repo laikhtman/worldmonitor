@@ -1,4 +1,5 @@
 import { createCircuitBreaker, getCSSColor } from '@/utils';
+import { APP_USER_AGENT } from '@/config/branding';
 
 export interface WeatherAlert {
   id: string;
@@ -40,7 +41,7 @@ const breaker = createCircuitBreaker<WeatherAlert[]>({ name: 'NWS Weather' });
 export async function fetchWeatherAlerts(): Promise<WeatherAlert[]> {
   return breaker.execute(async () => {
     const response = await fetch(NWS_API, {
-      headers: { 'User-Agent': 'IntelHQ/1.0' }
+      headers: { 'User-Agent': APP_USER_AGENT }
     });
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);

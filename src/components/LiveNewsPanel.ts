@@ -3,6 +3,7 @@ import { fetchLiveVideoId } from '@/services/live-news';
 import { isDesktopRuntime, getRemoteApiBaseUrl } from '@/services/runtime';
 import { IDLE_PAUSE_MS } from '@/config';
 import { t } from '../services/i18n';
+import { APP_ORIGIN } from '@/config/branding';
 
 // YouTube IFrame Player API types
 type YouTubePlayer = {
@@ -119,7 +120,7 @@ export class LiveNewsPanel extends Panel {
   }
 
   private get embedOrigin(): string {
-    try { return new URL(getRemoteApiBaseUrl()).origin; } catch { return 'https://intelhq.io'; }
+    try { return new URL(getRemoteApiBaseUrl()).origin; } catch { return APP_ORIGIN; }
   }
 
   private setupBridgeMessageListener(): void {
@@ -148,8 +149,8 @@ export class LiveNewsPanel extends Panel {
 
   private static resolveYouTubeOrigin(): string | null {
     const fallbackOrigin = SITE_VARIANT === 'tech'
-      ? 'https://intelhq.io'
-      : 'https://intelhq.io';
+      ? APP_ORIGIN
+      : APP_ORIGIN;
 
     try {
       const { protocol, origin, host } = window.location;

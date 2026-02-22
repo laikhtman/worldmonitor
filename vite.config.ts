@@ -2,9 +2,29 @@ import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { compression } from 'vite-plugin-compression2';
 import { resolve } from 'path';
+import { readFileSync, existsSync } from 'fs';
 import pkg from './package.json';
 
+// Load .env into process.env so branding vars are available at config time
+const dotenvPath = resolve(__dirname, '.env');
+if (existsSync(dotenvPath)) {
+  for (const line of readFileSync(dotenvPath, 'utf-8').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx < 0) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    const val = trimmed.slice(eqIdx + 1).trim();
+    if (!process.env[key]) process.env[key] = val;
+  }
+}
+
 const isE2E = process.env.VITE_E2E === '1';
+
+// ── Branding (derived from .env) ─────────────────────────────────────
+const appTitle  = process.env.VITE_APP_TITLE || 'IntelHQ';
+const appDomain = process.env.VITE_APP_URL   || 'intelhq.io';
+const appOrigin = `https://${appDomain}`;
 
 const VARIANT_META: Record<string, {
   title: string;
@@ -19,12 +39,12 @@ const VARIANT_META: Record<string, {
   features: string[];
 }> = {
   full: {
-    title: 'IntelHQ - Real-Time Global Intelligence Dashboard',
+    title: `${appTitle} - Real-Time Global Intelligence Dashboard`,
     description: 'Real-time global intelligence dashboard with live news, markets, military tracking, infrastructure monitoring, and geopolitical data. OSINT in one view.',
     keywords: 'global intelligence, geopolitical dashboard, world news, market data, military bases, nuclear facilities, undersea cables, conflict zones, real-time monitoring, situation awareness, OSINT, flight tracking, AIS ships, earthquake monitor, protest tracker, power outages, oil prices, government spending, polymarket predictions',
-    url: 'https://intelhq.io/',
-    siteName: 'IntelHQ',
-    shortName: 'IntelHQ',
+    url: `${appOrigin}/`,
+    siteName: appTitle,
+    shortName: appTitle,
     subject: 'Real-Time Global Intelligence and Situation Awareness',
     classification: 'Intelligence Dashboard, OSINT Tool, News Aggregator',
     categories: ['news', 'productivity'],
@@ -47,7 +67,7 @@ const VARIANT_META: Record<string, {
     title: 'Tech Monitor - Real-Time AI & Tech Industry Dashboard',
     description: 'Real-time AI and tech industry dashboard tracking tech giants, AI labs, startup ecosystems, funding rounds, and tech events worldwide.',
     keywords: 'tech dashboard, AI industry, startup ecosystem, tech companies, AI labs, venture capital, tech events, tech conferences, cloud infrastructure, datacenters, tech layoffs, funding rounds, unicorns, FAANG, tech HQ, accelerators, Y Combinator, tech news',
-    url: 'https://tech.intelhq.io/',
+    url: `https://tech.${appDomain}/`,
     siteName: 'Tech Monitor',
     shortName: 'TechMonitor',
     subject: 'AI, Tech Industry, and Startup Ecosystem Intelligence',
@@ -71,7 +91,7 @@ const VARIANT_META: Record<string, {
     title: 'Finance Monitor - Real-Time Markets & Trading Dashboard',
     description: 'Real-time finance and trading dashboard tracking global markets, stock exchanges, central banks, commodities, forex, crypto, and economic indicators worldwide.',
     keywords: 'finance dashboard, trading dashboard, stock market, forex, commodities, central banks, crypto, economic indicators, market news, financial centers, stock exchanges, bonds, derivatives, fintech, hedge funds, IPO tracker, market analysis',
-    url: 'https://finance.intelhq.io/',
+    url: `https://finance.${appDomain}/`,
     siteName: 'Finance Monitor',
     shortName: 'FinanceMonitor',
     subject: 'Global Markets, Trading, and Financial Intelligence',
@@ -92,12 +112,12 @@ const VARIANT_META: Record<string, {
     ],
   },
   tv: {
-    title: 'IntelHQ TV - Global Intelligence on Your TV',
+    title: `${appTitle} TV - Global Intelligence on Your TV`,
     description: 'Real-time global intelligence dashboard for LG Smart TVs. Monitor breaking news, financial markets, geopolitical hotspots, and more from your living room.',
     keywords: 'intelligence dashboard, smart TV, webOS, LG TV, real-time news, global intelligence, geopolitical, markets, OSINT, TV app',
-    url: 'https://tv.intelhq.io/',
-    siteName: 'IntelHQ TV',
-    shortName: 'IntelHQ',
+    url: `https://tv.${appDomain}/`,
+    siteName: `${appTitle} TV`,
+    shortName: appTitle,
     subject: 'Real-Time Global Intelligence for Smart TVs',
     classification: 'Smart TV Application, Intelligence Dashboard',
     categories: ['intelligence', 'news', 'tv'],
@@ -139,6 +159,7 @@ function htmlVariantPlugin(): Plugin {
         .replace(/"name": "IntelHQ"/, `"name": "${activeMeta.siteName}"`)
         .replace(/"alternateName": "IntelHQ"/, `"alternateName": "${activeMeta.siteName.replace(' ', '')}"`)
         .replace(/"url": "https:\/\/worldmonitor\.app\/"/, `"url": "${activeMeta.url}"`)
+        .replace(/"url": "https:\/\/intelhq\.io\/"/, `"url": "${activeMeta.url}"`)
         .replace(/"description": "Real-time global intelligence dashboard with live news, markets, military tracking, infrastructure monitoring, and geopolitical data."/, `"description": "${activeMeta.description}"`)
         .replace(/"featureList": \[[\s\S]*?\]/, `"featureList": ${JSON.stringify(activeMeta.features, null, 8).replace(/\n/g, '\n      ')}`);
     },
@@ -479,7 +500,7 @@ export default defineConfig({
       // Polymarket API — proxy through production Vercel edge function
       // Direct gamma-api.polymarket.com is blocked by Cloudflare JA3 fingerprinting
       '/api/polymarket': {
-        target: 'https://intelhq.io',
+        target: appOrigin,
         changeOrigin: true,
         configure: (proxy) => {
           proxy.on('error', (err) => {
