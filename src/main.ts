@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/browser';
 import { inject } from '@vercel/analytics';
 import { App } from './App';
 import { IS_TV, registerWebOSLifecycle } from '@/utils/tv-detection';
+import { APP_DOMAIN } from '@/config/branding';
 
 // TV variant: inject TV-specific styles and add body class
 if (IS_TV) {
@@ -18,7 +19,7 @@ const sentryDsn = import.meta.env.VITE_SENTRY_DSN?.trim();
 Sentry.init({
   dsn: sentryDsn || undefined,
   release: `worldmonitor@${__APP_VERSION__}`,
-  environment: location.hostname === 'intelhq.io' ? 'production'
+  environment: location.hostname === APP_DOMAIN ? 'production'
     : location.hostname.includes('vercel.app') ? 'preview'
       : 'development',
   enabled: Boolean(sentryDsn) && !location.hostname.startsWith('localhost') && !('__TAURI_INTERNALS__' in window),
@@ -113,6 +114,9 @@ maybeShowDebugPanel();
 // PERF-032: Periodic cache eviction to prevent memory bloat
 import { evictStaleCache } from '@/utils/fetch-cache';
 setInterval(() => evictStaleCache(5 * 60_000), 60_000);
+
+// Clear stale settings-open flag (survives ungraceful shutdown)
+localStorage.removeItem('wm-settings-open');
 
 const app = new App('app');
 app

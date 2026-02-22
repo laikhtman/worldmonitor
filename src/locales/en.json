@@ -246,6 +246,7 @@
         "some": "Some features need API keys"
       },
       "openSettings": "Open Settings",
+      "skipSetup": "Skip the setup \u2014 a single World Monitor license unlocks everything. Join the waitlist for early access.",
       "summary": {
         "desktop": "Desktop mode",
         "web": "Web mode (read-only, server-managed credentials)",
@@ -287,6 +288,31 @@
       "noTraffic": "No traffic recorded yet.",
       "sidecarUnreachable": "Sidecar not reachable.",
       "logCleared": "Log cleared.",
+      "worldMonitor": {
+        "tabLabel": "World Monitor",
+        "heroTitle": "One key. Everything included.",
+        "heroDescription": "A single World Monitor license replaces every API key and LLM provider you'd otherwise configure yourself. AI summaries, real-time intelligence, market data, conflict tracking, fire detection, satellite imagery — all powered, all managed, zero setup.",
+        "apiKey": {
+          "title": "License Key",
+          "placeholder": "wm_xxxxxxxxxxxxxxxxxxxxxxxx",
+          "description": "Paste your license to unlock every data source and AI feature instantly.",
+          "statusValid": "LICENSED",
+          "statusMissing": "NO LICENSE"
+        },
+        "dividerOr": "OR",
+        "register": {
+          "title": "Reserve Your Spot",
+          "description": "We're preparing to launch World Monitor licenses. Sign up now and be first in line — early members get priority access and founding-member pricing.",
+          "emailPlaceholder": "your@email.com",
+          "submitBtn": "Join Waitlist",
+          "submitting": "Submitting...",
+          "success": "You're on the list! We'll notify you first.",
+          "alreadyRegistered": "You're already on the waitlist.",
+          "error": "Registration failed. Please try again."
+        },
+        "byokTitle": "Or bring your own keys",
+        "byokDescription": "Prefer full control? Head to the API Keys and LLMs tabs to configure each data source and AI provider individually."
+      },
       "table": {
         "time": "Time",
         "method": "Method",

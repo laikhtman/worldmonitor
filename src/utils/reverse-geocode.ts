@@ -3,6 +3,8 @@
  * Converts lat/lon to country name + ISO code
  */
 
+import { APP_USER_AGENT } from '@/config/branding';
+
 export interface GeoResult {
   country: string;
   code: string; // ISO 3166-1 alpha-2 (e.g. "IR", "US")
@@ -31,7 +33,7 @@ export async function reverseGeocode(lat: number, lon: number): Promise<GeoResul
   try {
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=3&accept-language=en`;
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'IntelHQ/2.0 (https://intelhq.io)' },
+      headers: { 'User-Agent': APP_USER_AGENT },
     });
     if (!res.ok) {
       cache.set(key, null);

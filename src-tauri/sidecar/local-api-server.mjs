@@ -86,7 +86,7 @@ const ALLOWED_ENV_KEYS = new Set([
   'OTX_API_KEY', 'ABUSEIPDB_API_KEY', 'WINGBITS_API_KEY', 'WS_RELAY_URL',
   'VITE_OPENSKY_RELAY_URL', 'OPENSKY_CLIENT_ID', 'OPENSKY_CLIENT_SECRET',
   'AISSTREAM_API_KEY', 'VITE_WS_RELAY_URL', 'FINNHUB_API_KEY', 'NASA_FIRMS_API_KEY',
-  'OREF_PROXY_URL',
+  'OREF_PROXY_URL', 'OLLAMA_API_URL', 'OLLAMA_MODEL', 'WORLDMONITOR_API_KEY',
 ]);
 
 function json(data, status = 200, extraHeaders = {}) {
@@ -713,6 +713,59 @@ async function dispatch(requestUrl, req, routes, context) {
     }
     return json({ verboseMode });
   }
+  // Registration proxy — forward to cloud (bypasses Vercel bot protection)
+  if (requestUrl.pathname === '/api/register-interest' && req.method === 'POST') {
+    try {
+      const body = await new Promise((resolve, reject) => {
+        const chunks = [];
+        req.on('data', c => chunks.push(c));
+        req.on('end', () => resolve(Buffer.concat(chunks).toString()));
+        req.on('error', reject);
+      });
+      const response = await fetchWithTimeout('https://worldmonitor.app/api/register-interest', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Origin': 'https://worldmonitor.app',
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+        body,
+      }, 15000);
+      const responseBody = await response.text();
+      return new Response(responseBody || '{}', {
+        status: response.status,
+        headers: { 'content-type': 'application/json' },
+      });
+    } catch (e) {
+      return json({ error: 'Registration service unreachable' }, 502);
+    }
+  }
+
+  // RSS proxy — fetch public feeds directly from desktop, no auth needed
+  if (requestUrl.pathname === '/api/rss-proxy') {
+    const feedUrl = requestUrl.searchParams.get('url');
+    if (!feedUrl) return json({ error: 'Missing url parameter' }, 400);
+    try {
+      const parsed = new URL(feedUrl);
+      const response = await fetchWithTimeout(feedUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+      }, parsed.hostname.includes('news.google.com') ? 20000 : 12000);
+      const contentType = response.headers?.get?.('content-type') || 'application/xml';
+      const rssBody = await response.text();
+      return new Response(rssBody || '', {
+        status: response.status,
+        headers: { 'content-type': contentType },
+      });
+    } catch (e) {
+      const isTimeout = e.name === 'AbortError' || e.message?.includes('timeout');
+      return json({ error: isTimeout ? 'Feed timeout' : 'Failed to fetch feed', url: feedUrl }, isTimeout ? 504 : 502);
+    }
+  }
+
   // Token auth — required for env mutations and all API handlers
   const expectedToken = process.env.LOCAL_API_TOKEN;
   if (expectedToken) {
@@ -844,7 +897,8 @@ export async function createLocalApiServer(options = {}) {
     }
 
     const start = Date.now();
-    const skipRecord = requestUrl.pathname === '/api/local-traffic-log'
+    const skipRecord = req.method === 'OPTIONS'
+      || requestUrl.pathname === '/api/local-traffic-log'
       || requestUrl.pathname === '/api/local-debug-toggle'
       || requestUrl.pathname === '/api/local-env-update'
       || requestUrl.pathname === '/api/local-validate-secret';
