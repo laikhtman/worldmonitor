@@ -50,6 +50,8 @@ export const TV_FEATURES = {
   enableDownloadBanner: false,
   /** Mobile warning modal is irrelevant on TV */
   enableMobileWarning: false,
+  /** JSON / CSV / image export is not useful on TV */
+  enableExport: false,
   /** Canvas-based story sharing is too heavy */
   enableStorySharing: false,
   /** Use IPK pacjaging instead of Service Worker */

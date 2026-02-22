@@ -8,6 +8,7 @@
 import type { AppContext } from './app-context';
 import { FEEDS, INTEL_SOURCES, SITE_VARIANT, STORAGE_KEYS } from '@/config';
 import { saveToStorage, getCurrentTheme, setTheme, ExportPanel } from '@/utils';
+import { IS_TV } from '@/utils/tv-detection';
 import { escapeHtml } from '@/utils/sanitize';
 import {
   SearchModal,
@@ -317,6 +318,9 @@ export class UISetupController {
   /* ================================================================ */
 
   setupExportPanel(): void {
+    // TV has no file system / download capability — skip entirely
+    if (IS_TV) return;
+
     this.ctx.exportPanel = new ExportPanel(() => ({
       news: this.ctx.latestClusters.length > 0 ? this.ctx.latestClusters : this.ctx.allNews,
       markets: this.ctx.latestMarkets,

@@ -857,3 +857,19 @@ body.tv-mode .download-banner,
 body.tv-mode .community-banner {
   display: none !important;
 }
+
+/* ============================================================
+   24. Disable all export / download UI on TV
+   ============================================================
+   TV has no file system access — export buttons are non-functional. */
+
+body.tv-mode .export-panel-container,
+body.tv-mode .export-btn,
+body.tv-mode .export-menu,
+body.tv-mode .cb-export-btn,
+body.tv-mode .cb-export-menu,
+body.tv-mode .cb-share-btn,
+body.tv-mode .cb-print-btn,
+body.tv-mode .story-save {
+  display: none !important;
+}
