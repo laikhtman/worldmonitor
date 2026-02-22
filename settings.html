@@ -7,7 +7,19 @@
     <script>(function(){try{var t=localStorage.getItem('worldmonitor-theme');if(t==='light')document.documentElement.dataset.theme='light';}catch(e){}document.documentElement.classList.add('no-transition');})()</script>
   </head>
   <body style="background:#1a1c1e;color:#e8eaed;margin:0">
-    <div class="settings-shell">
+    <!-- Password gate overlay (hidden by default, shown when SETTINGS_PASSWORD is set) -->
+    <div id="settingsPasswordGate" style="display:none;position:fixed;inset:0;z-index:9999;background:#1a1c1e;display:none;align-items:center;justify-content:center">
+      <form id="settingsPasswordForm" autocomplete="off" style="background:#23262a;border-radius:12px;padding:32px 36px;max-width:360px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.5);text-align:center">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#8ab4f8" stroke-width="1.5" style="margin-bottom:12px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/><circle cx="12" cy="16" r="1"/></svg>
+        <h2 style="margin:0 0 6px;font-size:18px;font-weight:500;color:#e8eaed">Settings Protected</h2>
+        <p style="margin:0 0 20px;font-size:13px;color:#9aa0a6">Enter the admin password to continue</p>
+        <input id="settingsPasswordInput" type="password" placeholder="Password" required autocomplete="current-password" style="width:100%;padding:10px 14px;border:1px solid #3c4043;border-radius:8px;background:#1a1c1e;color:#e8eaed;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:12px" />
+        <p id="settingsPasswordError" style="color:#f28b82;font-size:12px;margin:0 0 12px;min-height:16px"></p>
+        <button type="submit" style="width:100%;padding:10px 0;border:none;border-radius:8px;background:#8ab4f8;color:#1a1c1e;font-size:14px;font-weight:500;cursor:pointer">Unlock</button>
+      </form>
+    </div>
+
+    <div class="settings-shell" id="settingsShell">
       <div class="settings-tabs" role="tablist">
         <button class="settings-tab active" role="tab" aria-selected="true" aria-controls="tabPanelWorldMonitor" data-tab="worldmonitor">World Monitor</button>
         <button class="settings-tab" role="tab" aria-selected="false" aria-controls="tabPanelLLMs" data-tab="llms">LLMs</button>
@@ -23,6 +35,7 @@
           <main id="llmApp" class="settings-content"><div style="display:flex;align-items:center;justify-content:center;padding:60px 0;color:#9aa0a6;font-size:14px;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="animation:spin 1s linear infinite"><style>@keyframes spin{to{transform:rotate(360deg)}}</style><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="31 31"/></svg>Loading...</div></main>
         </div>
         <div id="tabPanelKeys" class="settings-tab-panel" role="tabpanel">
+          <div id="envKeyStatusMount"></div>
           <main id="apiKeysApp" class="settings-content"><div style="display:flex;align-items:center;justify-content:center;padding:60px 0;color:#9aa0a6;font-size:14px;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="animation:spin 1s linear infinite"><style>@keyframes spin{to{transform:rotate(360deg)}}</style><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="31 31"/></svg>Loading...</div></main>
         </div>
         <div id="tabPanelDebug" class="settings-tab-panel" role="tabpanel">
