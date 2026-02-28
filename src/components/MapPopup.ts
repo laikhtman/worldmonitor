@@ -1,7 +1,5 @@
-import type { ConflictZone, Hotspot, Earthquake, NewsItem, MilitaryBase, StrategicWaterway, APTGroup, NuclearFacility, EconomicCenter, GammaIrradiator, Pipeline, UnderseaCable, CableAdvisory, RepairShip, InternetOutage, AIDataCenter, AisDisruptionEvent, SocialUnrestEvent, AirportDelayAlert, MilitaryFlight, MilitaryVessel, MilitaryFlightCluster, MilitaryVesselCluster, NaturalEvent, Port, Spaceport, CriticalMineralProject, CyberThreat } from '@/types';
-import type { WeatherAlert } from '@/services/weather';
+import type { ConflictZone, Hotspot, NewsItem, MilitaryBase, StrategicWaterway, APTGroup, NuclearFacility, EconomicCenter, GammaIrradiator, Pipeline, InternetOutage, AisDisruptionEvent, AirportDelayAlert, MilitaryFlight, MilitaryVessel, MilitaryFlightCluster, MilitaryVesselCluster, Port, Spaceport, CyberThreat } from '@/types';
 import type { StartupHub, Accelerator, TechHQ, CloudRegion } from '@/config/tech-geo';
-import type { TechHubActivity } from '@/services/tech-activity';
 import type { GeoHubActivity } from '@/services/geo-activity';
 import { isMobileDevice } from '@/utils';
 import { t } from '@/services/i18n';
@@ -9,31 +7,30 @@ import { fetchHotspotContext } from '@/services/gdelt-intel';
 
 import {
   renderConflictPopup, renderHotspotPopup, renderGdeltArticle,
-  renderEarthquakePopup, renderWeatherPopup, renderNaturalEventPopup,
   renderBasePopup, renderMilitaryFlightPopup, renderMilitaryVesselPopup,
   renderMilitaryFlightClusterPopup, renderMilitaryVesselClusterPopup,
   renderWaterwayPopup, renderAisPopup, renderPortPopup, renderPipelinePopup,
-  renderCablePopup, renderCableAdvisoryPopup, renderRepairShipPopup, renderOutagePopup,
+  renderOutagePopup,
   renderAPTPopup, renderCyberThreatPopup, renderNuclearPopup, renderIrradiatorPopup,
-  renderProtestPopup, renderProtestClusterPopup, renderFlightPopup, renderEconomicPopup,
-  renderDatacenterPopup, renderDatacenterClusterPopup, renderStartupHubPopup,
+  renderFlightPopup, renderEconomicPopup,
+  renderStartupHubPopup,
   renderCloudRegionPopup, renderTechHQPopup, renderAcceleratorPopup,
   renderTechEventPopup, renderTechHQClusterPopup, renderTechEventClusterPopup,
-  renderSpaceportPopup, renderMineralPopup, renderStockExchangePopup,
+  renderSpaceportPopup, renderStockExchangePopup,
   renderFinancialCenterPopup, renderCentralBankPopup, renderCommodityHubPopup,
 } from './popups';
 
 import type {
   TechEventPopupData, TechHQClusterData, TechEventClusterData,
   StockExchangePopupData, FinancialCenterPopupData, CentralBankPopupData,
-  CommodityHubPopupData, ProtestClusterData, DatacenterClusterData,
+  CommodityHubPopupData,
 } from './popups';
 
-export type PopupType = 'conflict' | 'hotspot' | 'earthquake' | 'weather' | 'base' | 'waterway' | 'apt' | 'cyberThreat' | 'nuclear' | 'economic' | 'irradiator' | 'pipeline' | 'cable' | 'cable-advisory' | 'repair-ship' | 'outage' | 'datacenter' | 'datacenterCluster' | 'ais' | 'protest' | 'protestCluster' | 'flight' | 'militaryFlight' | 'militaryVessel' | 'militaryFlightCluster' | 'militaryVesselCluster' | 'natEvent' | 'port' | 'spaceport' | 'mineral' | 'startupHub' | 'cloudRegion' | 'techHQ' | 'accelerator' | 'techEvent' | 'techHQCluster' | 'techEventCluster' | 'techActivity' | 'geoActivity' | 'stockExchange' | 'financialCenter' | 'centralBank' | 'commodityHub';
+export type PopupType = 'conflict' | 'hotspot' | 'base' | 'waterway' | 'apt' | 'cyberThreat' | 'nuclear' | 'economic' | 'irradiator' | 'pipeline' | 'outage' | 'ais' | 'flight' | 'militaryFlight' | 'militaryVessel' | 'militaryFlightCluster' | 'militaryVesselCluster' | 'port' | 'spaceport' | 'startupHub' | 'cloudRegion' | 'techHQ' | 'accelerator' | 'techEvent' | 'techHQCluster' | 'techEventCluster' | 'techActivity' | 'geoActivity' | 'stockExchange' | 'financialCenter' | 'centralBank' | 'commodityHub';
 
 interface PopupData {
   type: PopupType;
-  data: ConflictZone | Hotspot | Earthquake | WeatherAlert | MilitaryBase | StrategicWaterway | APTGroup | CyberThreat | NuclearFacility | EconomicCenter | GammaIrradiator | Pipeline | UnderseaCable | CableAdvisory | RepairShip | InternetOutage | AIDataCenter | AisDisruptionEvent | SocialUnrestEvent | AirportDelayAlert | MilitaryFlight | MilitaryVessel | MilitaryFlightCluster | MilitaryVesselCluster | NaturalEvent | Port | Spaceport | CriticalMineralProject | StartupHub | CloudRegion | TechHQ | Accelerator | TechEventPopupData | TechHQClusterData | TechEventClusterData | ProtestClusterData | DatacenterClusterData | TechHubActivity | GeoHubActivity | StockExchangePopupData | FinancialCenterPopupData | CentralBankPopupData | CommodityHubPopupData;
+  data: ConflictZone | Hotspot | MilitaryBase | StrategicWaterway | APTGroup | CyberThreat | NuclearFacility | EconomicCenter | GammaIrradiator | Pipeline | InternetOutage | AisDisruptionEvent | AirportDelayAlert | MilitaryFlight | MilitaryVessel | MilitaryFlightCluster | MilitaryVesselCluster | Port | Spaceport | StartupHub | CloudRegion | TechHQ | Accelerator | TechEventPopupData | TechHQClusterData | TechEventClusterData | GeoHubActivity | StockExchangePopupData | FinancialCenterPopupData | CentralBankPopupData | CommodityHubPopupData;
   relatedNews?: NewsItem[];
   x: number;
   y: number;
@@ -43,8 +40,6 @@ export class MapPopup {
   private container: HTMLElement;
   private popup: HTMLElement | null = null;
   private onClose?: () => void;
-  private cableAdvisories: CableAdvisory[] = [];
-  private repairShips: RepairShip[] = [];
   private isMobileSheet = false;
   private sheetTouchStartY: number | null = null;
   private sheetCurrentOffset = 0;
@@ -245,21 +240,12 @@ export class MapPopup {
     this.onClose = callback;
   }
 
-  public setCableActivity(advisories: CableAdvisory[], repairShips: RepairShip[]): void {
-    this.cableAdvisories = advisories;
-    this.repairShips = repairShips;
-  }
-
   private renderContent(data: PopupData): string {
     switch (data.type) {
       case 'conflict':
         return renderConflictPopup(data.data as ConflictZone);
       case 'hotspot':
         return renderHotspotPopup(data.data as Hotspot, data.relatedNews);
-      case 'earthquake':
-        return renderEarthquakePopup(data.data as Earthquake);
-      case 'weather':
-        return renderWeatherPopup(data.data as WeatherAlert);
       case 'base':
         return renderBasePopup(data.data as MilitaryBase);
       case 'waterway':
@@ -276,24 +262,10 @@ export class MapPopup {
         return renderIrradiatorPopup(data.data as GammaIrradiator);
       case 'pipeline':
         return renderPipelinePopup(data.data as Pipeline);
-      case 'cable':
-        return renderCablePopup(data.data as UnderseaCable, this.cableAdvisories, this.repairShips);
-      case 'cable-advisory':
-        return renderCableAdvisoryPopup(data.data as CableAdvisory);
-      case 'repair-ship':
-        return renderRepairShipPopup(data.data as RepairShip);
       case 'outage':
         return renderOutagePopup(data.data as InternetOutage);
-      case 'datacenter':
-        return renderDatacenterPopup(data.data as AIDataCenter);
-      case 'datacenterCluster':
-        return renderDatacenterClusterPopup(data.data as DatacenterClusterData);
       case 'ais':
         return renderAisPopup(data.data as AisDisruptionEvent);
-      case 'protest':
-        return renderProtestPopup(data.data as SocialUnrestEvent);
-      case 'protestCluster':
-        return renderProtestClusterPopup(data.data as ProtestClusterData);
       case 'flight':
         return renderFlightPopup(data.data as AirportDelayAlert);
       case 'militaryFlight':
@@ -304,14 +276,10 @@ export class MapPopup {
         return renderMilitaryFlightClusterPopup(data.data as MilitaryFlightCluster);
       case 'militaryVesselCluster':
         return renderMilitaryVesselClusterPopup(data.data as MilitaryVesselCluster);
-      case 'natEvent':
-        return renderNaturalEventPopup(data.data as NaturalEvent);
       case 'port':
         return renderPortPopup(data.data as Port);
       case 'spaceport':
         return renderSpaceportPopup(data.data as Spaceport);
-      case 'mineral':
-        return renderMineralPopup(data.data as CriticalMineralProject);
       case 'startupHub':
         return renderStartupHubPopup(data.data as StartupHub);
       case 'cloudRegion':

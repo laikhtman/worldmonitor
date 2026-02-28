@@ -235,7 +235,7 @@ export class App implements AppContext {
     if (this.initialUrlState.layers) {
       // For tech variant, filter out geopolitical layers from URL
       if (currentVariant === 'tech') {
-        const geoLayers: (keyof MapLayers)[] = ['conflicts', 'bases', 'hotspots', 'nuclear', 'irradiators', 'sanctions', 'military', 'protests', 'pipelines', 'waterways', 'ais', 'flights', 'spaceports', 'minerals'];
+        const geoLayers: (keyof MapLayers)[] = ['conflicts', 'bases', 'hotspots', 'nuclear', 'irradiators', 'sanctions', 'military', 'pipelines', 'waterways', 'ais', 'flights', 'spaceports'];
         const urlLayers = this.initialUrlState.layers;
         geoLayers.forEach(layer => {
           urlLayers[layer] = false;
@@ -397,17 +397,13 @@ export class App implements AppContext {
     this.refreshScheduler.setupRefreshIntervals({
       loadNews: () => this.dataLoader.loadNews(),
       loadMarkets: () => this.dataLoader.loadMarkets(),
-      loadPredictions: () => this.dataLoader.loadPredictions(),
       loadPizzInt: () => this.dataLoader.loadPizzInt(),
-      loadNatural: () => this.dataLoader.loadNatural(),
-      loadWeatherAlerts: () => this.dataLoader.loadWeatherAlerts(),
       loadFredData: () => this.dataLoader.loadFredData(),
       loadOilAnalytics: () => this.dataLoader.loadOilAnalytics(),
       loadGovernmentSpending: () => this.dataLoader.loadGovernmentSpending(),
       loadIntelligenceSignals: () => this.dataLoader.loadIntelligenceSignals(),
       loadFirmsData: () => this.dataLoader.loadFirmsData(),
       loadAisSignals: () => this.dataLoader.loadAisSignals(),
-      loadCableActivity: () => this.dataLoader.loadCableActivity(),
       loadFlightDelays: () => this.dataLoader.loadFlightDelays(),
       loadCyberThreats: () => this.dataLoader.loadCyberThreats(),
     });

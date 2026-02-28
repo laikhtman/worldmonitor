@@ -1,10 +1,10 @@
 export const SITE_VARIANT: string = (() => {
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem('intelhq-variant');
-    if (stored === 'tech' || stored === 'full' || stored === 'finance' || stored === 'tv') return stored;
+    if (stored === 'full' || stored === 'tv') return stored;
   }
   const envVariant = import.meta.env.VITE_VARIANT;
-  if (envVariant) return envVariant;
+  if (envVariant === 'full' || envVariant === 'tv') return envVariant;
 
   // Auto-detect webOS TV runtime when no variant is explicitly set
   if (typeof window !== 'undefined' && (

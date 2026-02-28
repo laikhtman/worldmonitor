@@ -9,7 +9,6 @@ import { renderStoryToCanvas } from '@/services/story-renderer';
 import { openStoryModal } from '@/components/StoryModal';
 import { reverseGeocode } from '@/utils/reverse-geocode';
 import { getCountryAtCoordinates, hasCountryGeometry, isCoordinateInCountry } from '@/services/country-geometry';
-import { fetchCountryMarkets } from '@/services/polymarket';
 import { mlWorker } from '@/services/ml-worker';
 import { dataFreshness } from '@/services/data-freshness';
 import { t } from '@/services/i18n';
@@ -245,14 +244,6 @@ export class CountryIntelController {
       if (this.ctx.countryBriefPage?.getCode() === code) this.ctx.countryBriefPage.updateStock(stock);
     });
 
-    fetchCountryMarkets(country)
-      .then((markets) => {
-        if (this.ctx.countryBriefPage?.getCode() === code) this.ctx.countryBriefPage.updateMarkets(markets);
-      })
-      .catch(() => {
-        if (this.ctx.countryBriefPage?.getCode() === code) this.ctx.countryBriefPage.updateMarkets([]);
-      });
-
     // Pass evidence headlines
     const searchTerms = CountryIntelController.getCountrySearchTerms(country, code);
     const otherCountryTerms = CountryIntelController.getOtherCountryTerms(code);
@@ -274,7 +265,7 @@ export class CountryIntelController {
     this.ctx.countryBriefPage.updateInfrastructure(code);
 
     // Timeline
-    this.mountCountryTimeline(code, country);
+    this.mountCountryTimeline(code);
 
     try {
       const context: Record<string, unknown> = {};
@@ -337,11 +328,9 @@ export class CountryIntelController {
         } else {
           const lines: string[] = [];
           if (score) lines.push(t('countryBrief.fallback.instabilityIndex', { score: String(score.score), level: t(`countryBrief.levels.${score.level}`), trend: t(`countryBrief.trends.${score.trend}`) }));
-          if (signals.protests > 0) lines.push(t('countryBrief.fallback.protestsDetected', { count: String(signals.protests) }));
           if (signals.militaryFlights > 0) lines.push(t('countryBrief.fallback.aircraftTracked', { count: String(signals.militaryFlights) }));
           if (signals.militaryVessels > 0) lines.push(t('countryBrief.fallback.vesselsTracked', { count: String(signals.militaryVessels) }));
           if (signals.outages > 0) lines.push(t('countryBrief.fallback.internetOutages', { count: String(signals.outages) }));
-          if (signals.earthquakes > 0) lines.push(t('countryBrief.fallback.recentEarthquakes', { count: String(signals.earthquakes) }));
           if (context.stockIndex) lines.push(t('countryBrief.fallback.stockIndex', { value: context.stockIndex }));
           if (briefHeadlines.length > 0) {
             lines.push('', t('countryBrief.fallback.recentHeadlines'));
@@ -360,7 +349,7 @@ export class CountryIntelController {
     }
   }
 
-  mountCountryTimeline(code: string, country: string): void {
+  mountCountryTimeline(code: string): void {
     this.ctx.countryTimeline?.destroy();
     this.ctx.countryTimeline = null;
 
@@ -368,36 +357,8 @@ export class CountryIntelController {
     if (!mount) return;
 
     const events: TimelineEvent[] = [];
-    const countryLower = country.toLowerCase();
     const hasGeoShape = hasCountryGeometry(code) || !!CountryIntelController.COUNTRY_BOUNDS[code];
-    const inCountry = (lat: number, lon: number) => hasGeoShape && this.isInCountry(lat, lon, code);
     const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-
-    if (this.ctx.intelligenceCache.protests?.events) {
-      for (const e of this.ctx.intelligenceCache.protests.events) {
-        if (e.country?.toLowerCase() === countryLower || inCountry(e.lat, e.lon)) {
-          events.push({
-            timestamp: new Date(e.time).getTime(),
-            lane: 'protest',
-            label: e.title || `${e.eventType} in ${e.city || e.country}`,
-            severity: e.severity === 'high' ? 'high' : e.severity === 'medium' ? 'medium' : 'low',
-          });
-        }
-      }
-    }
-
-    if (this.ctx.intelligenceCache.earthquakes) {
-      for (const eq of this.ctx.intelligenceCache.earthquakes) {
-        if (inCountry(eq.lat, eq.lon) || eq.place?.toLowerCase().includes(countryLower)) {
-          events.push({
-            timestamp: new Date(eq.time).getTime(),
-            lane: 'natural',
-            label: `M${eq.magnitude.toFixed(1)} ${eq.place}`,
-            severity: eq.magnitude >= 6 ? 'critical' : eq.magnitude >= 5 ? 'high' : eq.magnitude >= 4 ? 'medium' : 'low',
-          });
-        }
-      }
-    }
 
     if (this.ctx.intelligenceCache.military) {
       for (const f of this.ctx.intelligenceCache.military.flights) {
@@ -450,13 +411,6 @@ export class CountryIntelController {
     const countryLower = country.toLowerCase();
     const hasGeoShape = hasCountryGeometry(code) || !!CountryIntelController.COUNTRY_BOUNDS[code];
 
-    let protests = 0;
-    if (this.ctx.intelligenceCache.protests?.events) {
-      protests = this.ctx.intelligenceCache.protests.events.filter((e) =>
-        e.country?.toLowerCase() === countryLower || (hasGeoShape && this.isInCountry(e.lat, e.lon, code))
-      ).length;
-    }
-
     let militaryFlights = 0;
     let militaryVessels = 0;
     if (this.ctx.intelligenceCache.military) {
@@ -475,25 +429,14 @@ export class CountryIntelController {
       ).length;
     }
 
-    let earthquakes = 0;
-    if (this.ctx.intelligenceCache.earthquakes) {
-      earthquakes = this.ctx.intelligenceCache.earthquakes.filter((eq) => {
-        if (hasGeoShape) return this.isInCountry(eq.lat, eq.lon, code);
-        return eq.place?.toLowerCase().includes(countryLower);
-      }).length;
-    }
-
     const ciiData = getCountryData(code);
     const isTier1 = !!TIER1_COUNTRIES[code];
 
     return {
-      protests,
       militaryFlights,
       militaryVessels,
       outages,
-      earthquakes,
       displacementOutflow: ciiData?.displacementOutflow ?? 0,
-      climateStress: ciiData?.climateStress ?? 0,
       conflictEvents: ciiData?.conflicts?.length ?? 0,
       isTier1,
     };

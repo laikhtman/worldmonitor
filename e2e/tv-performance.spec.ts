@@ -74,7 +74,7 @@ test.describe('TV Performance', () => {
     await gotoTV(page);
     await page.waitForTimeout(3_000);
 
-    // Check that heavy layers (cables, pipelines, displacement) are not rendered
+    // Check that heavy layers are not rendered
     const layerInfo = await page.evaluate(() => {
       // deck.gl canvas reports layers via MapboxOverlay
       const canvases = document.querySelectorAll('canvas');

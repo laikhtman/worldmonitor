@@ -22,7 +22,6 @@ const SECTOR_LABELS: Record<GulfInvestmentSector, string> = {
   ports: 'Ports',
   pipelines: 'Pipelines',
   energy: 'Energy',
-  datacenters: 'Data Centers',
   airports: 'Airports',
   railways: 'Railways',
   telecoms: 'Telecoms',

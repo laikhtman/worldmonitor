@@ -21,9 +21,8 @@ import {
 import type { SearchResult } from '@/components/SearchModal';
 import type { MapView } from '@/components';
 import type { NewsItem } from '@/types';
-import { INTEL_HOTSPOTS, CONFLICT_ZONES, MILITARY_BASES, UNDERSEA_CABLES, NUCLEAR_FACILITIES } from '@/config/geo';
+import { INTEL_HOTSPOTS, CONFLICT_ZONES, MILITARY_BASES, NUCLEAR_FACILITIES } from '@/config/geo';
 import { PIPELINES } from '@/config/pipelines';
-import { AI_DATA_CENTERS } from '@/config/ai-datacenters';
 import { GAMMA_IRRADIATORS } from '@/config/irradiators';
 import { TECH_COMPANIES } from '@/config/tech-companies';
 import { AI_RESEARCH_LABS } from '@/config/ai-research-labs';
@@ -395,20 +394,6 @@ export class UISetupController {
         data: s,
       })));
 
-      this.ctx.searchModal.registerSource('datacenter', AI_DATA_CENTERS.map(d => ({
-        id: d.id,
-        title: d.name,
-        subtitle: `${d.owner} ${d.chipType || ''}`.trim(),
-        data: d,
-      })));
-
-      this.ctx.searchModal.registerSource('cable', UNDERSEA_CABLES.map(c => ({
-        id: c.id,
-        title: c.name,
-        subtitle: c.major ? 'Major internet backbone' : 'Undersea cable',
-        data: c,
-      })));
-
       // Register Tech HQs (unicorns, FAANG, public companies from map)
       this.ctx.searchModal.registerSource('techhq', TECH_HQS.map(h => ({
         id: h.id,
@@ -452,20 +437,6 @@ export class UISetupController {
         title: p.name,
         subtitle: `${p.type} ${p.operator || ''} ${p.countries?.join(' ') || ''}`.trim(),
         data: p,
-      })));
-
-      this.ctx.searchModal.registerSource('cable', UNDERSEA_CABLES.map(c => ({
-        id: c.id,
-        title: c.name,
-        subtitle: c.major ? 'Major cable' : '',
-        data: c,
-      })));
-
-      this.ctx.searchModal.registerSource('datacenter', AI_DATA_CENTERS.map(d => ({
-        id: d.id,
-        title: d.name,
-        subtitle: `${d.owner} ${d.chipType || ''}`.trim(),
-        data: d,
       })));
 
       this.ctx.searchModal.registerSource('nuclear', NUCLEAR_FACILITIES.map(n => ({
@@ -592,26 +563,6 @@ export class UISetupController {
         }, 300);
         break;
       }
-      case 'cable': {
-        const cable = result.data as typeof UNDERSEA_CABLES[0];
-        this.ctx.map?.setView('global');
-        this.ctx.map?.enableLayer('cables');
-        this.ctx.mapLayers.cables = true;
-        setTimeout(() => {
-          this.ctx.map?.triggerCableClick(cable.id);
-        }, 300);
-        break;
-      }
-      case 'datacenter': {
-        const dc = result.data as typeof AI_DATA_CENTERS[0];
-        this.ctx.map?.setView('global');
-        this.ctx.map?.enableLayer('datacenters');
-        this.ctx.mapLayers.datacenters = true;
-        setTimeout(() => {
-          this.ctx.map?.triggerDatacenterClick(dc.id);
-        }, 300);
-        break;
-      }
       case 'nuclear': {
         const nuc = result.data as typeof NUCLEAR_FACILITIES[0];
         this.ctx.map?.setView('global');
@@ -632,101 +583,15 @@ export class UISetupController {
         }, 300);
         break;
       }
-      case 'earthquake':
       case 'outage':
         // These are dynamic, just switch to map view
         this.ctx.map?.setView('global');
         break;
-      case 'techcompany': {
-        const company = result.data as typeof TECH_COMPANIES[0];
-        this.ctx.map?.setView('global');
-        this.ctx.map?.enableLayer('techHQs');
-        this.ctx.mapLayers.techHQs = true;
-        setTimeout(() => {
-          this.ctx.map?.setCenter(company.lat, company.lon, 4);
-        }, 300);
-        break;
-      }
       case 'ailab': {
         const lab = result.data as typeof AI_RESEARCH_LABS[0];
         this.ctx.map?.setView('global');
         setTimeout(() => {
           this.ctx.map?.setCenter(lab.lat, lab.lon, 4);
-        }, 300);
-        break;
-      }
-      case 'startup': {
-        const ecosystem = result.data as typeof STARTUP_ECOSYSTEMS[0];
-        this.ctx.map?.setView('global');
-        this.ctx.map?.enableLayer('startupHubs');
-        this.ctx.mapLayers.startupHubs = true;
-        setTimeout(() => {
-          this.ctx.map?.setCenter(ecosystem.lat, ecosystem.lon, 4);
-        }, 300);
-        break;
-      }
-      case 'techevent':
-        this.ctx.map?.setView('global');
-        this.ctx.map?.enableLayer('techEvents');
-        this.ctx.mapLayers.techEvents = true;
-        break;
-      case 'techhq': {
-        const hq = result.data as typeof TECH_HQS[0];
-        this.ctx.map?.setView('global');
-        this.ctx.map?.enableLayer('techHQs');
-        this.ctx.mapLayers.techHQs = true;
-        setTimeout(() => {
-          this.ctx.map?.setCenter(hq.lat, hq.lon, 4);
-        }, 300);
-        break;
-      }
-      case 'accelerator': {
-        const acc = result.data as typeof ACCELERATORS[0];
-        this.ctx.map?.setView('global');
-        this.ctx.map?.enableLayer('accelerators');
-        this.ctx.mapLayers.accelerators = true;
-        setTimeout(() => {
-          this.ctx.map?.setCenter(acc.lat, acc.lon, 4);
-        }, 300);
-        break;
-      }
-      case 'exchange': {
-        const exchange = result.data as typeof STOCK_EXCHANGES[0];
-        this.ctx.map?.setView('global');
-        this.ctx.map?.enableLayer('stockExchanges');
-        this.ctx.mapLayers.stockExchanges = true;
-        setTimeout(() => {
-          this.ctx.map?.setCenter(exchange.lat, exchange.lon, 4);
-        }, 300);
-        break;
-      }
-      case 'financialcenter': {
-        const fc = result.data as typeof FINANCIAL_CENTERS[0];
-        this.ctx.map?.setView('global');
-        this.ctx.map?.enableLayer('financialCenters');
-        this.ctx.mapLayers.financialCenters = true;
-        setTimeout(() => {
-          this.ctx.map?.setCenter(fc.lat, fc.lon, 4);
-        }, 300);
-        break;
-      }
-      case 'centralbank': {
-        const bank = result.data as typeof CENTRAL_BANKS[0];
-        this.ctx.map?.setView('global');
-        this.ctx.map?.enableLayer('centralBanks');
-        this.ctx.mapLayers.centralBanks = true;
-        setTimeout(() => {
-          this.ctx.map?.setCenter(bank.lat, bank.lon, 4);
-        }, 300);
-        break;
-      }
-      case 'commodityhub': {
-        const hub = result.data as typeof COMMODITY_HUBS[0];
-        this.ctx.map?.setView('global');
-        this.ctx.map?.enableLayer('commodityHubs');
-        this.ctx.mapLayers.commodityHubs = true;
-        setTimeout(() => {
-          this.ctx.map?.setCenter(hub.lat, hub.lon, 4);
         }, 300);
         break;
       }

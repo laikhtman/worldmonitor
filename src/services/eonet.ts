@@ -40,7 +40,6 @@ const CATEGORY_ICONS: Record<NaturalEventCategory, string> = {
   severeStorms: '🌀',
   wildfires: '🔥',
   volcanoes: '🌋',
-  earthquakes: '🔴',
   floods: '🌊',
   landslides: '⛰️',
   drought: '☀️',
@@ -60,7 +59,6 @@ export function getNaturalEventIcon(category: NaturalEventCategory): string {
 const WILDFIRE_MAX_AGE_MS = 48 * 60 * 60 * 1000;
 
 const GDACS_TO_CATEGORY: Record<string, NaturalEventCategory> = {
-  EQ: 'earthquakes',
   FL: 'floods',
   TC: 'severeStorms',
   VO: 'volcanoes',
@@ -92,7 +90,10 @@ export async function fetchNaturalEvents(days = 30): Promise<NaturalEvent[]> {
   ]);
 
   console.log(`[NaturalEvents] EONET: ${eonetEvents.length}, GDACS: ${gdacsEvents.length}`);
-  const gdacsConverted = gdacsEvents.map(convertGDACSToNaturalEvent);
+  // Skip earthquakes here; seismic events are handled elsewhere.
+  const gdacsConverted = gdacsEvents
+    .filter(event => event.eventType !== 'EQ')
+    .map(convertGDACSToNaturalEvent);
   const seenLocations = new Set<string>();
   const merged: NaturalEvent[] = [];
 

@@ -48,42 +48,23 @@ const TV_PANELS: Record<string, PanelConfig> = {
 const TV_MAP_LAYERS: MapLayers = {
   conflicts: true,
   bases: false,
-  cables: false,
   pipelines: false,
   hotspots: true,
   ais: false,
   nuclear: false,
   irradiators: false,
   sanctions: true,
-  weather: true,
   economic: false,
   waterways: false,
   outages: true,
   cyberThreats: false,
-  datacenters: false,
-  protests: false,
   flights: false,
   military: false,
-  natural: true,
   spaceports: false,
-  minerals: false,
   fires: false,
   // Data source layers
   ucdpEvents: false,
   displacement: false,
-  climate: false,
-  // Tech layers (disabled on TV)
-  startupHubs: false,
-  cloudRegions: false,
-  accelerators: false,
-  techHQs: false,
-  techEvents: false,
-  // Finance layers (disabled on TV)
-  stockExchanges: false,
-  financialCenters: false,
-  centralBanks: false,
-  commodityHubs: false,
-  gulfInvestments: false,
 };
 
 // ============================================

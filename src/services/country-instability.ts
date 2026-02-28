@@ -1,11 +1,11 @@
-import type { SocialUnrestEvent, MilitaryFlight, MilitaryVessel, ClusteredEvent, InternetOutage } from '@/types';
+import type { MilitaryFlight, MilitaryVessel, ClusteredEvent, InternetOutage } from '@/types';
 import { INTEL_HOTSPOTS, CONFLICT_ZONES, STRATEGIC_WATERWAYS } from '@/config/geo';
 import { TIER1_COUNTRIES } from '@/config/countries';
 import { focalPointDetector } from './focal-point-detector';
 import type { ConflictEvent } from './conflicts';
 import type { UcdpConflictStatus } from './ucdp';
 import type { HapiConflictSummary } from './hapi';
-import type { CountryDisplacement, ClimateAnomaly } from '@/types';
+import type { CountryDisplacement } from '@/types';
 import { getCountryAtCoordinates } from './country-geometry';
 import {
   CII_COMPONENT_WEIGHTS, CII_BLEND, CII_UNREST, CII_CONFLICT, CII_SECURITY,
@@ -32,7 +32,6 @@ export interface ComponentScores {
 }
 
 interface CountryData {
-  protests: SocialUnrestEvent[];
   conflicts: ConflictEvent[];
   ucdpStatus: UcdpConflictStatus | null;
   hapiSummary: HapiConflictSummary | null;
@@ -41,7 +40,6 @@ interface CountryData {
   newsEvents: ClusteredEvent[];
   outages: InternetOutage[];
   displacementOutflow: number;
-  climateStress: number;
 }
 
 // Re-export for backwards compatibility
@@ -153,19 +151,19 @@ const BASELINE_RISK: Record<string, number> = {
 // Higher = each event is more significant (authoritarian states where events are suppressed)
 // Lower = events are common/expected (open democracies with high media coverage)
 const EVENT_MULTIPLIER: Record<string, number> = {
-  US: 0.3,  // Many protests normal, over-reported
-  RU: 2.0,  // Protests rare and significant
-  CN: 2.5,  // Any protest is major (heavily suppressed)
+  US: 0.3,  // High media coverage inflates event counts
+  RU: 2.0,  // Suppressed reporting; events more significant
+  CN: 2.5,  // Heavily suppressed reporting
   UA: 0.8,  // War context, events expected
-  IR: 2.0,  // Protests suppressed, significant when occur
+  IR: 2.0,  // Suppressed reporting
   IL: 0.7,  // Frequent conflict, well-documented
   TW: 1.5,  // Events significant
   KP: 3.0,  // Almost no reporting, any event = major
   SA: 2.0,  // Suppressed
   TR: 1.2,  // Some suppression
   PL: 0.8,  // Open democracy
-  DE: 0.5,  // Protests normal
-  FR: 0.6,  // Protests common
+  DE: 0.5,  // High reporting volume
+  FR: 0.6,  // High reporting volume
   GB: 0.5,  // Open democracy
   IN: 0.8,  // Large democracy, many events
   PK: 1.5,  // Some suppression
@@ -181,7 +179,7 @@ const countryDataMap = new Map<string, CountryData>();
 const previousScores = new Map<string, number>();
 
 function initCountryData(): CountryData {
-  return { protests: [], conflicts: [], ucdpStatus: null, hapiSummary: null, militaryFlights: [], militaryVessels: [], newsEvents: [], outages: [], displacementOutflow: 0, climateStress: 0 };
+  return { conflicts: [], ucdpStatus: null, hapiSummary: null, militaryFlights: [], militaryVessels: [], newsEvents: [], outages: [], displacementOutflow: 0 };
 }
 
 export function clearCountryData(): void {
@@ -209,16 +207,6 @@ function normalizeCountryName(name: string): string | null {
     if (lower.includes(countryName.toLowerCase())) return code;
   }
   return null;
-}
-
-export function ingestProtestsForCII(events: SocialUnrestEvent[]): void {
-  for (const e of events) {
-    const code = normalizeCountryName(e.country);
-    if (!code || !TIER1_COUNTRIES[code]) continue;
-    if (!countryDataMap.has(code)) countryDataMap.set(code, initCountryData());
-    countryDataMap.get(code)!.protests.push(e);
-    trackHotspotActivity(e.lat, e.lon, e.severity === 'high' ? 2 : 1);
-  }
 }
 
 export function ingestConflictsForCII(events: ConflictEvent[]): void {
@@ -277,28 +265,6 @@ export function ingestDisplacementForCII(countries: CountryDisplacement[]): void
     if (!countryDataMap.has(code)) countryDataMap.set(code, initCountryData());
     const outflow = c.refugees + c.asylumSeekers;
     countryDataMap.get(code)!.displacementOutflow = outflow;
-  }
-}
-
-const ZONE_COUNTRY_MAP: Record<string, string[]> = {
-  'Ukraine': ['UA'], 'Middle East': ['IR', 'IL', 'SA', 'SY', 'YE'],
-  'South Asia': ['PK', 'IN'], 'Myanmar': ['MM'],
-};
-
-export function ingestClimateForCII(anomalies: ClimateAnomaly[]): void {
-  for (const data of countryDataMap.values()) {
-    data.climateStress = 0;
-  }
-
-  for (const a of anomalies) {
-    if (a.severity === 'normal') continue;
-    const codes = ZONE_COUNTRY_MAP[a.zone] || [];
-    for (const code of codes) {
-      if (!TIER1_COUNTRIES[code]) continue;
-      if (!countryDataMap.has(code)) countryDataMap.set(code, initCountryData());
-      const stress = a.severity === 'extreme' ? CII_BOOSTS.climateExtreme : CII_BOOSTS.climateModerate;
-      countryDataMap.get(code)!.climateStress = Math.max(countryDataMap.get(code)!.climateStress, stress);
-    }
   }
 }
 
@@ -481,32 +447,9 @@ export function ingestOutagesForCII(outages: InternetOutage[]): void {
 }
 
 function calcUnrestScore(data: CountryData, countryCode: string): number {
-  const protestCount = data.protests.length;
-  const multiplier = EVENT_MULTIPLIER[countryCode] ?? 1.0;
+  void countryCode;
 
-  let baseScore = 0;
-  let fatalityBoost = 0;
-  let severityBoost = 0;
-
-  if (protestCount > 0) {
-    const fatalities = data.protests.reduce((sum, p) => sum + (p.fatalities || 0), 0);
-    const highSeverity = data.protests.filter(p => p.severity === 'high').length;
-
-    // For democracies with frequent protests (low multiplier), use log scaling
-    // This prevents routine protests from triggering instability alerts
-    const isHighVolume = multiplier < CII_HIGH_VOLUME_THRESHOLD;
-    const adjustedCount = isHighVolume
-      ? Math.log2(protestCount + 1) * multiplier * CII_UNREST.logScaleMultiplier
-      : protestCount * multiplier;
-
-    baseScore = Math.min(CII_UNREST.baseScoreCap, adjustedCount * CII_UNREST.baseScoreMultiplier);
-
-    // Fatalities and high severity always matter, but scaled by multiplier
-    fatalityBoost = Math.min(CII_UNREST.fatalityBoostCap, fatalities * CII_UNREST.fatalityMultiplier * multiplier);
-    severityBoost = Math.min(CII_UNREST.severityBoostCap, highSeverity * CII_UNREST.severityMultiplier * multiplier);
-  }
-
-  // Internet outages are a MAJOR signal of instability
+  // Internet outages are a major signal of instability
   // Governments cut internet during crackdowns, conflicts, coups
   let outageBoost = 0;
   if (data.outages.length > 0) {
@@ -521,7 +464,7 @@ function calcUnrestScore(data: CountryData, countryCode: string): number {
       totalOutages * CII_UNREST.outageTotal + majorOutages * CII_UNREST.outageMajor + partialOutages * CII_UNREST.outagePartial);
   }
 
-  return Math.min(100, baseScore + fatalityBoost + severityBoost + outageBoost);
+  return Math.min(100, outageBoost);
 }
 
 function calcConflictScore(data: CountryData, countryCode: string): number {
@@ -645,9 +588,8 @@ export function calculateCII(): CountryScore[] {
     const displacementBoost = data.displacementOutflow >= CII_BOOSTS.displacementLarge.threshold ? CII_BOOSTS.displacementLarge.boost
       : data.displacementOutflow >= CII_BOOSTS.displacementMedium.threshold ? CII_BOOSTS.displacementMedium.boost
       : 0;
-    const climateBoost = data.climateStress;
 
-    const blendedScore = baselineRisk * CII_BLEND.baseline + eventScore * CII_BLEND.events + hotspotBoost + newsUrgencyBoost + focalBoost + displacementBoost + climateBoost;
+    const blendedScore = baselineRisk * CII_BLEND.baseline + eventScore * CII_BLEND.events + hotspotBoost + newsUrgencyBoost + focalBoost + displacementBoost;
 
     // UCDP-derived conflict floor replaces hardcoded floors
     // war (1000+ deaths/yr) → 70, minor (25-999) → 50, none → 0
@@ -701,8 +643,7 @@ export function getCountryScore(code: string): number | null {
   const displacementBoost = data.displacementOutflow >= CII_BOOSTS.displacementLarge.threshold ? CII_BOOSTS.displacementLarge.boost
     : data.displacementOutflow >= CII_BOOSTS.displacementMedium.threshold ? CII_BOOSTS.displacementMedium.boost
     : 0;
-  const climateBoost = data.climateStress;
-  const blendedScore = baselineRisk * CII_BLEND.baseline + eventScore * CII_BLEND.events + hotspotBoost + newsUrgencyBoost + focalBoost + displacementBoost + climateBoost;
+  const blendedScore = baselineRisk * CII_BLEND.baseline + eventScore * CII_BLEND.events + hotspotBoost + newsUrgencyBoost + focalBoost + displacementBoost;
 
   const floor = getUcdpFloor(data);
   return Math.round(Math.min(100, Math.max(floor, blendedScore)));

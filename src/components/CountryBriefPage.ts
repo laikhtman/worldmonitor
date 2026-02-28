@@ -47,8 +47,6 @@ export class CountryBriefPage {
 
   private static INFRA_ICONS: Record<BriefAssetType, string> = {
     pipeline: '\u{1F50C}',
-    cable: '\u{1F310}',
-    datacenter: '\u{1F5A5}\uFE0F',
     base: '\u{1F3DB}\uFE0F',
     nuclear: '\u2622\uFE0F',
     port: '\u2693',
@@ -56,8 +54,6 @@ export class CountryBriefPage {
 
   private static INFRA_LABELS: Record<BriefAssetType, string> = {
     pipeline: 'pipeline',
-    cable: 'cable',
-    datacenter: 'datacenter',
     base: 'base',
     nuclear: 'nuclear',
     port: 'port',
@@ -169,18 +165,15 @@ export class CountryBriefPage {
 
   private signalChips(signals: CountryBriefSignals): string {
     const chips: string[] = [];
-    if (signals.protests > 0) chips.push(`<span class="signal-chip protest">📢 ${signals.protests} ${t('modals.countryBrief.signals.protests')}</span>`);
     if (signals.militaryFlights > 0) chips.push(`<span class="signal-chip military">✈️ ${signals.militaryFlights} ${t('modals.countryBrief.signals.militaryAir')}</span>`);
     if (signals.militaryVessels > 0) chips.push(`<span class="signal-chip military">⚓ ${signals.militaryVessels} ${t('modals.countryBrief.signals.militarySea')}</span>`);
     if (signals.outages > 0) chips.push(`<span class="signal-chip outage">🌐 ${signals.outages} ${t('modals.countryBrief.signals.outages')}</span>`);
-    if (signals.earthquakes > 0) chips.push(`<span class="signal-chip quake">🌍 ${signals.earthquakes} ${t('modals.countryBrief.signals.earthquakes')}</span>`);
     if (signals.displacementOutflow > 0) {
       const fmt = signals.displacementOutflow >= 1_000_000
         ? `${(signals.displacementOutflow / 1_000_000).toFixed(1)}M`
         : `${(signals.displacementOutflow / 1000).toFixed(0)}K`;
       chips.push(`<span class="signal-chip displacement">🌊 ${fmt} ${t('modals.countryBrief.signals.displaced')}</span>`);
     }
-    if (signals.climateStress > 0) chips.push(`<span class="signal-chip climate">🌡️ ${t('modals.countryBrief.signals.climate')}</span>`);
     if (signals.conflictEvents > 0) chips.push(`<span class="signal-chip conflict">⚔️ ${signals.conflictEvents} ${t('modals.countryBrief.signals.conflictEvents')}</span>`);
     chips.push(`<span class="signal-chip stock-loading">📈 ${t('modals.countryBrief.loadingIndex')}</span>`);
     return chips.join('');
@@ -490,7 +483,7 @@ export class CountryBriefPage {
     const centroidLat = (bounds.n + bounds.s) / 2;
     const centroidLon = (bounds.e + bounds.w) / 2;
 
-    const assets = getNearbyInfrastructure(centroidLat, centroidLon, ['pipeline', 'cable', 'datacenter', 'base', 'nuclear']);
+    const assets = getNearbyInfrastructure(centroidLat, centroidLon, ['pipeline', 'base', 'nuclear']);
 
     const nearbyPorts = PORTS
       .map((p: Port) => ({ port: p, dist: haversineDistanceKm(centroidLat, centroidLon, p.lat, p.lon) }))
@@ -514,7 +507,7 @@ export class CountryBriefPage {
     const content = this.overlay.querySelector('.cb-infra-content');
     if (!section || !content) return;
 
-    const order: BriefAssetType[] = ['pipeline', 'cable', 'datacenter', 'base', 'nuclear', 'port'];
+    const order: BriefAssetType[] = ['pipeline', 'base', 'nuclear', 'port'];
     let html = '';
     for (const type of order) {
       const items = grouped.get(type);
@@ -590,13 +583,10 @@ export class CountryBriefPage {
     }
     if (this.currentSignals) {
       data.signals = {
-        protests: this.currentSignals.protests,
         militaryFlights: this.currentSignals.militaryFlights,
         militaryVessels: this.currentSignals.militaryVessels,
         outages: this.currentSignals.outages,
-        earthquakes: this.currentSignals.earthquakes,
         displacementOutflow: this.currentSignals.displacementOutflow,
-        climateStress: this.currentSignals.climateStress,
         conflictEvents: this.currentSignals.conflictEvents,
       };
     }

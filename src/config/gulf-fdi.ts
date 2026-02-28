@@ -533,24 +533,6 @@ export const GULF_INVESTMENTS: GulfInvestment[] = [
     description: "PIF's $100B electronics and technology manufacturing venture. Aims to build domestic semiconductor, consumer electronics, and EV capabilities in Saudi Arabia.",
     tags: ['Manufacturing', 'Technology', 'Vision 2030', 'Semiconductors'],
   },
-  {
-    id: 'pif-datacenter-cloud-sa',
-    investingEntity: 'PIF',
-    investingCountry: 'SA',
-    targetCountry: 'Saudi Arabia',
-    targetCountryIso: 'SA',
-    sector: 'datacenters',
-    assetType: 'Data Center Zone',
-    assetName: 'Saudi National Cloud / Hyperscale DC',
-    lat: 24.688, lon: 46.724,
-    investmentUSD: 6000,
-    stakePercent: 100,
-    status: 'under-construction',
-    yearAnnounced: 2022,
-    yearOperational: 2026,
-    description: 'PIF-funded national cloud and hyperscale data center infrastructure as part of Vision 2030 digital economy strategy. Partnerships with Google, Microsoft, AWS.',
-    tags: ['Digital infrastructure', 'Cloud', 'Vision 2030'],
-  },
 
   // ─── NEOM (SAUDI ARABIA) ──────────────────────────────────────────────────
 

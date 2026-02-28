@@ -1,7 +1,7 @@
 export type ThreatLevel = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
 export type EventCategory =
-  | 'conflict' | 'protest' | 'disaster' | 'diplomatic' | 'economic'
+  | 'conflict' | 'disaster' | 'diplomatic' | 'economic'
   | 'terrorism' | 'cyber' | 'health' | 'environmental' | 'military'
   | 'crime' | 'infrastructure' | 'tech' | 'general';
 
@@ -110,13 +110,6 @@ const HIGH_KEYWORDS: KeywordMap = {
 };
 
 const MEDIUM_KEYWORDS: KeywordMap = {
-  'protest': 'protest',
-  'protests': 'protest',
-  'riot': 'protest',
-  'riots': 'protest',
-  'unrest': 'protest',
-  'demonstration': 'protest',
-  'strike action': 'protest',
   'military exercise': 'military',
   'naval exercise': 'military',
   'arms deal': 'military',
