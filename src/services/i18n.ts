@@ -1,5 +1,6 @@
 import i18next from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import { IS_TV, detectWebOSLanguage } from '@/utils/tv-detection';
 
 const SUPPORTED_LANGUAGES = ['en', 'fr', 'de', 'es', 'it', 'pl', 'pt', 'nl', 'sv', 'ru', 'ar', 'zh', 'ja', 'tr', 'he'] as const;
 type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
@@ -65,6 +66,12 @@ export async function initI18n(): Promise<void> {
     await ensureLanguageLoaded(currentLanguage);
     applyDocumentDirection(i18next.language || currentLanguage);
     return;
+  }
+
+  // On webOS TV, query system language via Luna and seed localStorage
+  // so that i18next's localStorage detector picks it up.
+  if (IS_TV) {
+    await detectWebOSLanguage();
   }
 
   const fallbackTranslation = await LOCALE_LOADERS.en();
@@ -146,8 +153,8 @@ export const LANGUAGES = [
 ];
 
 // Env-configurable language filter: only these appear in the UI dropdown.
-// Default: English, Russian, Arabic if not set.
-const _enabledCodes = (import.meta.env.VITE_ENABLED_LANGUAGES as string || 'en,ru,ar')
+// Default: English, Hebrew, Russian, Arabic if not set.
+const _enabledCodes = (import.meta.env.VITE_ENABLED_LANGUAGES as string || 'en,he,ru,ar')
   .split(',')
   .map(c => c.trim().toLowerCase())
   .filter(c => SUPPORTED_LANGUAGE_SET.has(c as SupportedLanguage));

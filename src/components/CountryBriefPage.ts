@@ -1,6 +1,7 @@
 import { escapeHtml, sanitizeUrl } from '@/utils/sanitize';
 import { t } from '@/services/i18n';
 import { getCSSColor } from '@/utils';
+import { IS_TV } from '@/utils/tv-detection';
 import type { CountryScore } from '@/services/country-instability';
 import type { PredictionMarket, NewsItem } from '@/types';
 import type { AssetType } from '@/types';
@@ -243,13 +244,13 @@ export class CountryBriefPage {
             ${tierBadge}
           </div>
           <div class="cb-header-right">
-            <button class="cb-share-btn" title="${t('components.countryBrief.shareStory')}">
+            ${IS_TV ? '' : `<button class="cb-share-btn" title="${t('components.countryBrief.shareStory')}">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-            </button>
-            <button class="cb-print-btn" title="${t('components.countryBrief.printPdf')}">
+            </button>`}
+            ${IS_TV ? '' : `<button class="cb-print-btn" title="${t('components.countryBrief.printPdf')}">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-            </button>
-            <div style="position:relative;display:inline-block">
+            </button>`}
+            ${IS_TV ? '' : `<div style="position:relative;display:inline-block">
               <button class="cb-export-btn" title="${t('components.countryBrief.exportData')}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               </button>
@@ -257,7 +258,7 @@ export class CountryBriefPage {
                 <button class="cb-export-option" data-format="image">${t('common.exportImage')}</button>
                 <button class="cb-export-option" data-format="json">${t('common.exportJson')}</button>
                 <button class="cb-export-option" data-format="csv">${t('common.exportCsv')}</button>
-              </div>
+              </div>`}
             </div>
             <button class="cb-close" aria-label="${t('components.newsPanel.close')}">×</button>
           </div>

@@ -1,4 +1,4 @@
-import type { MilitaryBase, MilitaryFlight, MilitaryVessel, MilitaryFlightCluster, MilitaryVesselCluster } from '@/types';
+import type { MilitaryBase, MilitaryBaseEnriched, MilitaryFlight, MilitaryVessel, MilitaryFlightCluster, MilitaryVesselCluster } from '@/types';
 import { escapeHtml } from '@/utils/sanitize';
 import { t } from '@/services/i18n';
 
@@ -14,19 +14,31 @@ export function renderBasePopup(base: MilitaryBase): string {
     'russia': 'high',
   };
 
+  const enriched = base as MilitaryBaseEnriched;
+  const categories: string[] = [];
+  if (enriched.catAirforce) categories.push('Air Force');
+  if (enriched.catNaval) categories.push('Naval');
+  if (enriched.catNuclear) categories.push('Nuclear');
+  if (enriched.catSpace) categories.push('Space');
+  if (enriched.catTraining) categories.push('Training');
+
   return `
     <div class="popup-header base">
-      <span class="popup-title">${base.name.toUpperCase()}</span>
-      <span class="popup-badge ${typeColors[base.type] || 'low'}">${typeLabels[base.type] || base.type.toUpperCase()}</span>
+      <span class="popup-title">${escapeHtml(base.name.toUpperCase())}</span>
+      <span class="popup-badge ${typeColors[base.type] || 'low'}">${escapeHtml(typeLabels[base.type] || base.type.toUpperCase())}</span>
       <button class="popup-close">×</button>
     </div>
     <div class="popup-body">
-      ${base.description ? `<p class="popup-description">${base.description}</p>` : ''}
+      ${base.description ? `<p class="popup-description">${escapeHtml(base.description)}</p>` : ''}
+      ${enriched.kind ? `<p class="popup-description" style="opacity:0.7;margin-top:2px">${escapeHtml(enriched.kind.replace(/_/g, ' '))}</p>` : ''}
       <div class="popup-stats">
         <div class="popup-stat">
           <span class="stat-label">${t('popups.type')}</span>
-          <span class="stat-value">${typeLabels[base.type] || base.type}</span>
+          <span class="stat-value">${escapeHtml(typeLabels[base.type] || base.type)}</span>
         </div>
+        ${base.arm ? `<div class="popup-stat"><span class="stat-label">Branch</span><span class="stat-value">${escapeHtml(base.arm)}</span></div>` : ''}
+        ${base.country ? `<div class="popup-stat"><span class="stat-label">Country</span><span class="stat-value">${escapeHtml(base.country)}</span></div>` : ''}
+        ${categories.length > 0 ? `<div class="popup-stat"><span class="stat-label">Categories</span><span class="stat-value">${escapeHtml(categories.join(', '))}</span></div>` : ''}
         <div class="popup-stat">
           <span class="stat-label">${t('popups.coordinates')}</span>
           <span class="stat-value">${base.lat.toFixed(2)}°, ${base.lon.toFixed(2)}°</span>

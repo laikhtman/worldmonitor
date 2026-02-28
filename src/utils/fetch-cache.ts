@@ -7,6 +7,8 @@
  * - AbortController support (PERF-018)
  */
 
+import { IS_TV, TV_MAX_CONCURRENT_FETCHES, appendTVLimits } from '@/utils/tv-detection';
+
 interface CacheEntry<T = unknown> {
     data: T;
     timestamp: number;
@@ -31,6 +33,29 @@ interface FetchWithCacheOptions {
 const cache = new Map<string, CacheEntry>();
 const inflight = new Map<string, Promise<unknown>>();
 const DEFAULT_TTL = 60_000; // 1 minute
+
+/* ------------------------------------------------------------------ */
+/*  TV Fetch Semaphore — limits concurrent requests                    */
+/* ------------------------------------------------------------------ */
+const tvQueue: Array<() => void> = [];
+let tvInFlight = 0;
+
+function tvAcquire(): Promise<void> {
+  if (!IS_TV || tvInFlight < TV_MAX_CONCURRENT_FETCHES) {
+    tvInFlight++;
+    return Promise.resolve();
+  }
+  return new Promise<void>(resolve => {
+    tvQueue.push(() => { tvInFlight++; resolve(); });
+  });
+}
+
+function tvRelease(): void {
+  if (!IS_TV) return;
+  tvInFlight--;
+  const next = tvQueue.shift();
+  if (next) next();
+}
 
 /**
  * Fetch with SWR cache. Returns cached data if available and fresh.
@@ -83,8 +108,22 @@ async function revalidate<T>(
         fetchOpts.signal = options.signal;
     }
 
-    const response = await fetch(url, fetchOpts);
+    await tvAcquire();
+    const fetchUrl = appendTVLimits(url);
+    let response: Response;
+    try {
+        response = await fetch(fetchUrl, fetchOpts);
+    } catch (err) {
+        tvRelease();
+        // If we have stale cache, return it on error
+        const stale = cache.get(key);
+        if (stale) {
+            return stale.data as T;
+        }
+        throw err;
+    }
     if (!response.ok) {
+        tvRelease();
         // If we have stale cache, return it on error
         const stale = cache.get(key);
         if (stale) {
@@ -102,6 +141,7 @@ async function revalidate<T>(
         etag: response.headers.get('etag') || undefined,
     });
 
+    tvRelease();
     return data;
 }
 

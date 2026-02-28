@@ -3,14 +3,23 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import * as Sentry from '@sentry/browser';
 import { inject } from '@vercel/analytics';
 import { App } from './App';
+import { IS_TV, registerWebOSLifecycle } from '@/utils/tv-detection';
+import { APP_DOMAIN } from '@/config/branding';
+
+// TV variant: inject TV-specific styles and add body class
+if (IS_TV) {
+  import('./styles/tv.css');
+  document.body.classList.add('tv-mode');
+  registerWebOSLifecycle();
+}
 
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN?.trim();
 
 // Initialize Sentry error tracking (early as possible)
 Sentry.init({
   dsn: sentryDsn || undefined,
-  release: `worldmonitor@${__APP_VERSION__}`,
-  environment: location.hostname === 'intelhq.io' ? 'production'
+  release: `intelhq@${__APP_VERSION__}`,
+  environment: location.hostname === APP_DOMAIN ? 'production'
     : location.hostname.includes('vercel.app') ? 'preview'
       : 'development',
   enabled: Boolean(sentryDsn) && !location.hostname.startsWith('localhost') && !('__TAURI_INTERNALS__' in window),
@@ -106,6 +115,9 @@ maybeShowDebugPanel();
 import { evictStaleCache } from '@/utils/fetch-cache';
 setInterval(() => evictStaleCache(5 * 60_000), 60_000);
 
+// Clear stale settings-open flag (survives ungraceful shutdown)
+localStorage.removeItem('wm-settings-open');
+
 const app = new App('app');
 app
   .init()
@@ -125,13 +137,13 @@ app
 // Beta mode toggle: type `beta=true` / `beta=false` in console
 Object.defineProperty(window, 'beta', {
   get() {
-    const on = localStorage.getItem('worldmonitor-beta-mode') === 'true';
+    const on = localStorage.getItem('intelhq-beta-mode') === 'true';
     console.log(`[Beta] ${on ? 'ON' : 'OFF'}`);
     return on;
   },
   set(v: boolean) {
-    if (v) localStorage.setItem('worldmonitor-beta-mode', 'true');
-    else localStorage.removeItem('worldmonitor-beta-mode');
+    if (v) localStorage.setItem('intelhq-beta-mode', 'true');
+    else localStorage.removeItem('intelhq-beta-mode');
     location.reload();
   },
 });
@@ -146,7 +158,7 @@ if ('__TAURI_INTERNALS__' in window || '__TAURI__' in window) {
   });
 }
 
-if (!('__TAURI_INTERNALS__' in window) && !('__TAURI__' in window)) {
+if (!('__TAURI_INTERNALS__' in window) && !('__TAURI__' in window) && !IS_TV) {
   import('virtual:pwa-register').then(({ registerSW }) => {
     registerSW({
       onRegisteredSW(_swUrl, registration) {

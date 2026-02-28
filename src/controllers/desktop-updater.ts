@@ -7,6 +7,7 @@
 
 import type { AppContext } from './app-context';
 import { invokeTauri } from '@/services/tauri-bridge';
+import { APP_ORIGIN } from '@/config/branding';
 
 declare const __APP_VERSION__: string;
 
@@ -79,7 +80,7 @@ export class DesktopUpdater {
 
   private async checkForUpdate(): Promise<void> {
     try {
-      const res = await fetch('https://intelhq.io/api/version');
+      const res = await fetch(`${APP_ORIGIN}/api/version`);
       if (!res.ok) return;
       const data = await res.json();
       const remote = data.version as string;
@@ -99,7 +100,7 @@ export class DesktopUpdater {
       }
       const releaseUrl = typeof data.url === 'string' && data.url
         ? data.url
-        : 'https://github.com/koala73/worldmonitor/releases/latest';
+        : 'https://github.com/laikhtman/IntelHQ/releases/latest';
       this.logUpdaterOutcome('update_available', { current, remote, dismissed: false });
       await this.showUpdateBadge(remote, releaseUrl);
     } catch (error) {
@@ -143,7 +144,7 @@ export class DesktopUpdater {
       const runtimeInfo = await invokeTauri<DesktopRuntimeInfo>('get_desktop_runtime_info');
       const platform = this.mapDesktopDownloadPlatform(runtimeInfo.os, runtimeInfo.arch);
       if (platform) {
-        return `https://intelhq.io/api/download?platform=${platform}`;
+        return `${APP_ORIGIN}/api/download?platform=${platform}`;
       }
     } catch {
       // Silent fallback to release page when desktop runtime info is unavailable.

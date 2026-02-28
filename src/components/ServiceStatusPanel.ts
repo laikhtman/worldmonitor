@@ -3,6 +3,7 @@ import { Panel } from './Panel';
 import { t } from '@/services/i18n';
 import { escapeHtml } from '@/utils/sanitize';
 import { isDesktopRuntime } from '@/services/runtime';
+import { APP_ORIGIN } from '@/config/branding';
 import {
   getDesktopReadinessChecks,
   getKeyBackedAvailabilitySummary,
@@ -161,7 +162,7 @@ export class ServiceStatusPanel extends Panel {
     }
 
     const port = this.localBackend.port ?? 46123;
-    const remote = this.localBackend.remoteBase ?? 'https://intelhq.io';
+    const remote = this.localBackend.remoteBase ?? APP_ORIGIN;
 
     return `
       <div class="service-status-backend">

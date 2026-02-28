@@ -1,0 +1,377 @@
+# 02 — Architecture: Build Variant & Project Structure
+
+## 2.1 New `tv` Variant
+
+The existing variant system (`VITE_VARIANT` env → `SITE_VARIANT` at runtime) supports `full`, `tech`, and `finance`. We introduce a 4th variant: **`tv`**.
+
+### Variant Resolution (updated)
+
+```
+src/config/variant.ts (current):
+  localStorage override → VITE_VARIANT env → default "full"
+
+src/config/variant.ts (proposed):
+  localStorage override → VITE_VARIANT env → webOS detection → default "full"
+```
+
+### Auto-Detection (for hosted mode)
+
+```typescript
+// src/config/variant.ts — proposed addition
+function detectWebOS(): boolean {
+  return typeof window !== 'undefined' && (
+    /Web0S|webOS/i.test(navigator.userAgent) ||
+    'PalmSystem' in window ||
+    'webOS' in window ||
+    'webOSSystem' in window
+  );
+}
+
+export const IS_WEBOS = detectWebOS();
+export const IS_TV = IS_WEBOS; // Future: add Tizen, Android TV
+```
+
+### Variant Config File
+
+```
+src/config/variants/tv.ts   ← NEW
+```
+
+This file will:
+1. Import the **base** variant config (shared panels, API URLs, refresh intervals)
+2. Override panel set — disable heavy panels, prioritize passive consumption
+3. Set TV-specific map layers (fewer layers, simpler rendering)
+4. Define TV-specific constants (text sizes, scroll speeds, animation durations)
+
+## 2.2 Variant Config: `tv.ts`
+
+```typescript
+// src/config/variants/tv.ts
+import type { VariantConfig } from './base';
+import type { PanelConfig, MapLayers } from '@/types';
+
+// TV variant inherits from 'full' but reduces panel count and complexity
+const TV_PANELS: Record<string, PanelConfig> = {
+  map:              { name: 'Global Map',        enabled: true,  priority: 1 },
+  'live-news':      { name: 'Live News',         enabled: true,  priority: 1 },
+  insights:         { name: 'AI Insights',       enabled: true,  priority: 1 },
+  'strategic-risk': { name: 'Strategic Risk',    enabled: true,  priority: 2 },
+  markets:          { name: 'Markets',           enabled: true,  priority: 2 },
+  predictions:      { name: 'Predictions',       enabled: true,  priority: 2 },
+  monitors:         { name: 'Monitors',          enabled: true,  priority: 3 },
+  weather:          { name: 'Weather',           enabled: false, priority: 4 },
+  earthquakes:      { name: 'Earthquakes',       enabled: false, priority: 4 },
+};
+
+const TV_MAP_LAYERS: MapLayers = {
+  hotspots: true,
+  conflicts: true,
+  military: false,   // Too many points, GPU-heavy
+  ais: false,        // WebSocket + many points
+  bases: false,      // Server-side clustering makes this viable; disabled for now to limit GPU load on TV
+  infrastructure: false,
+  nuclear: false,
+  irradiators: false,
+  sanctions: false,
+  waterways: false,
+  outages: false,
+  weather: false,
+  natural: true,
+  airports: false,
+  ports: false,
+  spaceports: false,
+  minerals: false,
+  protests: false,
+  cyberThreats: false,
+  ucdpEvents: false,
+  displacement: false,
+  climate: false,
+  aptGroups: false,
+  economicCenters: false,
+  aiDataCenters: false,
+  // Tech layers off
+  startupHubs: false,
+  accelerators: false,
+  techHQs: false,
+  cloudRegions: false,
+  techEvents: false,
+  // Finance layers off
+  stockExchanges: false,
+  financialCenters: false,
+  centralBanks: false,
+  commodityHubs: false,
+};
+
+export const TV_CONFIG: VariantConfig = {
+  name: 'IntelHQ TV',
+  description: 'Real-time intelligence dashboard for LG Smart TVs',
+  panels: TV_PANELS,
+  mapLayers: TV_MAP_LAYERS,
+  mobileMapLayers: TV_MAP_LAYERS, // Same as desktop on TV
+};
+```
+
+## 2.3 Build Pipeline
+
+### New npm Scripts
+
+```jsonc
+// package.json additions
+{
+  "scripts": {
+    "dev:tv": "cross-env VITE_VARIANT=tv vite",
+    "build:tv": "cross-env VITE_VARIANT=tv tsc && cross-env VITE_VARIANT=tv vite build",
+    "preview:tv": "cross-env VITE_VARIANT=tv vite preview",
+    "package:tv": "npm run build:tv && node scripts/webos-package.mjs",
+    "deploy:tv": "npm run package:tv && ares-install dist-webos/com.intelhq.tv_*.ipk"
+  }
+}
+```
+
+### Vite Config Additions
+
+```typescript
+// vite.config.ts — additions to VARIANT_META
+const VARIANT_META: Record<string, VariantMeta> = {
+  // ... existing full, tech, finance ...
+  tv: {
+    title: 'IntelHQ TV',
+    shortName: 'IntelHQ',
+    siteName: 'IntelHQ TV',
+    description: 'Real-time global intelligence on your LG Smart TV',
+    keywords: 'intelligence, dashboard, TV, webOS, LG, real-time',
+    url: 'https://tv.intelhq.io',
+    subject: 'TV Intelligence Dashboard',
+    classification: 'Smart TV Application',
+    categories: ['intelligence', 'news', 'tv'],
+    features: [
+      'Real-time news feed',
+      'Global map visualization',
+      'Market data',
+      'AI-powered insights',
+      'Prediction markets',
+    ],
+  },
+};
+```
+
+### Build Output Structure
+
+```
+dist/                    ← Standard Vite build output
+  index.html
+  assets/
+    *.js
+    *.css
+  favico/
+
+dist-webos/              ← webOS packaging output (generated by scripts/webos-package.mjs)
+  appinfo.json           ← webOS app manifest
+  icon.png               ← 80×80 app icon
+  largeIcon.png          ← 130×130 large icon
+  splash.png             ← 1920×1080 splash screen
+  index.html             ← Copied from dist/
+  assets/                ← Copied from dist/
+```
+
+## 2.4 Project Structure Changes
+
+```
+src/
+  config/
+    variants/
+      tv.ts              ← NEW: TV variant config
+  utils/
+    tv-detection.ts      ← NEW: webOS detection, Luna API wrappers
+    tv-focus.ts          ← NEW: Spatial navigation / D-pad focus engine
+    tv-remote.ts         ← NEW: Magic Remote & key mapping
+  styles/
+    tv.css               ← NEW: TV-specific overrides (safe zones, font sizes)
+  components/
+    TVOverlay.ts          ← NEW: TV-specific overlay (quick actions, help)
+    TVSettingsPanel.ts    ← NEW: Simplified settings for TV
+scripts/
+  webos-package.mjs      ← NEW: IPK packaging script
+  webos-icons/           ← NEW: TV app icons (80×80, 130×130, splash)
+public/
+  webos/
+    appinfo.json         ← NEW: webOS app manifest template
+docs/
+  webos/                 ← NEW: This documentation
+```
+
+## 2.5 `appinfo.json` — webOS App Manifest
+
+```json
+{
+  "id": "com.intelhq.tv",
+  "version": "1.0.0",
+  "vendor": "IntelHQ",
+  "type": "web",
+  "main": "index.html",
+  "title": "IntelHQ",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "bgImage": "splash.png",
+  "resolution": "1920x1080",
+  "iconColor": "#0a0f0a",
+  "splashBackground": "#0a0f0a",
+  "transparent": false,
+  "handlesRelaunch": true,
+  "disableBackHistoryAPI": false,
+  "requiredPermissions": [
+    "time.query",
+    "activity.operation",
+    "settings.read"
+  ]
+}
+```
+
+> **Note**: `resolution: "1920x1080"` instructs the webOS runtime to render at 1080p and let the TV upscale to 4K. This is critical for GPU performance — rendering at native 4K would be impossible for deck.gl/MapLibre on these SoCs.
+
+## 2.6 Packaging Script: `webos-package.mjs`
+
+```javascript
+// scripts/webos-package.mjs
+import { execSync } from 'child_process';
+import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { resolve } from 'path';
+
+const ROOT = resolve(import.meta.dirname, '..');
+const DIST = resolve(ROOT, 'dist');
+const OUT = resolve(ROOT, 'dist-webos');
+
+// 1. Clean output
+mkdirSync(OUT, { recursive: true });
+
+// 2. Copy Vite build output
+cpSync(DIST, OUT, { recursive: true });
+
+// 3. Copy webOS-specific files
+cpSync(resolve(ROOT, 'public/webos/appinfo.json'), resolve(OUT, 'appinfo.json'));
+cpSync(resolve(ROOT, 'scripts/webos-icons/icon.png'), resolve(OUT, 'icon.png'));
+cpSync(resolve(ROOT, 'scripts/webos-icons/largeIcon.png'), resolve(OUT, 'largeIcon.png'));
+cpSync(resolve(ROOT, 'scripts/webos-icons/splash.png'), resolve(OUT, 'splash.png'));
+
+// 4. Inject version from package.json
+const pkg = JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8'));
+const appinfo = JSON.parse(readFileSync(resolve(OUT, 'appinfo.json'), 'utf8'));
+appinfo.version = pkg.version;
+writeFileSync(resolve(OUT, 'appinfo.json'), JSON.stringify(appinfo, null, 2));
+
+// 5. Package IPK
+console.log('[webOS] Packaging IPK...');
+execSync(`ares-package "${OUT}"`, { stdio: 'inherit', cwd: ROOT });
+console.log(`[webOS] IPK created successfully`);
+```
+
+## 2.7 Conditional Imports & Tree-Shaking
+
+The TV variant must **tree-shake out** heavy modules that aren't needed:
+
+| Module | Desktop | TV | Strategy |
+|--------|---------|-----|----------|
+| `@xenova/transformers` | ✅ ML inference | ❌ Skip | Conditional dynamic import gated on `!IS_TV` |
+| `onnxruntime-web` | ✅ ML backend | ❌ Skip | Same gate |
+| Full deck.gl suite | ✅ All layers | ⚠️ Subset | TV uses fewer layer types |
+| `supercluster` | ✅ Client clustering | ✅ Keep | Reduces point count (helps TV) |
+| `d3` | ✅ SVG map fallback | ⚠️ Conditional | Only if deck.gl unavailable |
+| `@sentry/browser` | ✅ Error tracking | ✅ Keep | Light weight, valuable on TV |
+| `@vercel/analytics` | ✅ Web analytics | ✅ Keep | Light weight |
+| `i18next` | ✅ i18n | ✅ Keep | Essential for TV localization |
+
+### Implementation
+
+```typescript
+// src/services/ml-capabilities.ts — proposed change
+export async function detectMLCapabilities(): Promise<MLCapabilities> {
+  if (IS_TV) {
+    // TV hardware cannot run ML models — return unsupported immediately
+    return {
+      isSupported: false,
+      isDesktop: false,
+      hasWebGL: true,  // webOS has WebGL but it's for map rendering
+      hasWebGPU: false,
+      hasSIMD: false,
+      hasThreads: false,
+      estimatedMemoryMB: 0,
+      recommendedExecutionProvider: 'wasm',
+      recommendedThreads: 1,
+    };
+  }
+  // ... existing detection logic
+}
+```
+
+## 2.8 Entry Point Changes
+
+```typescript
+// src/main.ts — proposed additions
+import { IS_WEBOS } from '@/utils/tv-detection';
+
+// webOS-specific initialization
+if (IS_WEBOS) {
+  // 1. Inject TV-specific stylesheet
+  import('./styles/tv.css');
+
+  // 2. Register webOS visibility/lifecycle handlers
+  document.addEventListener('webOSRelaunch', () => {
+    console.log('[webOS] App relaunched');
+    // Refresh data on relaunch
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      // App backgrounded — pause data fetching, stop animations
+    } else {
+      // App foregrounded — resume
+    }
+  });
+
+  // 3. Signal webOS runtime that app is ready
+  if ('webOSSystem' in window) {
+    (window as any).webOSSystem.onclose = () => {
+      // Cleanup
+    };
+  }
+}
+```
+
+## 2.9 Variant Detection Flow
+
+```
+App Start
+  │
+  ├── Is VITE_VARIANT === 'tv'?  ──yes──→  TV mode (build-time)
+  │
+  ├── Is webOS detected?  ──yes──→  TV mode (runtime auto-detect)
+  │
+  ├── Is localStorage override?  ──yes──→  Use stored variant
+  │
+  └── Default: 'full' variant
+```
+
+## 2.10 Feature Flags for TV
+
+```typescript
+// src/config/variants/tv.ts — feature flags
+export const TV_FEATURES = {
+  enableML: false,              // No ML inference on TV
+  enableDragDrop: false,        // No panel reordering on TV
+  enablePanelResize: false,     // Fixed panel sizes on TV
+  enableWebcams: false,         // YouTube embeds are heavy
+  enableLiveYoutube: false,     // Iframe performance issues
+  enableCountryBrief: true,     // Simplified modal works
+  enableSearch: true,           // Adapted for D-pad
+  enableDownloadBanner: false,  // Not relevant on TV
+  enableMobileWarning: false,   // Not relevant on TV
+  enableStorySharing: false,    // No canvas export on TV
+  enableServiceWorker: false,   // Use IPK packaging instead
+  enableMapGlobe: true,         // Core feature
+  maxPanelsVisible: 4,          // Limit visible panels for performance
+  maxNewsItems: 30,             // Reduce from default
+  maxMapFeatures: 500,          // Cap deck.gl features
+  refreshMultiplier: 2,         // Slower refresh (10min instead of 5min)
+  renderResolution: '1080p',    // Force 1080p rendering
+} as const;
+```

@@ -2,6 +2,7 @@ import { escapeHtml } from '../utils/sanitize';
 import { isDesktopRuntime } from '../services/runtime';
 import { invokeTauri } from '../services/tauri-bridge';
 import { t } from '../services/i18n';
+import { IS_TV } from '../utils/tv-detection';
 
 export interface PanelOptions {
   id: string;
@@ -12,7 +13,7 @@ export interface PanelOptions {
   infoTooltip?: string;
 }
 
-const PANEL_SPANS_KEY = 'worldmonitor-panel-spans';
+const PANEL_SPANS_KEY = 'intelhq-panel-spans';
 
 function loadPanelSpans(): Record<string, number> {
   try {
@@ -138,13 +139,15 @@ export class Panel {
     this.element.appendChild(this.header);
     this.element.appendChild(this.content);
 
-    // Add resize handle
-    this.resizeHandle = document.createElement('div');
-    this.resizeHandle.className = 'panel-resize-handle';
-    this.resizeHandle.title = 'Drag to resize (double-click to reset)';
-    this.resizeHandle.draggable = false; // Prevent parent's drag from capturing
-    this.element.appendChild(this.resizeHandle);
-    this.setupResizeHandlers();
+    // Add resize handle (disabled on TV — no mouse-based resize)
+    if (!IS_TV) {
+      this.resizeHandle = document.createElement('div');
+      this.resizeHandle.className = 'panel-resize-handle';
+      this.resizeHandle.title = 'Drag to resize (double-click to reset)';
+      this.resizeHandle.draggable = false; // Prevent parent's drag from capturing
+      this.element.appendChild(this.resizeHandle);
+      this.setupResizeHandlers();
+    }
 
     // Restore saved span
     const savedSpans = loadPanelSpans();

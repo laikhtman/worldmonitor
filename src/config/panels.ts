@@ -387,11 +387,70 @@ const FINANCE_MOBILE_MAP_LAYERS: MapLayers = {
 };
 
 // ============================================
+// TV VARIANT (Smart TV / webOS)
+// ============================================
+const TV_PANELS: Record<string, PanelConfig> = {
+  map: { name: 'Global Map', enabled: true, priority: 1 },
+  'live-news': { name: 'Live News', enabled: true, priority: 1 },
+  insights: { name: 'AI Insights', enabled: true, priority: 1 },
+  'strategic-risk': { name: 'Strategic Risk', enabled: true, priority: 2 },
+  markets: { name: 'Markets', enabled: true, priority: 2 },
+  polymarket: { name: 'Predictions', enabled: true, priority: 2 },
+  monitors: { name: 'My Monitors', enabled: true, priority: 3 },
+};
+
+const TV_MAP_LAYERS: MapLayers = {
+  conflicts: true,
+  bases: false,
+  cables: false,
+  pipelines: false,
+  hotspots: true,
+  ais: false,
+  nuclear: false,
+  irradiators: false,
+  sanctions: true,
+  weather: true,
+  economic: false,
+  waterways: false,
+  outages: true,
+  cyberThreats: false,
+  datacenters: false,
+  protests: false,
+  flights: false,
+  military: false,
+  natural: true,
+  spaceports: false,
+  minerals: false,
+  fires: false,
+  ucdpEvents: false,
+  displacement: false,
+  climate: false,
+  startupHubs: false,
+  cloudRegions: false,
+  accelerators: false,
+  techHQs: false,
+  techEvents: false,
+  stockExchanges: false,
+  financialCenters: false,
+  centralBanks: false,
+  commodityHubs: false,
+  gulfInvestments: false,
+};
+
+// ============================================
 // VARIANT-AWARE EXPORTS
 // ============================================
-export const DEFAULT_PANELS = SITE_VARIANT === 'tech' ? TECH_PANELS : SITE_VARIANT === 'finance' ? FINANCE_PANELS : FULL_PANELS;
-export const DEFAULT_MAP_LAYERS = SITE_VARIANT === 'tech' ? TECH_MAP_LAYERS : SITE_VARIANT === 'finance' ? FINANCE_MAP_LAYERS : FULL_MAP_LAYERS;
-export const MOBILE_DEFAULT_MAP_LAYERS = SITE_VARIANT === 'tech' ? TECH_MOBILE_MAP_LAYERS : SITE_VARIANT === 'finance' ? FINANCE_MOBILE_MAP_LAYERS : FULL_MOBILE_MAP_LAYERS;
+function selectVariant<T>(full: T, tech: T, finance: T, tv: T): T {
+  switch (SITE_VARIANT) {
+    case 'tech': return tech;
+    case 'finance': return finance;
+    case 'tv': return tv;
+    default: return full;
+  }
+}
+export const DEFAULT_PANELS = selectVariant(FULL_PANELS, TECH_PANELS, FINANCE_PANELS, TV_PANELS);
+export const DEFAULT_MAP_LAYERS = selectVariant(FULL_MAP_LAYERS, TECH_MAP_LAYERS, FINANCE_MAP_LAYERS, TV_MAP_LAYERS);
+export const MOBILE_DEFAULT_MAP_LAYERS = selectVariant(FULL_MOBILE_MAP_LAYERS, TECH_MOBILE_MAP_LAYERS, FINANCE_MOBILE_MAP_LAYERS, TV_MAP_LAYERS);
 
 // Monitor palette — fixed category colors persisted to localStorage (not theme-dependent)
 export const MONITOR_COLORS = [
@@ -408,8 +467,8 @@ export const MONITOR_COLORS = [
 ];
 
 export const STORAGE_KEYS = {
-  panels: 'worldmonitor-panels',
-  monitors: 'worldmonitor-monitors',
-  mapLayers: 'worldmonitor-layers',
-  disabledFeeds: 'worldmonitor-disabled-feeds',
+  panels: 'intelhq-panels',
+  monitors: 'intelhq-monitors',
+  mapLayers: 'intelhq-layers',
+  disabledFeeds: 'intelhq-disabled-feeds',
 } as const;

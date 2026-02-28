@@ -1,4 +1,4 @@
-# World Monitor v2
+# IntelHQ v2
 
 AI-powered real-time global intelligence dashboard aggregating news, markets, geopolitical data, and infrastructure monitoring into a unified situation awareness interface.
 
@@ -9,15 +9,15 @@ AI-powered real-time global intelligence dashboard aggregating news, markets, ge
 ![D3.js](https://img.shields.io/badge/D3.js-F9A03C?style=flat&logo=d3.js&logoColor=white)
 ![Version](https://img.shields.io/badge/version-2.4.1-blue)
 
-![World Monitor Dashboard](../new-world-monitor.png)
+![IntelHQ Dashboard](../new-world-monitor.png)
 
 ## Platform Variants
 
-World Monitor runs three specialized variants from a single codebase, each optimized for different monitoring needs:
+IntelHQ runs three specialized variants from a single codebase, each optimized for different monitoring needs:
 
 | Variant | URL | Focus |
 |---------|-----|-------|
-| **🌍 World Monitor** | [intelhq.io](https://intelhq.io) | Geopolitical intelligence, military tracking, conflict monitoring, infrastructure security |
+| **🌍 IntelHQ** | [intelhq.io](https://intelhq.io) | Geopolitical intelligence, military tracking, conflict monitoring, infrastructure security |
 | **💻 Tech Monitor** | [tech.intelhq.io](https://tech.intelhq.io) | Technology sector intelligence, AI/startup ecosystems, cloud infrastructure, tech events |
 | **📈 Finance Monitor** | [finance.intelhq.io](https://finance.intelhq.io) | Global markets, trading, central banks, Gulf FDI, macro indicators |
 
@@ -25,14 +25,14 @@ A compact **variant switcher** in the header allows seamless navigation between 
 
 ---
 
-## World Monitor (Geopolitical)
+## IntelHQ (Geopolitical)
 
 The primary variant focuses on geopolitical intelligence, military tracking, and infrastructure security monitoring.
 
 ### Key Capabilities
 
 - **Conflict Monitoring** - Active war zones, hotspots, and crisis areas with real-time escalation tracking
-- **Military Intelligence** - 220+ military bases, flight tracking, naval vessel monitoring, surge detection
+- **Military Intelligence** - 125K+ military bases (server-side via Redis GEOSEARCH), flight tracking, naval vessel monitoring, surge detection
 - **Infrastructure Security** - Undersea cables, pipelines, datacenters, internet outages
 - **Economic Intelligence** - FRED indicators, oil analytics, government spending, sanctions tracking
 - **Natural Disasters** - Earthquakes, severe weather, NASA EONET events (wildfires, volcanoes, floods)
@@ -57,7 +57,7 @@ The primary variant focuses on geopolitical intelligence, military tracking, and
 
 ## Tech Monitor
 
-The tech variant ([tech.worldmonitor.app](https://tech.worldmonitor.app)) provides specialized layers for technology sector monitoring.
+The tech variant ([tech.intelhq.io](https://tech.intelhq.io)) provides specialized layers for technology sector monitoring.
 
 ### Tech Ecosystem Layers
 
@@ -148,7 +148,7 @@ Layers are organized into logical groups for efficient monitoring:
 **Military & Strategic**
 | Layer | Description |
 |-------|-------------|
-| **Military Bases** | 220+ global military installations from 9 operators |
+| **Military Bases** | 125K+ global military installations from 9+ operators (server-side, viewport-filtered) |
 | **Nuclear Facilities** | Power plants, weapons labs, enrichment sites |
 | **Gamma Irradiators** | IAEA-tracked Category 1-3 radiation sources |
 | **APT Groups** | State-sponsored cyber threat actors with geographic attribution |
@@ -1414,7 +1414,7 @@ News clusters are automatically enriched with nearby critical infrastructure. Wh
 | **Pipelines** | 88 global routes | Nord Stream, Keystone, Trans-Siberian |
 | **Undersea Cables** | 55 major cables | TAT-14, SEA-ME-WE, Pacific Crossing |
 | **AI Datacenters** | 111 clusters (≥10k GPUs) | Azure East US, GCP Council Bluffs |
-| **Military Bases** | 220+ installations | Ramstein, Diego Garcia, Guam |
+| **Military Bases** | 125K+ installations | Ramstein, Diego Garcia, Guam |
 | **Nuclear Facilities** | 100+ sites | Power plants, weapons labs, enrichment |
 
 ### Location Inference
@@ -3152,7 +3152,7 @@ This ensures the dashboard always displays meaningful data even during upstream 
 
 ## Service Status Monitoring
 
-The Service Status panel tracks the operational health of external services that WorldMonitor users may depend on.
+The Service Status panel tracks the operational health of external services that IntelHQ users may depend on.
 
 ### Monitored Services
 
@@ -3292,7 +3292,7 @@ define: {
 }
 
 // App.ts
-const header = `World Monitor v${__APP_VERSION__}`;
+const header = `IntelHQ v${__APP_VERSION__}`;
 ```
 
 ---
@@ -3301,8 +3301,8 @@ const header = `World Monitor v${__APP_VERSION__}`;
 
 ```bash
 # Clone the repository
-git clone https://github.com/koala73/worldmonitor.git
-cd worldmonitor
+git clone https://github.com/laikhtman/IntelHQ.git
+cd IntelHQ
 
 # Install dependencies
 npm install
@@ -3403,7 +3403,7 @@ src/
 │   ├── geo.ts                # 30+ hotspots, conflicts, 55 cables, waterways, spaceports, minerals
 │   ├── pipelines.ts          # 88 oil & gas pipelines
 │   ├── ports.ts              # 61 strategic ports worldwide
-│   ├── bases-expanded.ts     # 220+ military bases
+│   ├── bases-expanded.ts     # 224 static military bases (fallback; primary: 125K server-side via Redis)
 │   ├── ai-datacenters.ts     # 313 AI clusters (filtered to 111)
 │   ├── airports.ts           # 30 monitored US airports
 │   ├── irradiators.ts        # IAEA gamma irradiator sites
@@ -3548,7 +3548,7 @@ Aggregates **70+ RSS feeds** from major news outlets, government sources, and sp
 
 - **Hotspots**: 30+ global intelligence hotspots with keyword correlation (including Sahel, Haiti, Horn of Africa)
 - **Conflicts**: 10+ active conflict zones with involved parties
-- **Military Bases**: 220+ installations from US, NATO, Russia, China, and allies
+- **Military Bases**: 125K+ installations from US, NATO, Russia, China, and allies (served via Redis GEOSEARCH, static 224 as fallback)
 - **Pipelines**: 88 operating oil/gas pipelines across all continents
 - **Undersea Cables**: 55 major submarine cable routes
 - **Nuclear**: 100+ power plants, weapons labs, enrichment facilities
@@ -3680,7 +3680,7 @@ See [ROADMAP.md](ROADMAP.md) for detailed planning. Recent intelligence enhancem
 - ✅ **Build-Time Version Sync** - Header version auto-syncs with package.json
 - ✅ **Tech Monitor Variant** - Dedicated technology sector dashboard with startup ecosystems, cloud regions, and tech events
 - ✅ **Smart Marker Clustering** - Geographic grouping of nearby markers with click-to-expand popups
-- ✅ **Variant Switcher UI** - Compact orbital navigation between World Monitor and Tech Monitor
+- ✅ **Variant Switcher UI** - Compact orbital navigation between IntelHQ and Tech Monitor
 - ✅ **CII Learning Mode** - 15-minute calibration period with visual progress indicator
 - ✅ **Regional Tech Coverage** - Verified tech HQ data for MENA, Europe, Asia-Pacific hubs
 - ✅ **Service Status Panel** - External service health monitoring (AI providers, cloud platforms)
@@ -3873,8 +3873,8 @@ Contributions are welcome! Whether you're fixing bugs, adding features, improvin
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/worldmonitor.git
-   cd worldmonitor
+   git clone https://github.com/YOUR_USERNAME/IntelHQ.git
+   cd IntelHQ
    ```
 3. **Install dependencies**:
    ```bash

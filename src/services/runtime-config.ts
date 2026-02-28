@@ -19,7 +19,10 @@ export type RuntimeSecretKey =
   | 'AISSTREAM_API_KEY'
   | 'FINNHUB_API_KEY'
   | 'NASA_FIRMS_API_KEY'
-  | 'UC_DP_KEY';
+  | 'UC_DP_KEY'
+  | 'OLLAMA_API_URL'
+  | 'OLLAMA_MODEL'
+  | 'INTELHQ_API_KEY';
 
 export type RuntimeFeatureId =
   | 'aiGroq'
@@ -35,7 +38,8 @@ export type RuntimeFeatureId =
   | 'aisRelay'
   | 'openskyRelay'
   | 'finnhubMarkets'
-  | 'nasaFirms';
+  | 'nasaFirms'
+  | 'aiOllama';
 
 export interface RuntimeFeatureDefinition {
   id: RuntimeFeatureId;
@@ -56,7 +60,7 @@ export interface RuntimeConfig {
   secrets: Partial<Record<RuntimeSecretKey, RuntimeSecretState>>;
 }
 
-const TOGGLES_STORAGE_KEY = 'worldmonitor-runtime-feature-toggles';
+const TOGGLES_STORAGE_KEY = 'intelhq-runtime-feature-toggles';
 const SIDECAR_ENV_UPDATE_URL = 'http://127.0.0.1:46123/api/local-env-update';
 const SIDECAR_SECRET_VALIDATE_URL = 'http://127.0.0.1:46123/api/local-validate-secret';
 
@@ -75,9 +79,17 @@ const defaultToggles: Record<RuntimeFeatureId, boolean> = {
   openskyRelay: true,
   finnhubMarkets: true,
   nasaFirms: true,
+  aiOllama: true,
 };
 
 export const RUNTIME_FEATURES: RuntimeFeatureDefinition[] = [
+  {
+    id: 'aiOllama',
+    name: 'Ollama local summarization',
+    description: 'Local LLM provider via OpenAI-compatible endpoint (Ollama or LM Studio, desktop-first).',
+    requiredSecrets: ['OLLAMA_API_URL', 'OLLAMA_MODEL'],
+    fallback: 'Falls back to Groq, then OpenRouter, then local browser model.',
+  },
   {
     id: 'aiGroq',
     name: 'Groq summarization',
@@ -222,8 +234,18 @@ export function validateSecret(key: RuntimeSecretKey, value: string): { valid: b
     }
   }
 
+  if (key === 'INTELHQ_API_KEY') {
+    if (trimmed.length < 16) return { valid: false, hint: 'API key must be at least 16 characters' };
+    return { valid: true };
+  }
+
   return { valid: true };
 }
+
+let secretsReadyResolve!: () => void;
+export const secretsReady = new Promise<void>(r => { secretsReadyResolve = r; });
+
+if (!isDesktopRuntime()) secretsReadyResolve();
 
 const listeners = new Set<() => void>();
 
@@ -452,7 +474,7 @@ export async function loadDesktopSecrets(): Promise<void> {
     const allSecrets = await invokeTauri<Record<string, string>>('get_all_secrets');
 
     const syncResults = await Promise.allSettled(
-      Object.entries(allSecrets).map(async ([key, value]) => {
+      Object.entries(allSecrets).filter(([, value]) => value && value.trim().length > 0).map(async ([key, value]) => {
         runtimeConfig.secrets[key as RuntimeSecretKey] = { value, source: 'vault' };
         try {
           await pushSecretToSidecar(key as RuntimeSecretKey, value);
@@ -470,5 +492,7 @@ export async function loadDesktopSecrets(): Promise<void> {
     notifyConfigChanged();
   } catch (error) {
     console.warn('[runtime-config] Failed to load desktop secrets from vault', error);
+  } finally {
+    secretsReadyResolve();
   }
 }

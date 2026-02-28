@@ -1,6 +1,7 @@
 import { isDesktopRuntime } from '@/services/runtime';
 import { t } from '@/services/i18n';
 import { isMobileDevice } from '@/utils';
+import { IS_TV } from '@/utils/tv-detection';
 
 const STORAGE_KEY = 'wm-download-banner-dismissed';
 const SHOW_DELAY_MS = 12_000;
@@ -9,6 +10,7 @@ let bannerScheduled = false;
 export function maybeShowDownloadBanner(): void {
   if (bannerScheduled) return;
   if (isDesktopRuntime()) return;
+  if (IS_TV) return;
   if (isMobileDevice()) return;
   if (localStorage.getItem(STORAGE_KEY)) return;
 

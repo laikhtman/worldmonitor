@@ -1,0 +1,38 @@
+<svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(110.00 40.00) scale(0.175781)">
+
+
+    <defs>
+      <radialGradient id="sweep_65c35e6a" cx="512" cy="512" r="290.0" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#00ff88" stop-opacity="0.42"/>
+        <stop offset="0.58" stop-color="#00ff88" stop-opacity="0.20"/>
+        <stop offset="1" stop-color="#00ff88" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="glow_65c35e6a" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="10" result="blur"/>
+        <feMerge>
+          <feMergeNode in="blur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+      <clipPath id="clip_65c35e6a">
+        <circle cx="512" cy="512" r="290.0"/>
+      </clipPath>
+    </defs>
+    
+
+<g clip-path="url(#clip_65c35e6a)"><path d="M 512 512 L 512.00 222.00 A 290.0 290.0 0 0 1 774.83 389.44 Z" fill="url(#sweep_65c35e6a)"/>
+<circle cx="512" cy="512" r="22" fill="#00ff88"/></g>
+<circle cx="512" cy="512" r="345" fill="none" stroke="#00ff88" stroke-width="110" opacity="0.92"/>
+
+  </g>
+  
+          <circle cx="200.0" cy="130.0" r="8" fill="#e0e0e0" opacity="0.55"/>
+        
+  <text x="200.0" y="236" text-anchor="middle"
+        font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="26" font-weight="700" fill="#e0e0e0" opacity="0.92">No data yet</text>
+  <text x="200.0" y="270" text-anchor="middle"
+        font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="18" font-weight="500" fill="#e0e0e0" opacity="0.70">IntelHQ</text>
+</svg>

@@ -1,6 +1,6 @@
 # Data Model Reference
 
-Comprehensive data model documentation for **World Monitor** — an AI-powered real-time global intelligence dashboard. This reference covers all TypeScript interfaces, data structures, and their relationships across the system.
+Comprehensive data model documentation for **IntelHQ** — an AI-powered real-time global intelligence dashboard. This reference covers all TypeScript interfaces, data structures, and their relationships across the system.
 
 > **Source of truth:** [`src/types/index.ts`](../src/types/index.ts) (1,297 lines, 60+ interfaces)
 
@@ -262,6 +262,24 @@ interface MilitaryBase {
   arm?: string;                // Armed forces branch
   status?: 'active' | 'planned' | 'controversial' | 'closed';
   source?: string;
+}
+```
+
+### Military Bases (Enriched)
+
+Server-side enriched military base data returned by the `ListMilitaryBases` RPC
+(125K+ entries stored in Redis GEO sorted sets). Extends `MilitaryBase` with
+category flags and tier information.
+
+```typescript
+interface MilitaryBaseEnriched extends MilitaryBase {
+  kind?: string;               // Base kind (e.g., "air base", "naval station")
+  tier?: number;               // Importance tier (1 = major, 3 = minor)
+  catAirforce?: boolean;       // Air force category
+  catNaval?: boolean;          // Naval category
+  catNuclear?: boolean;        // Nuclear-capable
+  catSpace?: boolean;          // Space-related
+  catTraining?: boolean;       // Training facility
 }
 ```
 
@@ -1559,7 +1577,7 @@ const LAYER_KEYS: (keyof MapLayers)[] = [
 | Layer | Data Interface | Source |
 |-------|----------------|--------|
 | `conflicts` | `ConflictZone` | Static config + UCDP |
-| `bases` | `MilitaryBase` | Static config |
+| `bases` | `MilitaryBase` / `MilitaryBaseEnriched` | Server API (125K entries via Redis GEOSEARCH) + static fallback (224 entries) |
 | `cables` | `UnderseaCable` | Static config |
 | `pipelines` | `Pipeline` | Static config |
 | `hotspots` | `Hotspot` | Static config + dynamic escalation |
@@ -1606,7 +1624,7 @@ Panels persist their size and ordering in `localStorage`:
 
 | Key | Constant | Value Schema |
 |-----|----------|--------------|
-| `worldmonitor-panel-spans` | `PANEL_SPANS_KEY` | `Record<string, number>` — panel ID → grid span (1–4) |
+| `intelhq-panel-spans` | `PANEL_SPANS_KEY` | `Record<string, number>` — panel ID → grid span (1–4) |
 | `panel-order` | `PANEL_ORDER_KEY` | `string[]` — ordered panel IDs |
 
 ### Span/Resize Logic
@@ -1668,10 +1686,10 @@ const REFRESH_INTERVALS = {
 };
 
 const STORAGE_KEYS = {
-  panels:        'worldmonitor-panels',
-  monitors:      'worldmonitor-monitors',
-  mapLayers:     'worldmonitor-layers',
-  disabledFeeds: 'worldmonitor-disabled-feeds',
+  panels:        'intelhq-panels',
+  monitors:      'intelhq-monitors',
+  mapLayers:     'intelhq-layers',
+  disabledFeeds: 'intelhq-disabled-feeds',
 } as const;
 ```
 
@@ -1792,7 +1810,7 @@ Combines a static baseline with four dynamic components to produce a real-time e
 
 **Source:** [`src/services/storage.ts`](../src/services/storage.ts) (230 lines)
 
-Database: `worldmonitor_db`, version 1.
+Database: `intelhq_db`, version 1.
 
 #### Store: `baselines`
 
@@ -1858,7 +1876,7 @@ type CacheEnvelope<T> = {
 };
 ```
 
-- Key prefix: `worldmonitor-persistent-cache:`
+- Key prefix: `intelhq-persistent-cache:`
 - Desktop runtime: Tauri `read_cache_entry` / `write_cache_entry` commands
 - Web runtime: `localStorage` fallback
 - Helper: `describeFreshness(updatedAt)` → `"just now" | "5m ago" | "2h ago" | "1d ago"`

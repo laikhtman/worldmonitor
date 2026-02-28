@@ -1,6 +1,6 @@
 const ALLOWED_ORIGIN_PATTERNS = [
-  /^https:\/\/(.*\.)?worldmonitor\.app$/,
-  /^https:\/\/worldmonitor-[a-z0-9-]+-elie-habib-projects\.vercel\.app$/,
+  /^https:\/\/(.*\.)?intelhq\.io$/,
+  /^https:\/\/intelhq-[a-z0-9-]+-elie-habib-projects\.vercel\.app$/,
   /^https?:\/\/localhost(:\d+)?$/,
   /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
   /^https?:\/\/tauri\.localhost(:\d+)?$/,
@@ -19,7 +19,7 @@ export function getCorsHeaders(req, methods = 'GET, OPTIONS') {
   return {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Methods': methods,
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-IntelHQ-Key',
     'Access-Control-Max-Age': '86400',
     'Vary': 'Origin',
   };

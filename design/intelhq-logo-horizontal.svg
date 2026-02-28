@@ -1,0 +1,34 @@
+<svg width="400" height="100" viewBox="0 0 400 100" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(10.00 8.00) scale(0.082031)">
+
+
+    <defs>
+      <radialGradient id="sweep_3b0b7d04" cx="512" cy="512" r="290.0" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#00ff88" stop-opacity="0.42"/>
+        <stop offset="0.58" stop-color="#00ff88" stop-opacity="0.20"/>
+        <stop offset="1" stop-color="#00ff88" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="glow_3b0b7d04" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="10" result="blur"/>
+        <feMerge>
+          <feMergeNode in="blur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+      <clipPath id="clip_3b0b7d04">
+        <circle cx="512" cy="512" r="290.0"/>
+      </clipPath>
+    </defs>
+    
+
+<g clip-path="url(#clip_3b0b7d04)"><path d="M 512 512 L 512.00 222.00 A 290.0 290.0 0 0 1 774.83 389.44 Z" fill="url(#sweep_3b0b7d04)"/>
+<circle cx="512" cy="512" r="22" fill="#00ff88"/></g>
+<circle cx="512" cy="512" r="345" fill="none" stroke="#00ff88" stroke-width="110" opacity="0.92"/>
+
+  </g>
+  <text x="108" y="68"
+        font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="48" font-weight="650" letter-spacing="0.5">
+    <tspan fill="#e0e0e0">Intel</tspan><tspan fill="#00ff88">HQ</tspan>
+  </text>
+</svg>

@@ -1,5 +1,7 @@
-// Dynamic Meta Tags Service for IntelHQ
+// Dynamic Meta Tags Service
 // Updates OG tags and Twitter Cards for shared stories
+
+import { APP_ORIGIN, APP_OG_IMAGE, APP_TITLE, APP_FULL_TITLE } from '@/config/branding';
 
 interface StoryMeta {
   countryCode: string;
@@ -10,14 +12,14 @@ interface StoryMeta {
   type: 'ciianalysis' | 'crisisalert' | 'dailybrief' | 'marketfocus';
 }
 
-const BASE_URL = 'https://intelhq.io';
-const DEFAULT_IMAGE = 'https://intelhq.io/favico/og-image.png';
+const BASE_URL = APP_ORIGIN;
+const DEFAULT_IMAGE = APP_OG_IMAGE;
 
 export function updateMetaTagsForStory(meta: StoryMeta): void {
   const { countryCode, countryName, ciiScore, ciiLevel, trend, type } = meta;
   
   // Generate dynamic content
-  const title = `${countryName} Intelligence Brief | IntelHQ`;
+  const title = `${countryName} Intelligence Brief | ${APP_TITLE}`;
   const description = generateDescription(ciiScore, ciiLevel, trend, type, countryName);
   const storyUrl = `${BASE_URL}/api/story?c=${countryCode}&t=${type}`;
   let imageUrl = `${BASE_URL}/api/og-story?c=${countryCode}&t=${type}`;
@@ -48,7 +50,7 @@ export function updateMetaTagsForStory(meta: StoryMeta): void {
 }
 
 export function resetMetaTags(): void {
-  const defaultTitle = 'IntelHQ - Global Situation with AI Insights';
+  const defaultTitle = APP_FULL_TITLE;
   const defaultDesc = 'AI-powered real-time global intelligence dashboard with live news, markets, military tracking, and geopolitical data.';
   
   setMetaTag('title', defaultTitle);
@@ -96,7 +98,7 @@ function generateDescription(
     parts.push(typeDescriptions[type]);
   }
   
-  return `IntelHQ ${parts.join('. ')}. Free, open-source geopolitical intelligence.`;
+  return `${APP_TITLE} ${parts.join('. ')}. Free, open-source geopolitical intelligence.`;
 }
 
 function setMetaTag(property: string, content: string): void {

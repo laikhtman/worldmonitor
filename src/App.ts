@@ -46,6 +46,8 @@ import {
 import { CountryBriefPage } from '@/components/CountryBriefPage';
 import { CountryTimeline } from '@/components/CountryTimeline';
 import { PlaybackControl, PizzIntIndicator } from '@/components';
+import { IS_TV, startMemoryMonitor, registerWebOSLifecycle } from '@/utils/tv-detection';
+import { TVNavigationController } from '@/controllers/tv-navigation';
 
 const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true';
 
@@ -53,7 +55,7 @@ export type { CountryBriefSignals } from '@/controllers/app-context';
 export class App implements AppContext {
   public container: HTMLElement;
   public readonly PANEL_ORDER_KEY = 'panel-order';
-  public readonly PANEL_SPANS_KEY = 'worldmonitor-panel-spans';
+  public readonly PANEL_SPANS_KEY = 'intelhq-panel-spans';
   public map: MapContainer | null = null;
   public panels: Record<string, Panel> = {};
   public newsPanels: Record<string, NewsPanel> = {};
@@ -105,6 +107,8 @@ export class App implements AppContext {
   public updateCheckIntervalId: ReturnType<typeof setInterval> | null = null;
   public intelligenceCache: IntelligenceCache = {};
   public cyberThreatsCache: CyberThreat[] | null = null;
+  public tvNavigation: TVNavigationController | null = null;
+  private stopMemoryMonitor: (() => void) | null = null;
 
   /* ---- Controllers ---- */
   private refreshScheduler!: RefreshScheduler;
@@ -127,13 +131,13 @@ export class App implements AppContext {
     const defaultLayers = this.isMobile ? MOBILE_DEFAULT_MAP_LAYERS : DEFAULT_MAP_LAYERS;
 
     // Check if variant changed - reset all settings to variant defaults
-    const storedVariant = localStorage.getItem('worldmonitor-variant');
+    const storedVariant = localStorage.getItem('intelhq-variant');
     const currentVariant = SITE_VARIANT;
     console.log(`[App] Variant check: stored="${storedVariant}", current="${currentVariant}"`);
     if (storedVariant !== currentVariant) {
       // Variant changed - use defaults for new variant, clear old settings
       console.log('[App] Variant changed - resetting to defaults');
-      localStorage.setItem('worldmonitor-variant', currentVariant);
+      localStorage.setItem('intelhq-variant', currentVariant);
       localStorage.removeItem(STORAGE_KEYS.mapLayers);
       localStorage.removeItem(STORAGE_KEYS.panels);
       localStorage.removeItem(this.PANEL_ORDER_KEY);
@@ -150,7 +154,7 @@ export class App implements AppContext {
 
       // One-time migration: reorder panels for existing users (v1.9 panel layout)
       // Puts live-news, insights, strategic-posture, cii, strategic-risk at the top
-      const PANEL_ORDER_MIGRATION_KEY = 'worldmonitor-panel-order-v1.9';
+      const PANEL_ORDER_MIGRATION_KEY = 'intelhq-panel-order-v1.9';
       if (!localStorage.getItem(PANEL_ORDER_MIGRATION_KEY)) {
         const savedOrder = localStorage.getItem(this.PANEL_ORDER_KEY);
         if (savedOrder) {
@@ -177,7 +181,7 @@ export class App implements AppContext {
 
       // Tech variant migration: move insights to top (after live-news)
       if (currentVariant === 'tech') {
-        const TECH_INSIGHTS_MIGRATION_KEY = 'worldmonitor-tech-insights-top-v1';
+        const TECH_INSIGHTS_MIGRATION_KEY = 'intelhq-tech-insights-top-v1';
         if (!localStorage.getItem(TECH_INSIGHTS_MIGRATION_KEY)) {
           const savedOrder = localStorage.getItem(this.PANEL_ORDER_KEY);
           if (savedOrder) {
@@ -203,7 +207,7 @@ export class App implements AppContext {
 
     // One-time migration: clear stale panel ordering and sizing state that can
     // leave non-draggable gaps in mixed-size layouts on wide screens.
-    const LAYOUT_RESET_MIGRATION_KEY = 'worldmonitor-layout-reset-v2.5';
+    const LAYOUT_RESET_MIGRATION_KEY = 'intelhq-layout-reset-v2.5';
     if (!localStorage.getItem(LAYOUT_RESET_MIGRATION_KEY)) {
       const hadSavedOrder = !!localStorage.getItem(this.PANEL_ORDER_KEY);
       const hadSavedSpans = !!localStorage.getItem(this.PANEL_SPANS_KEY);
@@ -297,10 +301,12 @@ export class App implements AppContext {
       this.findingsBadge = new IntelligenceGapBadge();
       this.findingsBadge.setOnSignalClick((signal) => {
         if (this.countryBriefPage?.isVisible()) return;
+        if (localStorage.getItem('wm-settings-open') === '1') return;
         this.signalModal?.showSignal(signal);
       });
       this.findingsBadge.setOnAlertClick((alert) => {
         if (this.countryBriefPage?.isVisible()) return;
+        if (localStorage.getItem('wm-settings-open') === '1') return;
         this.signalModal?.showAlert(alert);
       });
     }
@@ -314,6 +320,58 @@ export class App implements AppContext {
     this.setupMapLayerHandlers();
     this.countryIntel.setupCountryIntel();
     this.uiSetup.setupEventListeners();
+
+    // --- TV Navigation (Phase 2) + Memory Monitor (Phase 3) ---
+    if (IS_TV) {
+      this.tvNavigation = new TVNavigationController(this);
+      // Defer zone registration until after initial data load
+      requestAnimationFrame(() => {
+        this.tvNavigation?.registerZones();
+      });
+
+      // Phase 3: Start memory monitoring with emergency cleanup
+      this.stopMemoryMonitor = startMemoryMonitor({
+        onWarning: () => {
+          // Evict non-essential caches
+          this.intelligenceCache = {};
+          this.cyberThreatsCache = null;
+          this.mapFlashCache.clear();
+        },
+        onCritical: () => {
+          // Aggressive cleanup: reduce visible data
+          this.intelligenceCache = {};
+          this.cyberThreatsCache = null;
+          this.mapFlashCache.clear();
+          this.allNews = this.allNews.slice(0, 30);
+          for (const key of Object.keys(this.newsByCategory)) {
+            const items = this.newsByCategory[key];
+            if (items) this.newsByCategory[key] = items.slice(0, 20);
+          }
+        },
+      });
+
+      // Phase 4: webOS lifecycle — pause/resume data fetching
+      registerWebOSLifecycle({
+        onRelaunch: () => {
+          // App re-opened while still running — refresh data immediately
+          this.dataLoader.loadAllData().catch(console.error);
+        },
+        onBackground: () => {
+          // Suspend all refresh timers to save CPU/network while backgrounded
+          for (const timeoutId of this.refreshTimeoutIds.values()) {
+            clearTimeout(timeoutId);
+          }
+          this.refreshTimeoutIds.clear();
+          console.log('[webOS] Refresh timers suspended');
+        },
+        onForeground: () => {
+          // Resume — trigger immediate data refresh
+          console.log('[webOS] Resuming — reloading data');
+          this.dataLoader.loadAllData().catch(console.error);
+        },
+      });
+    }
+
     // Capture ?country= BEFORE URL sync overwrites it
     const initState = parseMapUrlState(window.location.search, this.mapLayers);
     this.pendingDeepLinkCountry = initState.country ?? null;
@@ -506,5 +564,11 @@ export class App implements AppContext {
     // Clean up map and AIS
     this.map?.destroy();
     disconnectAisStream();
+
+    // Clean up TV navigation + memory monitor
+    this.tvNavigation?.destroy();
+    this.tvNavigation = null;
+    this.stopMemoryMonitor?.();
+    this.stopMemoryMonitor = null;
   }
 }

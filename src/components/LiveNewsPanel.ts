@@ -3,6 +3,7 @@ import { fetchLiveVideoId } from '@/services/live-news';
 import { isDesktopRuntime, getRemoteApiBaseUrl } from '@/services/runtime';
 import { IDLE_PAUSE_MS } from '@/config';
 import { t } from '../services/i18n';
+import { APP_ORIGIN } from '@/config/branding';
 
 // YouTube IFrame Player API types
 type YouTubePlayer = {
@@ -119,7 +120,7 @@ export class LiveNewsPanel extends Panel {
   }
 
   private get embedOrigin(): string {
-    try { return new URL(getRemoteApiBaseUrl()).origin; } catch { return 'https://intelhq.io'; }
+    try { return new URL(getRemoteApiBaseUrl()).origin; } catch { return APP_ORIGIN; }
   }
 
   private setupBridgeMessageListener(): void {
@@ -148,8 +149,8 @@ export class LiveNewsPanel extends Panel {
 
   private static resolveYouTubeOrigin(): string | null {
     const fallbackOrigin = SITE_VARIANT === 'tech'
-      ? 'https://intelhq.io'
-      : 'https://intelhq.io';
+      ? APP_ORIGIN
+      : APP_ORIGIN;
 
     try {
       const { protocol, origin, host } = window.location;
@@ -186,10 +187,11 @@ export class LiveNewsPanel extends Panel {
     // Track user activity to detect idle (pauses after 5 min inactivity)
     this.boundIdleResetHandler = () => {
       if (this.idleTimeout) clearTimeout(this.idleTimeout);
+      this.resumeFromIdle();
       this.idleTimeout = setTimeout(() => this.pauseForIdle(), this.IDLE_PAUSE_MS);
     };
 
-    ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+    ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'].forEach(event => {
       document.addEventListener(event, this.boundIdleResetHandler, { passive: true });
     });
 
@@ -266,7 +268,12 @@ export class LiveNewsPanel extends Panel {
     this.isPlaying = !this.isPlaying;
     this.wasPlayingBeforeIdle = this.isPlaying;
     this.updateLiveIndicator();
-    this.syncPlayerState();
+    if (this.isPlaying && !this.player && !this.desktopEmbedIframe) {
+      this.ensurePlayerContainer();
+      void this.initializePlayer();
+    } else {
+      this.syncPlayerState();
+    }
   }
 
   private createMuteButton(): void {
@@ -685,7 +692,7 @@ export class LiveNewsPanel extends Panel {
 
     document.removeEventListener('visibilitychange', this.boundVisibilityHandler);
     window.removeEventListener('message', this.boundMessageHandler);
-    ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+    ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'].forEach(event => {
       document.removeEventListener(event, this.boundIdleResetHandler);
     });
 

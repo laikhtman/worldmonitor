@@ -1,6 +1,7 @@
 import type { AisDisruptionEvent, AisDensityZone } from '@/types';
 import { dataFreshness } from './data-freshness';
 import { isFeatureAvailable } from './runtime-config';
+import { IS_TV } from '@/utils/tv-detection';
 
 const wsRelayUrl = import.meta.env.VITE_WS_RELAY_URL || '';
 const RAILWAY_SNAPSHOT_URL = wsRelayUrl
@@ -8,10 +9,10 @@ const RAILWAY_SNAPSHOT_URL = wsRelayUrl
   : '';
 const VERCEL_SNAPSHOT_API = '/api/ais-snapshot';
 const LOCAL_SNAPSHOT_FALLBACK = 'http://localhost:3004/ais/snapshot';
-const SNAPSHOT_POLL_INTERVAL_MS = 10 * 1000;
+const SNAPSHOT_POLL_INTERVAL_MS = IS_TV ? 30_000 : 10_000;
 const SNAPSHOT_STALE_MS = 20 * 1000;
 const CALLBACK_RETENTION_MS = 2 * 60 * 60 * 1000; // 2 hours
-const MAX_CALLBACK_TRACKED_VESSELS = 20000;
+const MAX_CALLBACK_TRACKED_VESSELS = IS_TV ? 5000 : 20000;
 
 const isClientRuntime = typeof window !== 'undefined';
 const isLocalhost = isClientRuntime && window.location.hostname === 'localhost';

@@ -1,6 +1,6 @@
 # Architecture
 
-World Monitor is an AI-powered real-time global intelligence dashboard built as a TypeScript single-page application. It aggregates 30+ external data sources — covering geopolitics, military activity, financial markets, cyber threats, climate events, and more — into a unified operational picture rendered through an interactive 3D globe and a grid of specialised panels.
+IntelHQ is an AI-powered real-time global intelligence dashboard built as a TypeScript single-page application. It aggregates 30+ external data sources — covering geopolitics, military activity, financial markets, cyber threats, climate events, and more — into a unified operational picture rendered through an interactive 3D globe and a grid of specialised panels.
 
 This document covers the full system architecture: deployment topology, variant configuration, data pipelines, signal intelligence, map rendering, caching, desktop packaging, machine-learning inference, error handling, and the controller decomposition.
 
@@ -92,10 +92,11 @@ graph TD
 |---|---|---|
 | **SPA** | TypeScript, Vite 6, no framework | UI rendering via class-based components extending a `Panel` base class. 44 panels in the full variant. |
 | **Vercel Edge Functions** | Plain JS (60+ files in api/) | Proxy, normalise, and cache upstream API calls. Each file exports a default Vercel handler. |
+| **RPC Gateway** | TypeScript (api/[domain]/v1/[rpc].ts + server/) | Typed RPC handlers for structured endpoints (seismology, military, economic, etc.). Includes rate limiting, edge cache tiers, and POST→GET fallback. |
 | **External APIs** | 30+ heterogeneous sources | RSS feeds, conflict databases (ACLED, UCDP), geospatial (GDELT, NASA FIRMS, OpenSky), markets (Finnhub, Yahoo Finance, CoinGecko), LLMs (Groq, OpenRouter), and more. |
-| **Upstash Redis** | Redis REST API | Server-side response cache with TTL-based expiry. Falls back to in-memory Map in sidecar mode. |
+| **Upstash Redis** | Redis REST API | Server-side response cache (TTL-based), geospatial data store (GEO sorted sets for 125K military bases), and rate limiting (`@upstash/ratelimit` 60 req/min sliding window). Falls back to in-memory Map in sidecar mode. |
 | **Service Worker** | Workbox | Offline support, runtime caching strategies, background sync. |
-| **IndexedDB** | `worldmonitor_db` | Client-side storage for playback snapshots and temporal baseline data. |
+| **IndexedDB** | `intelhq_db` | Client-side storage for playback snapshots and temporal baseline data. |
 | **Tauri Shell** | Tauri 2 (Rust) + Node.js sidecar | Desktop packaging. Sidecar runs a local API server; Rust layer provides OS keychain, window management, and IPC. |
 | **ML Worker** | Web Worker + ONNX Runtime / Transformers.js | In-browser inference for embeddings, sentiment, summarisation, and NER. |
 
@@ -103,20 +104,20 @@ graph TD
 
 ## 2. Variant Architecture
 
-World Monitor ships as three product variants from a single codebase. Each variant surfaces a different subset of panels, map layers, and data sources.
+IntelHQ ships as three product variants from a single codebase. Each variant surfaces a different subset of panels, map layers, and data sources.
 
 | Variant | Domain | Focus |
 |---|---|---|
-| `full` | worldmonitor.app | Geopolitics, military, OSINT, conflicts, markets |
-| `tech` | tech.worldmonitor.app | AI/ML, startups, cybersecurity, developer tools |
-| `finance` | finance.worldmonitor.app | Markets, trading, central banks, macro indicators |
+| `full` | intelhq.io | Geopolitics, military, OSINT, conflicts, markets |
+| `tech` | tech.intelhq.io | AI/ML, startups, cybersecurity, developer tools |
+| `finance` | finance.intelhq.io | Markets, trading, central banks, macro indicators |
 
 ### Variant Resolution
 
 The active variant is resolved at startup in src/config/variant.ts via a strict priority chain:
 
 ```
-localStorage('worldmonitor-variant')  →  import.meta.env.VITE_VARIANT  →  default 'full'
+localStorage('intelhq-variant')  →  import.meta.env.VITE_VARIANT  →  default 'full'
 ```
 
 The exported constant `SITE_VARIANT` is computed once as an IIFE:
@@ -124,7 +125,7 @@ The exported constant `SITE_VARIANT` is computed once as an IIFE:
 ```typescript
 export const SITE_VARIANT: string = (() => {
   if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('worldmonitor-variant');
+    const stored = localStorage.getItem('intelhq-variant');
     if (stored === 'tech' || stored === 'full' || stored === 'finance') return stored;
   }
   return import.meta.env.VITE_VARIANT || 'full';
@@ -417,7 +418,7 @@ graph TD
 
     subgraph LayerConfig["Layer Configuration"]
         Defaults["FULL_MAP_LAYERS<br/>(35+ boolean toggles)"]
-        UserPref["localStorage overrides<br/>(worldmonitor-layers)"]
+        UserPref["localStorage overrides<br/>(intelhq-layers)"]
         URLState["URL state overrides"]
         Variant["Variant-specific defaults"]
     end
@@ -461,7 +462,7 @@ Map layers follow a three-tier override system:
 
 1. **Variant defaults** — `FULL_MAP_LAYERS`, `TECH_MAP_LAYERS`, or `FINANCE_MAP_LAYERS` define the base layer state for each variant. The full variant enables `conflicts`, `bases`, `hotspots`, `nuclear`, `sanctions`, `weather`, `economic`, `waterways`, `outages`, and `military` by default.
 
-2. **User localStorage** — Stored under the key `worldmonitor-layers`. Users toggle layers in the map controls UI, and their preferences persist across sessions.
+2. **User localStorage** — Stored under the key `intelhq-layers`. Users toggle layers in the map controls UI, and their preferences persist across sessions.
 
 3. **URL state** — Query parameters can override individual layers for shareable links and embeds.
 
@@ -469,7 +470,7 @@ The merge logic applies overrides in this order, meaning URL state has the highe
 
 ### Mobile Adaptation
 
-Mobile devices receive a reduced layer set via `MOBILE_DEFAULT_MAP_LAYERS` (variant-specific). This disables heavier layers (bases, nuclear, cables, pipelines, spaceports, minerals) that would degrade performance on constrained devices while retaining the most operationally relevant overlays (conflicts, hotspots, sanctions, weather).
+Mobile devices receive a reduced layer set via `MOBILE_DEFAULT_MAP_LAYERS` (variant-specific). This disables heavier layers (nuclear, cables, pipelines, spaceports, minerals) that would degrade performance on constrained devices while retaining the most operationally relevant overlays (conflicts, hotspots, sanctions, weather). Note: the bases layer uses server-side clustering at low zoom levels, making it viable on mobile despite the 125K-entry dataset — the client receives pre-clustered results rather than raw points.
 
 ### Rendering Pipeline
 
@@ -485,7 +486,7 @@ The **MapPopup** component (src/components/MapPopup.ts) provides a unified popup
 
 ## 6. Caching Architecture
 
-World Monitor employs a five-tier caching strategy to minimise API costs, reduce latency, and enable offline operation.
+IntelHQ employs a five-tier caching strategy to minimise API costs, reduce latency, and enable offline operation.
 
 ```mermaid
 graph TD
@@ -506,7 +507,7 @@ graph TD
     end
 
     subgraph Tier4["Tier 4: IndexedDB (Client)"]
-        IDB["worldmonitor_db"]
+        IDB["intelhq_db"]
         Baselines["baselines store<br/>(keyPath: 'key')"]
         Snapshots["snapshots store<br/>(keyPath: 'timestamp'<br/>index: 'by_time')"]
         IDB --> Baselines
@@ -516,7 +517,7 @@ graph TD
     subgraph Tier5["Tier 5: Persistent Cache"]
         PC["persistent-cache.ts<br/>CacheEnvelope&lt;T&gt;"]
         TauriInvoke["Tauri invoke<br/>(OS filesystem)"]
-        LSFallback["localStorage fallback<br/>prefix: worldmonitor-persistent-cache:"]
+        LSFallback["localStorage fallback<br/>prefix: intelhq-persistent-cache:"]
         PC --> TauriInvoke
         PC --> LSFallback
     end
@@ -538,6 +539,26 @@ graph TD
 The api/_upstash-cache.js module wraps all API fetch operations with Redis GET/SET. Every API endpoint calls `getCachedJson(key)` before hitting upstream. On cache miss, the upstream response is stored with `setCachedJson(key, value, ttlSeconds)`. The module lazily initialises the Redis client from `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` environment variables.
 
 A `hashString()` utility produces compact cache keys from request parameters using a DJB2 hash.
+
+#### Redis as Geospatial Data Store
+
+Beyond key-value caching, Redis also serves as the primary data store for military base geospatial data. The `server/_shared/redis.ts` module provides `geoSearchByBox()` and `getHashFieldsBatch()` helpers that use Redis GEO sorted sets (`GEOSEARCH` + `HMGET`) to serve 125,380 military base entries filtered by viewport bounding box. A blue-green deployment model with atomic version pointer switching enables zero-downtime data updates.
+
+#### Rate Limiting
+
+The `server/_shared/rate-limit.ts` module provides Redis-backed rate limiting via `@upstash/ratelimit` (60 req/min sliding window per IP). It prioritises `x-real-ip` (injected by Vercel) over `x-forwarded-for` to prevent IP spoofing. Non-browser requests require an API key.
+
+#### Edge Cache Tiers for RPC Endpoints
+
+The RPC gateway (`api/[domain]/v1/[rpc].ts`) assigns every endpoint a cache tier (`fast`/`medium`/`slow`/`static`/`no-store`) that controls `Cache-Control` response headers:
+
+| Tier | `s-maxage` | `stale-while-revalidate` | Examples |
+|------|-----------|-------------------------|----------|
+| `fast` | 120 s | 30 s | Market quotes, earthquakes, service statuses |
+| `medium` | 300 s | 60 s | Military bases, macro signals, prediction markets |
+| `slow` | 900 s | 120 s | ACLED events, cyber threats, military flights |
+| `static` | 3 600 s | 300 s | Fire detections, nav warnings, tech events |
+| `no-store` | — | — | Vessel snapshots (real-time) |
 
 ### Tier 1b: Sidecar In-Memory Cache
 
@@ -561,7 +582,7 @@ The offline fallback page (public/offline.html) is served when the network is un
 
 ### Tier 4: IndexedDB
 
-The `worldmonitor_db` IndexedDB database contains two object stores:
+The `intelhq_db` IndexedDB database contains two object stores:
 
 | Store | keyPath | Index | Purpose |
 |---|---|---|---|
@@ -580,7 +601,7 @@ type CacheEnvelope<T> = {
 };
 ```
 
-On desktop, `getPersistentCache()` and `setPersistentCache()` attempt Tauri IPC invocations (`read_cache_entry` / `write_cache_entry`) first, which store data on the OS filesystem via the Rust backend. If the Tauri call fails (or in web mode), the module falls back to `localStorage` with the prefix `worldmonitor-persistent-cache:`.
+On desktop, `getPersistentCache()` and `setPersistentCache()` attempt Tauri IPC invocations (`read_cache_entry` / `write_cache_entry`) first, which store data on the OS filesystem via the Rust backend. If the Tauri call fails (or in web mode), the module falls back to `localStorage` with the prefix `intelhq-persistent-cache:`.
 
 ---
 
@@ -661,7 +682,7 @@ The src/services/runtime-config.ts module manages two concerns:
 
 On desktop, secrets are read from the OS keychain via Tauri IPC. In web mode, they fall back to environment variables. A `validateSecret()` function provides format validation with user-facing hints.
 
-**2. Feature Toggles** — 14 `RuntimeFeatureId` values stored in localStorage under the key `worldmonitor-runtime-feature-toggles`:
+**2. Feature Toggles** — 14 `RuntimeFeatureId` values stored in localStorage under the key `intelhq-runtime-feature-toggles`:
 
 `aiGroq`, `aiOpenRouter`, `economicFred`, `energyEia`, `internetOutages`, `acledConflicts`, `abuseChThreatIntel`, `alienvaultOtxThreatIntel`, `abuseIpdbThreatIntel`, `wingbitsEnrichment`, `aisRelay`, `openskyRelay`, `finnhubMarkets`, `nasaFirms`.
 
@@ -673,7 +694,7 @@ The settings page listens for `storage` events on the toggles key, enabling cros
 
 ## 8. ML Pipeline
 
-World Monitor runs machine-learning inference directly in the browser using ONNX Runtime Web via Transformers.js, with API-based fallbacks for constrained devices.
+IntelHQ runs machine-learning inference directly in the browser using ONNX Runtime Web via Transformers.js, with API-based fallbacks for constrained devices.
 
 ```mermaid
 graph TD
@@ -817,7 +838,7 @@ The fallback is not automatic at the ML worker level; each consumer service choo
 
 ## 9. Error Handling Hierarchy
 
-World Monitor uses a circuit-breaker pattern to manage transient failures across its many data sources, preventing cascade failures and providing graceful degradation.
+IntelHQ uses a circuit-breaker pattern to manage transient failures across its many data sources, preventing cascade failures and providing graceful degradation.
 
 ```mermaid
 stateDiagram-v2

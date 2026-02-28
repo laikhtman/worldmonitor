@@ -1,6 +1,6 @@
-# World Monitor — Agent Team Coordination
+# IntelHQ — Agent Team Coordination
 
-> This document defines how the 9 AI agents collaborate on continuous development, production monitoring, and updates for the World Monitor platform.
+> This document defines how the 9 AI agents collaborate on continuous development, production monitoring, and updates for the IntelHQ platform.
 
 ## Agent Roster
 
