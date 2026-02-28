@@ -580,11 +580,6 @@
       "base": "基地",
       "nuclear": "核设施"
     },
-    "community": {
-      "joinDiscussion": "加入讨论",
-      "openDiscussion": "打开讨论",
-      "dontShowAgain": "不再显示"
-    },
     "threatLabels": {
       "critical": "危急",
       "high": "高",

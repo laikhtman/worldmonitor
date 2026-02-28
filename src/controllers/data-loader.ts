@@ -38,7 +38,6 @@ import { isFeatureAvailable } from '@/services/runtime-config';
 import { INTEL_HOTSPOTS, CONFLICT_ZONES } from '@/config/geo';
 import { mlWorker } from '@/services/ml-worker';
 import { maybeShowDownloadBanner } from '@/components/DownloadBanner';
-import { mountCommunityWidget } from '@/components/CommunityWidget';
 import { t } from '@/services/i18n';
 import type {
   MarketPanel, HeatmapPanel, CommoditiesPanel,
@@ -463,7 +462,6 @@ export class DataLoaderController {
     this.ctx.allNews = collectedNews;
     this.ctx.initialLoadComplete = true;
     maybeShowDownloadBanner();
-    mountCommunityWidget();
     // Temporal baseline: report news volume
     updateAndCheck([
       { type: 'news', region: 'global', count: collectedNews.length },

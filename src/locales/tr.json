@@ -580,11 +580,6 @@
       "base": "Us",
       "nuclear": "Nukleer"
     },
-    "community": {
-      "joinDiscussion": "Tartismaya Katilin",
-      "openDiscussion": "Tartismayi Ac",
-      "dontShowAgain": "Bir daha gosterme"
-    },
     "threatLabels": {
       "critical": "KRIT",
       "high": "YUKSEK",

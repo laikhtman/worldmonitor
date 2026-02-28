@@ -580,11 +580,6 @@
       "base": "基地",
       "nuclear": "核施設"
     },
-    "community": {
-      "joinDiscussion": "ディスカッションに参加",
-      "openDiscussion": "ディスカッションを開く",
-      "dontShowAgain": "今後表示しない"
-    },
     "threatLabels": {
       "critical": "危険",
       "high": "高",

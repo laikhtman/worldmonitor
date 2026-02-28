@@ -516,11 +516,6 @@
       "base": "Bas",
       "nuclear": "Kärnteknisk"
     },
-    "community": {
-      "joinDiscussion": "Gå med i diskussionen",
-      "openDiscussion": "Öppna diskussion",
-      "dontShowAgain": "Visa inte igen"
-    },
     "threatLabels": {
       "critical": "KRIT",
       "high": "HÖG",

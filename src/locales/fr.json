@@ -509,11 +509,6 @@
             "base": "Base",
             "nuclear": "Nucléaire"
         },
-        "community": {
-            "joinDiscussion": "Rejoindre la discussion",
-            "openDiscussion": "Ouvrir la discussion",
-            "dontShowAgain": "Ne plus afficher"
-        },
         "threatLabels": {
             "critical": "CRIT",
             "high": "HAUT",
