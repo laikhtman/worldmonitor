@@ -1,7 +1,7 @@
 import './styles/main.css';
 import './styles/settings-window.css';
 import { RuntimeConfigPanel } from '@/components/RuntimeConfigPanel';
-import { WorldMonitorTab } from '@/components/WorldMonitorTab';
+import { IntelHQTab } from '@/components/IntelHQTab';
 import { EnvKeyStatusPanel } from '@/components/EnvKeyStatusPanel';
 import { RUNTIME_FEATURES, loadDesktopSecrets } from '@/services/runtime-config';
 import { tryInvokeTauri } from '@/services/tauri-bridge';
@@ -86,7 +86,7 @@ async function initSettingsWindow(): Promise<void> {
 
   const llmMount = document.getElementById('llmApp');
   const apiMount = document.getElementById('apiKeysApp');
-  const wmMount = document.getElementById('worldmonitorApp');
+  const wmMount = document.getElementById('intelhqApp');
   if (!llmMount || !apiMount) return;
 
   const llmPanel = new RuntimeConfigPanel({ mode: 'full', buffered: true, featureFilter: LLM_FEATURES });
@@ -107,7 +107,7 @@ async function initSettingsWindow(): Promise<void> {
     envKeyMount.appendChild(envKeyStatusPanel.getElement());
   }
 
-  const wmTab = new WorldMonitorTab();
+  const wmTab = new IntelHQTab();
   if (wmMount) {
     wmMount.innerHTML = '';
     wmMount.appendChild(wmTab.getElement());

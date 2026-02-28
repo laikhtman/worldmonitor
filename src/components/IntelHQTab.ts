@@ -1,9 +1,9 @@
 import { getSecretState, setSecretValue, type RuntimeSecretKey } from '@/services/runtime-config';
 import { t } from '@/services/i18n';
 
-const WM_KEY: RuntimeSecretKey = 'WORLDMONITOR_API_KEY';
+const WM_KEY: RuntimeSecretKey = 'INTELHQ_API_KEY';
 
-export class WorldMonitorTab {
+export class IntelHQTab {
   private el: HTMLElement;
   private keyInput!: HTMLInputElement;
   private emailInput!: HTMLInputElement;
@@ -20,41 +20,41 @@ export class WorldMonitorTab {
   private render(): void {
     const state = getSecretState(WM_KEY);
     const statusText = state.present
-      ? t('modals.settingsWindow.worldMonitor.apiKey.statusValid')
-      : t('modals.settingsWindow.worldMonitor.apiKey.statusMissing');
+      ? t('modals.settingsWindow.intelHQ.apiKey.statusValid')
+      : t('modals.settingsWindow.intelHQ.apiKey.statusMissing');
     const statusClass = state.present ? 'ok' : 'warn';
 
     this.el.innerHTML = `
       <div class="wm-hero">
-        <h2 class="wm-hero-title">${t('modals.settingsWindow.worldMonitor.heroTitle')}</h2>
-        <p class="wm-hero-desc">${t('modals.settingsWindow.worldMonitor.heroDescription')}</p>
+        <h2 class="wm-hero-title">${t('modals.settingsWindow.intelHQ.heroTitle')}</h2>
+        <p class="wm-hero-desc">${t('modals.settingsWindow.intelHQ.heroDescription')}</p>
       </div>
       <section class="wm-section">
-        <h2 class="wm-section-title">${t('modals.settingsWindow.worldMonitor.apiKey.title')}</h2>
-        <p class="wm-section-desc">${t('modals.settingsWindow.worldMonitor.apiKey.description')}</p>
+        <h2 class="wm-section-title">${t('modals.settingsWindow.intelHQ.apiKey.title')}</h2>
+        <p class="wm-section-desc">${t('modals.settingsWindow.intelHQ.apiKey.description')}</p>
         <div class="wm-key-row">
           <div class="wm-input-wrap">
             <input type="password" class="wm-input" data-wm-key-input
-              placeholder="${t('modals.settingsWindow.worldMonitor.apiKey.placeholder')}" autocomplete="off" spellcheck="false" />
+              placeholder="${t('modals.settingsWindow.intelHQ.apiKey.placeholder')}" autocomplete="off" spellcheck="false" />
             <button type="button" class="wm-toggle-vis" data-wm-toggle title="Show/hide">&#x1f441;</button>
           </div>
           <span class="wm-badge ${statusClass}" data-wm-badge>${statusText}</span>
         </div>
       </section>
-      <div class="wm-divider"><span>${t('modals.settingsWindow.worldMonitor.dividerOr')}</span></div>
+      <div class="wm-divider"><span>${t('modals.settingsWindow.intelHQ.dividerOr')}</span></div>
       <section class="wm-section">
-        <h2 class="wm-section-title">${t('modals.settingsWindow.worldMonitor.register.title')}</h2>
-        <p class="wm-section-desc">${t('modals.settingsWindow.worldMonitor.register.description')}</p>
+        <h2 class="wm-section-title">${t('modals.settingsWindow.intelHQ.register.title')}</h2>
+        <p class="wm-section-desc">${t('modals.settingsWindow.intelHQ.register.description')}</p>
         <div class="wm-register-row">
           <input type="email" class="wm-input wm-email" data-wm-email
-            placeholder="${t('modals.settingsWindow.worldMonitor.register.emailPlaceholder')}" />
-          <button type="button" class="wm-submit-btn" data-wm-register>${t('modals.settingsWindow.worldMonitor.register.submitBtn')}</button>
+            placeholder="${t('modals.settingsWindow.intelHQ.register.emailPlaceholder')}" />
+          <button type="button" class="wm-submit-btn" data-wm-register>${t('modals.settingsWindow.intelHQ.register.submitBtn')}</button>
         </div>
         <p class="wm-reg-status" data-wm-reg-status></p>
       </section>
       <div class="wm-byok">
-        <h3 class="wm-byok-title">${t('modals.settingsWindow.worldMonitor.byokTitle')}</h3>
-        <p class="wm-byok-desc">${t('modals.settingsWindow.worldMonitor.byokDescription')}</p>
+        <h3 class="wm-byok-title">${t('modals.settingsWindow.intelHQ.byokTitle')}</h3>
+        <p class="wm-byok-desc">${t('modals.settingsWindow.intelHQ.byokDescription')}</p>
       </div>
     `;
 
@@ -79,14 +79,14 @@ export class WorldMonitorTab {
   private async submitRegistration(): Promise<void> {
     const email = this.emailInput.value.trim();
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      this.regStatus.textContent = t('modals.settingsWindow.worldMonitor.register.error');
+      this.regStatus.textContent = t('modals.settingsWindow.intelHQ.register.error');
       this.regStatus.className = 'wm-reg-status error';
       return;
     }
 
     const btn = this.el.querySelector('[data-wm-register]') as HTMLButtonElement;
     btn.disabled = true;
-    btn.textContent = t('modals.settingsWindow.worldMonitor.register.submitting');
+    btn.textContent = t('modals.settingsWindow.intelHQ.register.submitting');
 
     try {
       const res = await fetch('/api/register-interest', {
@@ -96,21 +96,21 @@ export class WorldMonitorTab {
       });
       const data = await res.json() as { status?: string; error?: string };
       if (data.status === 'already_registered') {
-        this.regStatus.textContent = t('modals.settingsWindow.worldMonitor.register.alreadyRegistered');
+        this.regStatus.textContent = t('modals.settingsWindow.intelHQ.register.alreadyRegistered');
         this.regStatus.className = 'wm-reg-status ok';
       } else if (data.status === 'registered') {
-        this.regStatus.textContent = t('modals.settingsWindow.worldMonitor.register.success');
+        this.regStatus.textContent = t('modals.settingsWindow.intelHQ.register.success');
         this.regStatus.className = 'wm-reg-status ok';
       } else {
-        this.regStatus.textContent = data.error || t('modals.settingsWindow.worldMonitor.register.error');
+        this.regStatus.textContent = data.error || t('modals.settingsWindow.intelHQ.register.error');
         this.regStatus.className = 'wm-reg-status error';
       }
     } catch {
-      this.regStatus.textContent = t('modals.settingsWindow.worldMonitor.register.error');
+      this.regStatus.textContent = t('modals.settingsWindow.intelHQ.register.error');
       this.regStatus.className = 'wm-reg-status error';
     } finally {
       btn.disabled = false;
-      btn.textContent = t('modals.settingsWindow.worldMonitor.register.submitBtn');
+      btn.textContent = t('modals.settingsWindow.intelHQ.register.submitBtn');
     }
   }
 
@@ -124,8 +124,8 @@ export class WorldMonitorTab {
     this.pendingKeyValue = null;
     const state = getSecretState(WM_KEY);
     this.keyBadge.textContent = state.present
-      ? t('modals.settingsWindow.worldMonitor.apiKey.statusValid')
-      : t('modals.settingsWindow.worldMonitor.apiKey.statusMissing');
+      ? t('modals.settingsWindow.intelHQ.apiKey.statusValid')
+      : t('modals.settingsWindow.intelHQ.apiKey.statusMissing');
     this.keyBadge.className = `wm-badge ${state.present ? 'ok' : 'warn'}`;
   }
 

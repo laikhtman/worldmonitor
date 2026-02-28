@@ -158,7 +158,7 @@ function htmlVariantPlugin(): Plugin {
         .replace(/<meta name="twitter:description" content=".*?" \/>/, `<meta name="twitter:description" content="${activeMeta.description}" />`)
         .replace(/"name": "IntelHQ"/, `"name": "${activeMeta.siteName}"`)
         .replace(/"alternateName": "IntelHQ"/, `"alternateName": "${activeMeta.siteName.replace(' ', '')}"`)
-        .replace(/"url": "https:\/\/worldmonitor\.app\/"/, `"url": "${activeMeta.url}"`)
+        .replace(/"url": "https:\/\/intelhq\.io\/"/, `"url": "${activeMeta.url}"`)
         .replace(/"url": "https:\/\/intelhq\.io\/"/, `"url": "${activeMeta.url}"`)
         .replace(/"description": "Real-time global intelligence dashboard with live news, markets, military tracking, infrastructure monitoring, and geopolitical data."/, `"description": "${activeMeta.description}"`)
         .replace(/"featureList": \[[\s\S]*?\]/, `"featureList": ${JSON.stringify(activeMeta.features, null, 8).replace(/\n/g, '\n      ')}`);

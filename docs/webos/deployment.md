@@ -2,8 +2,7 @@
 
 > **Audience**: DevOps agent, developers, anyone redeploying the app or setting up a local environment.
 >
-> **Repository**: `laikhtman/worldmonitor` (fork) — push target via the `fork` remote.
-> **Upstream**: `koala73/worldmonitor` (read-only `origin`) — we do **not** auto-sync from upstream.
+> **Repository**: `laikhtman/IntelHQ` — standalone repository.
 > **Production**: Hetzner CPX62 server → `intelhq.io`
 
 ---
@@ -33,7 +32,7 @@
                      │  IP: 49.13.224.43                 │
                      │                                   │
   intelhq.io ────────┤  nginx (SSL, static, SPA)         │
-                     │    ├─ /opt/worldmonitor/dist/     │
+                     │    ├─ /opt/intelhq/dist/          │
                      │    └─ /api/* → Node.js :3001      │
                      │                                   │
                      │  Node.js sidecar (local-api-server)│
@@ -55,12 +54,12 @@
 **Key facts:**
 
 - The app runs on a **Hetzner CPX62** server (Ubuntu, 32 GB RAM).
-- **nginx** serves static files from `/opt/worldmonitor/dist/` and proxies `/api/*` to a Node.js sidecar on port 3001.
+- **nginx** serves static files from `/opt/intelhq/dist/` and proxies `/api/*` to a Node.js sidecar on port 3001.
 - The Node.js sidecar (`src-tauri/sidecar/local-api-server.mjs`) runs the same API handler logic as the `api/*.js` files.
 - An **Israel VPS** at 195.20.17.179 runs `oref-proxy.mjs` to proxy geo-blocked Israeli API calls.
 - Currently only the **full variant** is deployed at `intelhq.io`. Other subdomains are planned.
 - The app is a single codebase producing 4 variants via `VITE_VARIANT`: `full`, `tech`, `finance`, `tv`.
-- Vercel (`worldmonitor-ivory-eta.vercel.app`) exists as a preview/fallback but is **not** the production deployment.
+- Vercel (`intelhq-ivory-eta.vercel.app`) exists as a preview/fallback but is **not** the production deployment.
 
 ---
 
@@ -75,17 +74,17 @@
 | OS | Ubuntu |
 | IPv4 | `49.13.224.43` |
 | SSH User | `root` |
-| SSH Key | `~/.ssh/worldmonitor-hetzner` |
+| SSH Key | `~/.ssh/intelhq-hetzner` |
 | Domain | `intelhq.io` |
-| App Root | `/opt/worldmonitor/` |
-| Static Files | `/opt/worldmonitor/dist/` |
+| App Root | `/opt/intelhq/` |
+| Static Files | `/opt/intelhq/dist/` |
 | API Sidecar Port | `3001` |
 | Credentials | See `.credentials` file (gitignored) |
 
 ### 2.2 Server Components
 
 ```
-/opt/worldmonitor/
+/opt/intelhq/
 ├── dist/                  ← Built static files (served by nginx)
 │   ├── index.html
 │   ├── assets/            ← JS/CSS bundles (hashed, immutable cache)
@@ -104,7 +103,7 @@ The nginx config is at `/etc/nginx/sites-enabled/intelhq` (source: `deploy/nginx
 
 - **Ports**: 80 (HTTP) + 443 (HTTPS with HTTP/2)
 - **SSL**: Origin certificate at `/etc/ssl/certs/intelhq-origin.crt`
-- **Static**: Serves `/opt/worldmonitor/dist/` with SPA fallback to `index.html`
+- **Static**: Serves `/opt/intelhq/dist/` with SPA fallback to `index.html`
 - **Assets**: `/assets/` gets `Cache-Control: public, immutable` with 1-year expiry
 - **API proxy**: `/api/*` → `http://127.0.0.1:3001` (Node.js sidecar)
 - **Gzip**: Enabled for text, CSS, JS, JSON, SVG
@@ -112,25 +111,25 @@ The nginx config is at `/etc/nginx/sites-enabled/intelhq` (source: `deploy/nginx
 
 ### 2.4 API Sidecar (systemd Service)
 
-The API sidecar runs as a systemd service (`deploy/worldmonitor-api.service`):
+The API sidecar runs as a systemd service (`deploy/intelhq-api.service`):
 
 ```bash
 # Check status
-ssh root@49.13.224.43 -i ~/.ssh/worldmonitor-hetzner "systemctl status worldmonitor-api"
+ssh root@49.13.224.43 -i ~/.ssh/intelhq-hetzner "systemctl status intelhq-api"
 
 # Restart
-ssh root@49.13.224.43 -i ~/.ssh/worldmonitor-hetzner "systemctl restart worldmonitor-api"
+ssh root@49.13.224.43 -i ~/.ssh/intelhq-hetzner "systemctl restart intelhq-api"
 
 # View logs
-ssh root@49.13.224.43 -i ~/.ssh/worldmonitor-hetzner "journalctl -u worldmonitor-api -f"
+ssh root@49.13.224.43 -i ~/.ssh/intelhq-hetzner "journalctl -u intelhq-api -f"
 ```
 
 Service config:
 - **User**: `www-data`
-- **Working Directory**: `/opt/worldmonitor`
+- **Working Directory**: `/opt/intelhq`
 - **Entry Point**: `node src-tauri/sidecar/local-api-server.mjs`
 - **Port**: 3001
-- **Env File**: `/opt/worldmonitor/.env`
+- **Env File**: `/opt/intelhq/.env`
 - **Auto-restart**: On failure (5s delay)
 
 ---
@@ -144,16 +143,16 @@ Service config:
 npm run build:full
 
 # 2. Upload built files to the server
-scp -i ~/.ssh/worldmonitor-hetzner -r dist/* root@49.13.224.43:/opt/worldmonitor/dist/
+scp -i ~/.ssh/intelhq-hetzner -r dist/* root@49.13.224.43:/opt/intelhq/dist/
 
 # 3. Upload API files (if API handlers changed)
-scp -i ~/.ssh/worldmonitor-hetzner -r api/* root@49.13.224.43:/opt/worldmonitor/api/
+scp -i ~/.ssh/intelhq-hetzner -r api/* root@49.13.224.43:/opt/intelhq/api/
 
 # 4. Restart the API sidecar (if API files changed)
-ssh -i ~/.ssh/worldmonitor-hetzner root@49.13.224.43 "systemctl restart worldmonitor-api"
+ssh -i ~/.ssh/intelhq-hetzner root@49.13.224.43 "systemctl restart intelhq-api"
 
 # 5. Reload nginx (only if nginx config changed)
-ssh -i ~/.ssh/worldmonitor-hetzner root@49.13.224.43 "nginx -t && systemctl reload nginx"
+ssh -i ~/.ssh/intelhq-hetzner root@49.13.224.43 "nginx -t && systemctl reload nginx"
 ```
 
 ### 3.2 Quick Deploy (Static Files Only)
@@ -163,7 +162,7 @@ If only frontend code changed (no API changes):
 ```powershell
 # Build and upload — no service restart needed
 npm run build:full
-scp -i ~/.ssh/worldmonitor-hetzner -r dist/* root@49.13.224.43:/opt/worldmonitor/dist/
+scp -i ~/.ssh/intelhq-hetzner -r dist/* root@49.13.224.43:/opt/intelhq/dist/
 ```
 
 nginx serves static files directly — changes are live immediately after upload (users may need a hard-reload to bypass browser cache for `index.html`).
@@ -173,8 +172,8 @@ nginx serves static files directly — changes are live immediately after upload
 If only `api/*.js` files changed:
 
 ```powershell
-scp -i ~/.ssh/worldmonitor-hetzner -r api/* root@49.13.224.43:/opt/worldmonitor/api/
-ssh -i ~/.ssh/worldmonitor-hetzner root@49.13.224.43 "systemctl restart worldmonitor-api"
+scp -i ~/.ssh/intelhq-hetzner -r api/* root@49.13.224.43:/opt/intelhq/api/
+ssh -i ~/.ssh/intelhq-hetzner root@49.13.224.43 "systemctl restart intelhq-api"
 ```
 
 ### 3.4 Full Sync (rsync)
@@ -190,11 +189,11 @@ rsync -avz --delete \
   --exclude='.env.local' \
   --exclude='.credentials' \
   --exclude='dist-webos' \
-  -e "ssh -i ~/.ssh/worldmonitor-hetzner" \
-  ./ root@49.13.224.43:/opt/worldmonitor/
+  -e "ssh -i ~/.ssh/intelhq-hetzner" \
+  ./ root@49.13.224.43:/opt/intelhq/
 
 # Then on the server: install deps + restart
-ssh -i ~/.ssh/worldmonitor-hetzner root@49.13.224.43 "cd /opt/worldmonitor && npm install --production && systemctl restart worldmonitor-api"
+ssh -i ~/.ssh/intelhq-hetzner root@49.13.224.43 "cd /opt/intelhq && npm install --production && systemctl restart intelhq-api"
 ```
 
 ### 3.5 Updating nginx Config
@@ -203,23 +202,23 @@ If you modify `deploy/nginx-interlhq.conf`:
 
 ```powershell
 # Upload the new config
-scp -i ~/.ssh/worldmonitor-hetzner deploy/nginx-interlhq.conf root@49.13.224.43:/etc/nginx/sites-enabled/intelhq
+scp -i ~/.ssh/intelhq-hetzner deploy/nginx-interlhq.conf root@49.13.224.43:/etc/nginx/sites-enabled/intelhq
 
 # Test config syntax
-ssh -i ~/.ssh/worldmonitor-hetzner root@49.13.224.43 "nginx -t"
+ssh -i ~/.ssh/intelhq-hetzner root@49.13.224.43 "nginx -t"
 
 # Reload (graceful, no downtime)
-ssh -i ~/.ssh/worldmonitor-hetzner root@49.13.224.43 "systemctl reload nginx"
+ssh -i ~/.ssh/intelhq-hetzner root@49.13.224.43 "systemctl reload nginx"
 ```
 
 ### 3.6 Updating Environment Variables
 
 ```powershell
 # Edit .env on the server directly
-ssh -i ~/.ssh/worldmonitor-hetzner root@49.13.224.43 "nano /opt/worldmonitor/.env"
+ssh -i ~/.ssh/intelhq-hetzner root@49.13.224.43 "nano /opt/intelhq/.env"
 
 # Restart sidecar to pick up changes
-ssh -i ~/.ssh/worldmonitor-hetzner root@49.13.224.43 "systemctl restart worldmonitor-api"
+ssh -i ~/.ssh/intelhq-hetzner root@49.13.224.43 "systemctl restart intelhq-api"
 ```
 
 Note: `VITE_*` variables are baked into the frontend build at compile time. Changing them on the server has no effect — you must rebuild and re-upload `dist/`.
@@ -234,10 +233,10 @@ curl -sI https://intelhq.io/ | Select-String "HTTP|Content-Type"
 curl -s https://intelhq.io/api/version | ConvertFrom-Json
 
 # 3. Check sidecar is running
-ssh -i ~/.ssh/worldmonitor-hetzner root@49.13.224.43 "systemctl is-active worldmonitor-api"
+ssh -i ~/.ssh/intelhq-hetzner root@49.13.224.43 "systemctl is-active intelhq-api"
 
 # 4. Check nginx is running
-ssh -i ~/.ssh/worldmonitor-hetzner root@49.13.224.43 "systemctl is-active nginx"
+ssh -i ~/.ssh/intelhq-hetzner root@49.13.224.43 "systemctl is-active nginx"
 ```
 
 ---
@@ -266,9 +265,9 @@ npm run build:tech    # → dist-tech/
 npm run build:tv      # → dist-tv/
 
 # Upload each to its own directory on the server
-scp -r dist-full/* root@server:/opt/worldmonitor/dist-full/
-scp -r dist-tech/* root@server:/opt/worldmonitor/dist-tech/
-scp -r dist-tv/*   root@server:/opt/worldmonitor/dist-tv/
+scp -r dist-full/* root@server:/opt/intelhq/dist-full/
+scp -r dist-tech/* root@server:/opt/intelhq/dist-tech/
+scp -r dist-tv/*   root@server:/opt/intelhq/dist-tv/
 ```
 
 Then add an nginx server block per subdomain (copy `nginx-interlhq.conf` and change `server_name` and `root`):
@@ -276,7 +275,7 @@ Then add an nginx server block per subdomain (copy `nginx-interlhq.conf` and cha
 ```nginx
 server {
     server_name tech.intelhq.io;
-    root /opt/worldmonitor/dist-tech;
+    root /opt/intelhq/dist-tech;
     # ... same config as main site ...
 }
 ```
@@ -314,7 +313,7 @@ The app works with **zero environment variables**. News feeds, earthquakes, GDEL
 
 | Location | Purpose | Affects |
 |----------|---------|---------|
-| `/opt/worldmonitor/.env` (on server) | Runtime API keys for the sidecar | API responses |
+| `/opt/intelhq/.env` (on server) | Runtime API keys for the sidecar | API responses |
 | `.env.local` (local dev) | Local development API keys | Local dev only |
 | Build-time `VITE_*` vars | Baked into the frontend bundle | UI behavior |
 
@@ -340,7 +339,7 @@ See `.env.example` (241 lines) for the **complete** list including AIS relay, Op
 ### 5.4 Variable Scoping
 
 - **`VITE_*` variables** are embedded in the client bundle at build time. They must be set **before** running `npm run build:*`. Changing them on the server `.env` has no effect — you must rebuild and re-upload `dist/`.
-- **Non-`VITE_` variables** (like `GROQ_API_KEY`) are used by the API sidecar at runtime. Change them in `/opt/worldmonitor/.env` and restart the sidecar.
+- **Non-`VITE_` variables** (like `GROQ_API_KEY`) are used by the API sidecar at runtime. Change them in `/opt/intelhq/.env` and restart the sidecar.
 
 ---
 
@@ -349,11 +348,10 @@ See `.env.example` (241 lines) for the **complete** list including AIS relay, Op
 ### 6.1 Remote Configuration
 
 ```
-origin  → https://github.com/koala73/worldmonitor   (upstream, READ-ONLY)
-fork    → https://github.com/laikhtman/worldmonitor  (our fork, PUSH HERE)
+origin  → https://github.com/laikhtman/IntelHQ   (PUSH HERE)
 ```
 
-We never pull from `origin`. Our fork is independent. GitHub's "Sync fork" button should **not** be clicked unless we explicitly want upstream changes.
+This is now a standalone repository — no upstream fork.
 
 ### 6.2 Standard Workflow
 
@@ -367,11 +365,11 @@ git push fork main
 
 # 3. Deploy to production (build + upload)
 npm run build:full
-scp -i ~/.ssh/worldmonitor-hetzner -r dist/* root@49.13.224.43:/opt/worldmonitor/dist/
+scp -i ~/.ssh/intelhq-hetzner -r dist/* root@49.13.224.43:/opt/intelhq/dist/
 
 # 4. If API files changed, also restart sidecar
-scp -i ~/.ssh/worldmonitor-hetzner -r api/* root@49.13.224.43:/opt/worldmonitor/api/
-ssh -i ~/.ssh/worldmonitor-hetzner root@49.13.224.43 "systemctl restart worldmonitor-api"
+scp -i ~/.ssh/intelhq-hetzner -r api/* root@49.13.224.43:/opt/intelhq/api/
+ssh -i ~/.ssh/intelhq-hetzner root@49.13.224.43 "systemctl restart intelhq-api"
 ```
 
 ### 6.3 webOS-Specific Changes
@@ -410,15 +408,14 @@ Pushing to `main` includes everything: regular changes + webOS changes. The TV c
 ### 7.2 Initial Setup
 
 ```powershell
-# Clone the fork (if not already cloned)
-git clone https://github.com/laikhtman/worldmonitor.git
-cd worldmonitor
+# Clone the repository (if not already cloned)
+git clone https://github.com/laikhtman/IntelHQ.git
+cd IntelHQ
 
 # If you already have the repo, make sure remotes are correct:
 git remote -v
 # Should show:
-#   fork    https://github.com/laikhtman/worldmonitor.git (push)
-#   origin  https://github.com/koala73/worldmonitor (fetch)
+#   origin  https://github.com/laikhtman/IntelHQ.git (fetch/push)
 
 # Install dependencies
 npm install
@@ -653,7 +650,7 @@ For TV-related changes, additionally:
 
 Vercel is available as a secondary deployment for previews and branch testing, but is **not** the primary production host.
 
-**Vercel domain**: `worldmonitor-ivory-eta.vercel.app`
+**Vercel domain**: `intelhq-ivory-eta.vercel.app`
 
 ### 11.1 When to Use Vercel
 
@@ -664,7 +661,7 @@ Vercel is available as a secondary deployment for previews and branch testing, b
 ### 11.2 Vercel Setup (if needed)
 
 1. Go to [vercel.com/new](https://vercel.com/new)
-2. Import `laikhtman/worldmonitor`
+2. Import `laikhtman/IntelHQ`
 3. Configure:
    - **Framework Preset**: Vite
    - **Build Command**: `npm run build:full` (or variant-specific)
@@ -687,12 +684,12 @@ Every push creates a preview deployment. To force the TV variant on a preview:
 
 | Problem | Diagnosis | Solution |
 |---------|-----------|----------|
-| Site down / 502 | nginx or sidecar crashed | SSH in, check `systemctl status nginx` and `systemctl status worldmonitor-api` |
+| Site down / 502 | nginx or sidecar crashed | SSH in, check `systemctl status nginx` and `systemctl status intelhq-api` |
 | Site shows old version | Browser cache | Hard-reload (`Ctrl+Shift+R`). If server-side, re-upload `dist/` |
-| API returns 500 | Sidecar error | Check `journalctl -u worldmonitor-api -n 50` for errors |
+| API returns 500 | Sidecar error | Check `journalctl -u intelhq-api -n 50` for errors |
 | SSL certificate expired | Cert needs renewal | Run `certbot renew` or re-upload origin cert |
 | Disk full | Builds or logs filling up | `df -h`, clear old logs: `journalctl --vacuum-time=7d` |
-| Port 3001 not listening | Sidecar not running | `systemctl restart worldmonitor-api` |
+| Port 3001 not listening | Sidecar not running | `systemctl restart intelhq-api` |
 | nginx config syntax error | Bad config edit | `nginx -t` to test, fix the config, then `systemctl reload nginx` |
 | Can't SSH | Wrong key or IP | Check `.credentials` for correct IP and key path |
 
@@ -736,19 +733,18 @@ npm run deploy:tv             # Build + package + install on TV
 
 # ───── Deploy to Hetzner (Production) ─────
 npm run build:full
-scp -i ~/.ssh/worldmonitor-hetzner -r dist/* root@49.13.224.43:/opt/worldmonitor/dist/
+scp -i ~/.ssh/intelhq-hetzner -r dist/* root@49.13.224.43:/opt/intelhq/dist/
 # If API changed:
-scp -i ~/.ssh/worldmonitor-hetzner -r api/* root@49.13.224.43:/opt/worldmonitor/api/
-ssh -i ~/.ssh/worldmonitor-hetzner root@49.13.224.43 "systemctl restart worldmonitor-api"
+scp -i ~/.ssh/intelhq-hetzner -r api/* root@49.13.224.43:/opt/intelhq/api/
+ssh -i ~/.ssh/intelhq-hetzner root@49.13.224.43 "systemctl restart intelhq-api"
 
 # ───── Push to GitHub ─────
-git push fork main
+git push origin main
 
 # ───── Verify Remotes ─────
 git remote -v
-# fork   → laikhtman/worldmonitor (PUSH here)
-# origin → koala73/worldmonitor   (READ-ONLY, do not sync)
+# origin → laikhtman/IntelHQ (PUSH here)
 
 # ───── SSH to Production ─────
-ssh -i ~/.ssh/worldmonitor-hetzner root@49.13.224.43
+ssh -i ~/.ssh/intelhq-hetzner root@49.13.224.43
 ```

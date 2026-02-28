@@ -15,12 +15,12 @@ Current localStorage keys used by the app:
 
 | Key | Size | TV Action |
 |-----|------|-----------|
-| `worldmonitor-variant` | ~8 B | ✅ Keep |
-| `worldmonitor-theme` | ~5 B | ✅ Keep |
-| `worldmonitor-panels` | ~2 KB | ✅ Keep (stores panel on/off) |
-| `worldmonitor-monitors` | ~1 KB | ✅ Keep |
-| `worldmonitor-layers` | ~500 B | ✅ Keep |
-| `worldmonitor-disabled-feeds` | ~500 B | ✅ Keep |
+| `intelhq-variant` | ~8 B | ✅ Keep |
+| `intelhq-theme` | ~5 B | ✅ Keep |
+| `intelhq-panels` | ~2 KB | ✅ Keep (stores panel on/off) |
+| `intelhq-monitors` | ~1 KB | ✅ Keep |
+| `intelhq-layers` | ~500 B | ✅ Keep |
+| `intelhq-disabled-feeds` | ~500 B | ✅ Keep |
 | `wm-keyword-spike-*` | ~5 KB | ✅ Keep (keyword tracking) |
 | `wm-mobile-warning-dismissed` | ~10 B | ❌ Remove (not relevant) |
 | `wm-debug-log` | ~3 B | ✅ Keep |

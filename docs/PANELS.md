@@ -1,6 +1,6 @@
 # Panel System Documentation
 
-> **World Monitor** — Config-driven panel architecture powering three site variants.
+> **IntelHQ** — Config-driven panel architecture powering three site variants.
 >
 > Source of truth: [`src/config/panels.ts`](../src/config/panels.ts) · Panel base class: [`src/components/Panel.ts`](../src/components/Panel.ts) · Panel wiring: [`src/controllers/panel-manager.ts`](../src/controllers/panel-manager.ts) · Composition root: [`src/App.ts`](../src/App.ts)
 
@@ -25,7 +25,7 @@
 
 ## 1. Overview
 
-World Monitor uses a **config-driven panel system** where every dashboard tile — from live news feeds to AI insights to market data — is declared as a `PanelConfig` entry inside a variant-specific configuration object. The system is designed around three principles:
+IntelHQ uses a **config-driven panel system** where every dashboard tile — from live news feeds to AI insights to market data — is declared as a `PanelConfig` entry inside a variant-specific configuration object. The system is designed around three principles:
 
 1. **Variant isolation** — Each site variant (`full`, `tech`, `finance`) declares its own panel set with variant-appropriate display names and priorities. The build-time environment variable `VITE_VARIANT` selects which set is exported.
 2. **User customization** — Users can toggle panel visibility, reorder panels via drag-and-drop, and resize panels via a drag handle. All preferences persist to `localStorage`.
@@ -123,10 +123,10 @@ All persistence keys are centralized in `STORAGE_KEYS`:
 ```typescript
 // src/config/variants/base.ts (also re-exported from src/config/panels.ts)
 export const STORAGE_KEYS = {
-  panels:        'worldmonitor-panels',          // Panel visibility toggles
-  monitors:      'worldmonitor-monitors',         // Monitor keyword configs
-  mapLayers:     'worldmonitor-layers',           // Map layer toggles
-  disabledFeeds: 'worldmonitor-disabled-feeds',   // Per-source feed disabling
+  panels:        'intelhq-panels',          // Panel visibility toggles
+  monitors:      'intelhq-monitors',         // Monitor keyword configs
+  mapLayers:     'intelhq-layers',           // Map layer toggles
+  disabledFeeds: 'intelhq-disabled-feeds',   // Per-source feed disabling
 } as const;
 ```
 
@@ -134,10 +134,10 @@ Additional keys used outside `STORAGE_KEYS`:
 
 | Key | Purpose | Managed By |
 |-----|---------|------------|
-| `worldmonitor-panel-spans` | Panel height/span sizes (1–4) | `Panel.ts` |
+| `intelhq-panel-spans` | Panel height/span sizes (1–4) | `Panel.ts` |
 | `panel-order` | Drag-and-drop panel ordering | `App.ts` |
-| `worldmonitor-variant` | Last-active variant (triggers reset on change) | `App.ts` |
-| `worldmonitor-panel-order-v1.9` | Migration flag for v1.9 panel layout | `App.ts` |
+| `intelhq-variant` | Last-active variant (triggers reset on change) | `App.ts` |
+| `intelhq-panel-order-v1.9` | Migration flag for v1.9 panel layout | `App.ts` |
 
 ### 2.5 Monitor Colors
 
@@ -214,7 +214,7 @@ Panel height is quantized into 4 span levels:
 | 3 | 350px | `span-3` | Large — 150px drag triggers |
 | 4 | 500px | `span-4` | Extra-large — 300px drag triggers |
 
-Span values are persisted per-panel in the `worldmonitor-panel-spans` localStorage key as a JSON object `{ [panelId]: spanNumber }`.
+Span values are persisted per-panel in the `intelhq-panel-spans` localStorage key as a JSON object `{ [panelId]: spanNumber }`.
 
 ### 3.5 Public Methods
 
@@ -496,7 +496,7 @@ export interface MapLayers {
 | Layer | Desktop Default | Mobile Default | Description |
 |-------|:--------------:|:--------------:|-------------|
 | `conflicts` | ✅ ON | ✅ ON | Armed conflict zones |
-| `bases` | ✅ ON | OFF | Military bases |
+| `bases` | ✅ ON | OFF | Military bases (125K server-fetched via Redis GEOSEARCH, server-side clustering at low zoom) |
 | `hotspots` | ✅ ON | ✅ ON | Geopolitical hotspots |
 | `nuclear` | ✅ ON | OFF | Nuclear facilities |
 | `sanctions` | ✅ ON | ✅ ON | Sanctioned entities/regions |
@@ -584,22 +584,22 @@ All user preferences survive page reload via `localStorage`. The following table
 
 | Setting | localStorage Key | Format | Default Source | Survives Reload |
 |---------|-----------------|--------|----------------|:--------------:|
-| Panel visibility | `worldmonitor-panels` | `Record<string, PanelConfig>` JSON | `DEFAULT_PANELS` | ✅ |
+| Panel visibility | `intelhq-panels` | `Record<string, PanelConfig>` JSON | `DEFAULT_PANELS` | ✅ |
 | Panel ordering | `panel-order` | `string[]` JSON | Config declaration order | ✅ |
-| Panel sizes/spans | `worldmonitor-panel-spans` | `Record<string, number>` JSON | All span-1 | ✅ |
-| Map layer toggles | `worldmonitor-layers` | `MapLayers` JSON | `DEFAULT_MAP_LAYERS` | ✅ |
-| Monitor keywords | `worldmonitor-monitors` | `Monitor[]` JSON | `[]` | ✅ |
-| Disabled sources | `worldmonitor-disabled-feeds` | `string[]` JSON | `[]` | ✅ |
-| Active variant | `worldmonitor-variant` | Plain string | `SITE_VARIANT` | ✅ |
+| Panel sizes/spans | `intelhq-panel-spans` | `Record<string, number>` JSON | All span-1 | ✅ |
+| Map layer toggles | `intelhq-layers` | `MapLayers` JSON | `DEFAULT_MAP_LAYERS` | ✅ |
+| Monitor keywords | `intelhq-monitors` | `Monitor[]` JSON | `[]` | ✅ |
+| Disabled sources | `intelhq-disabled-feeds` | `string[]` JSON | `[]` | ✅ |
+| Active variant | `intelhq-variant` | Plain string | `SITE_VARIANT` | ✅ |
 | Banner dismissal | `banner-dismissed` (sessionStorage) | Timestamp string | — | Session only |
 
 ### 9.2 Variant Change Reset
 
-When the stored variant (`worldmonitor-variant`) differs from the current `SITE_VARIANT`, the App constructor performs a full reset:
+When the stored variant (`intelhq-variant`) differs from the current `SITE_VARIANT`, the App constructor performs a full reset:
 
 ```typescript
 if (storedVariant !== currentVariant) {
-  localStorage.setItem('worldmonitor-variant', currentVariant);
+  localStorage.setItem('intelhq-variant', currentVariant);
   localStorage.removeItem(STORAGE_KEYS.mapLayers);
   localStorage.removeItem(STORAGE_KEYS.panels);
   localStorage.removeItem(this.PANEL_ORDER_KEY);
@@ -722,7 +722,7 @@ Panels are destroyed when the App instance is torn down. The `Panel.destroy()` m
 
 ## 11. Adding a New Panel
 
-Step-by-step guide to adding a new panel to World Monitor.
+Step-by-step guide to adding a new panel to IntelHQ.
 
 ### Step 1: Define the Panel Config
 
@@ -878,7 +878,7 @@ sequenceDiagram
     User->>SettingsModal: Click panel toggle
     SettingsModal->>App: panelKey identified
     App->>App: config.enabled = !config.enabled
-    App->>localStorage: saveToStorage('worldmonitor-panels', panelSettings)
+    App->>localStorage: saveToStorage('intelhq-panels', panelSettings)
     App->>SettingsModal: renderPanelToggles() — update checkmarks
     App->>App: applyPanelSettings()
     loop For each panel
@@ -887,7 +887,7 @@ sequenceDiagram
     end
     Note over localStorage: Survives page reload
     User->>User: Refreshes page
-    App->>localStorage: loadFromStorage('worldmonitor-panels')
+    App->>localStorage: loadFromStorage('intelhq-panels')
     App->>App: applyPanelSettings() with restored state
 ```
 

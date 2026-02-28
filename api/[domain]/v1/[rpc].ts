@@ -12,6 +12,8 @@ import { getCorsHeaders, isDisallowedOrigin } from '../../../server/cors';
 // @ts-expect-error — JS module, no declaration file
 import { validateApiKey } from '../../_api-key.js';
 import { mapErrorToResponse } from '../../../server/error-mapper';
+import { checkRateLimit } from '../../../server/_shared/rate-limit';
+import { drainResponseHeaders } from '../../../server/_shared/response-headers';
 import { createSeismologyServiceRoutes } from '../../../src/generated/server/worldmonitor/seismology/v1/service_server';
 import { seismologyHandler } from '../../../server/worldmonitor/seismology/v1/handler';
 import { createWildfireServiceRoutes } from '../../../src/generated/server/worldmonitor/wildfire/v1/service_server';
@@ -48,6 +50,81 @@ import { createMilitaryServiceRoutes } from '../../../src/generated/server/world
 import { militaryHandler } from '../../../server/worldmonitor/military/v1/handler';
 
 import type { ServerOptions } from '../../../src/generated/server/worldmonitor/seismology/v1/service_server';
+
+// --- Edge cache tier definitions ---
+type CacheTier = 'fast' | 'medium' | 'slow' | 'static' | 'no-store';
+
+const TIER_HEADERS: Record<CacheTier, string> = {
+  fast: 'public, s-maxage=120, stale-while-revalidate=30, stale-if-error=300',
+  medium: 'public, s-maxage=300, stale-while-revalidate=60, stale-if-error=600',
+  slow: 'public, s-maxage=900, stale-while-revalidate=120, stale-if-error=1800',
+  static: 'public, s-maxage=3600, stale-while-revalidate=300, stale-if-error=7200',
+  'no-store': 'no-store',
+};
+
+const RPC_CACHE_TIER: Record<string, CacheTier> = {
+  '/api/maritime/v1/get-vessel-snapshot': 'no-store',
+
+  '/api/market/v1/list-market-quotes': 'fast',
+  '/api/market/v1/list-crypto-quotes': 'fast',
+  '/api/market/v1/list-commodity-quotes': 'fast',
+  '/api/market/v1/list-stablecoin-markets': 'fast',
+  '/api/market/v1/get-sector-summary': 'fast',
+  '/api/infrastructure/v1/list-service-statuses': 'fast',
+  '/api/seismology/v1/list-earthquakes': 'fast',
+  '/api/infrastructure/v1/list-internet-outages': 'fast',
+
+  '/api/unrest/v1/list-unrest-events': 'slow',
+  '/api/cyber/v1/list-cyber-threats': 'slow',
+  '/api/conflict/v1/list-acled-events': 'slow',
+  '/api/military/v1/get-theater-posture': 'slow',
+  '/api/infrastructure/v1/get-temporal-baseline': 'slow',
+  '/api/aviation/v1/list-airport-delays': 'slow',
+  '/api/market/v1/get-country-stock-index': 'slow',
+
+  '/api/wildfire/v1/list-fire-detections': 'static',
+  '/api/maritime/v1/list-navigational-warnings': 'static',
+  '/api/supply-chain/v1/get-shipping-rates': 'static',
+  '/api/economic/v1/get-fred-series': 'static',
+  '/api/economic/v1/get-energy-prices': 'static',
+  '/api/research/v1/list-arxiv-papers': 'static',
+  '/api/research/v1/list-trending-repos': 'static',
+  '/api/giving/v1/get-giving-summary': 'static',
+  '/api/intelligence/v1/get-country-intel-brief': 'static',
+  '/api/climate/v1/list-climate-anomalies': 'static',
+  '/api/research/v1/list-tech-events': 'static',
+  '/api/military/v1/get-usni-fleet-report': 'static',
+  '/api/conflict/v1/list-ucdp-events': 'static',
+  '/api/conflict/v1/get-humanitarian-summary': 'static',
+  '/api/displacement/v1/get-displacement-summary': 'static',
+  '/api/displacement/v1/get-population-exposure': 'static',
+  '/api/economic/v1/get-bis-policy-rates': 'static',
+  '/api/economic/v1/get-bis-exchange-rates': 'static',
+  '/api/economic/v1/get-bis-credit': 'static',
+  '/api/trade/v1/get-tariff-trends': 'static',
+  '/api/trade/v1/get-trade-flows': 'static',
+  '/api/trade/v1/get-trade-barriers': 'static',
+  '/api/trade/v1/get-trade-restrictions': 'static',
+  '/api/economic/v1/list-world-bank-indicators': 'static',
+  '/api/economic/v1/get-energy-capacity': 'static',
+  '/api/supply-chain/v1/get-critical-minerals': 'static',
+  '/api/military/v1/get-aircraft-details': 'static',
+  '/api/military/v1/get-wingbits-status': 'static',
+
+  '/api/military/v1/list-military-flights': 'slow',
+  '/api/market/v1/list-etf-flows': 'slow',
+  '/api/research/v1/list-hackernews-items': 'slow',
+  '/api/intelligence/v1/get-risk-scores': 'slow',
+  '/api/intelligence/v1/get-pizzint-status': 'slow',
+  '/api/intelligence/v1/search-gdelt-documents': 'slow',
+  '/api/infrastructure/v1/get-cable-health': 'slow',
+  '/api/positive-events/v1/list-positive-geo-events': 'slow',
+
+  '/api/military/v1/list-military-bases': 'medium',
+  '/api/economic/v1/get-macro-signals': 'medium',
+  '/api/prediction/v1/list-prediction-markets': 'medium',
+  '/api/supply-chain/v1/get-chokepoint-status': 'medium',
+};
 
 const serverOptions: ServerOptions = { onError: mapErrorToResponse };
 
@@ -103,8 +180,31 @@ export default async function handler(request: Request): Promise<Response> {
     });
   }
 
-  // Route matching
-  const matchedHandler = router.match(request);
+  // IP-based rate limiting (60 req/min sliding window)
+  const rateLimitResponse = await checkRateLimit(request, corsHeaders);
+  if (rateLimitResponse) return rateLimitResponse;
+
+  // Route matching — if POST doesn't match, convert to GET for stale clients
+  // that still send POST to endpoints converted in PR #468.
+  let matchedHandler = router.match(request);
+  if (!matchedHandler && request.method === 'POST') {
+    const contentLen = parseInt(request.headers.get('Content-Length') ?? '0', 10);
+    if (contentLen < 1_048_576) {
+      const url = new URL(request.url);
+      try {
+        const body = await request.clone().json();
+        const isScalar = (x: unknown): x is string | number | boolean =>
+          typeof x === 'string' || typeof x === 'number' || typeof x === 'boolean';
+        for (const [k, v] of Object.entries(body as Record<string, unknown>)) {
+          if (Array.isArray(v)) v.forEach((item) => { if (isScalar(item)) url.searchParams.append(k, String(item)); });
+          else if (isScalar(v)) url.searchParams.set(k, String(v));
+        }
+      } catch {}
+      const getReq = new Request(url.toString(), { method: 'GET', headers: request.headers });
+      matchedHandler = router.match(getReq);
+      if (matchedHandler) request = getReq;
+    }
+  }
   if (!matchedHandler) {
     return new Response(JSON.stringify({ error: 'Not found' }), {
       status: 404,

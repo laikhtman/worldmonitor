@@ -19,7 +19,7 @@ use tauri::menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::{AppHandle, Manager, RunEvent, WindowEvent, WebviewUrl, WebviewWindowBuilder};
 
 const LOCAL_API_PORT: &str = "46123";
-const KEYRING_SERVICE: &str = "world-monitor";
+const KEYRING_SERVICE: &str = "intelhq";
 const LOCAL_API_LOG_FILE: &str = "local-api.log";
 const DESKTOP_LOG_FILE: &str = "desktop.log";
 const MENU_FILE_SETTINGS_ID: &str = "file.settings";
@@ -46,7 +46,7 @@ const SUPPORTED_SECRET_KEYS: [&str; 21] = [
     "NASA_FIRMS_API_KEY",
     "OLLAMA_API_URL",
     "OLLAMA_MODEL",
-    "WORLDMONITOR_API_KEY",
+    "INTELHQ_API_KEY",
 ];
 
 #[derive(Default)]
@@ -503,7 +503,7 @@ fn handle_menu_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
             }
         }
         MENU_HELP_GITHUB_ID => {
-            let _ = open_in_shell("https://github.com/laikhtman/worldmonitor");
+            let _ = open_in_shell("https://github.com/laikhtman/IntelHQ");
         }
         MENU_HELP_DEVTOOLS_ID => {
             if let Some(window) = app.get_webview_window("main") {
@@ -788,7 +788,7 @@ fn main() {
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("error while running world-monitor tauri application")
+        .expect("error while running intelhq tauri application")
         .run(|app, event| {
             match &event {
                 // macOS: hide window on close instead of quitting (standard behavior)

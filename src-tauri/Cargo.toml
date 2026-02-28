@@ -1,8 +1,8 @@
 [package]
-name = "world-monitor"
+name = "intelhq"
 version = "2.5.3"
-description = "World Monitor desktop application"
-authors = ["World Monitor"]
+description = "IntelHQ desktop application"
+authors = ["IntelHQ"]
 edition = "2021"
 
 [build-dependencies]

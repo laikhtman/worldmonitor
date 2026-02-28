@@ -68,7 +68,7 @@ const TV_MAP_LAYERS: MapLayers = {
   conflicts: true,
   military: false,   // Too many points, GPU-heavy
   ais: false,        // WebSocket + many points
-  bases: false,
+  bases: false,      // Server-side clustering makes this viable; disabled for now to limit GPU load on TV
   infrastructure: false,
   nuclear: false,
   irradiators: false,

@@ -1,4 +1,4 @@
-# Documentation Roadmap — World Monitor
+# Documentation Roadmap — IntelHQ
 
 > **Purpose**: Comprehensive task list to bring project documentation to production-grade quality for AI agent-assisted development. Each task is scoped, self-contained, and AI-actionable.
 >
@@ -184,7 +184,7 @@
   - `entities.ts` (600+ entries, multi-index)
   - `feeds.ts` (150+ RSS feeds, tier/type/propaganda risk)
   - `geo.ts` (hotspots, conflict zones, nuclear sites, cables, waterways)
-  - `bases-expanded.ts` (220+ military bases)
+  - `bases-expanded.ts` (224 static military bases; primary source: 125K+ server-side via Redis GEO)
   - `finance-geo.ts` (92 exchanges, 19 centers, 13 CBs, 10 commodity hubs)
   - `airports.ts` (monitored airports + FAA data)
   - `pipelines.ts` (88 oil/gas pipelines)
@@ -234,7 +234,7 @@
 - [ ] Full self-hosting guide (non-Vercel deployment)
 - [ ] Docker setup (if applicable, or document creating one)
 - [ ] Nginx configuration (reference `deploy/nginx-intelhq.conf`)
-- [ ] SystemD service setup (reference `deploy/worldmonitor-api.service`)
+- [ ] SystemD service setup (reference `deploy/intelhq-api.service`)
 - [ ] Environment variable configuration for self-hosted
 - [ ] SSL/TLS setup
 - [ ] Performance tuning recommendations

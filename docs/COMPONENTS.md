@@ -1,4 +1,4 @@
-# Component Documentation — World Monitor
+# Component Documentation — IntelHQ
 
 > Auto-generated reference for all UI components in `src/components/`.
 > Last updated: 2026-02-19
@@ -35,7 +35,7 @@
 
 ## Overview
 
-World Monitor's UI is built entirely with **vanilla TypeScript** — no React, Vue, or
+IntelHQ's UI is built entirely with **vanilla TypeScript** — no React, Vue, or
 Angular. Every component is a plain ES class that owns its own DOM subtree and
 communicates through method calls, callbacks, and a handful of
 `document`/`window`-level custom events.
@@ -160,7 +160,7 @@ div.panel#${id}                       ← root
 ### Persistence
 
 Panel **span sizes** (user-resized heights) are stored in
-`localStorage['worldmonitor-panel-spans']` as a JSON map of `{ [id]: height }`.
+`localStorage['intelhq-panel-spans']` as a JSON map of `{ [id]: height }`.
 
 ### Services
 
@@ -176,7 +176,7 @@ None — `Panel` is a pure base class and renders identically in all variants.
 
 ## Map System
 
-World Monitor ships two independent map renderers and an adapter that picks the
+IntelHQ ships two independent map renderers and an adapter that picks the
 right one at runtime.
 
 ### DeckGLMap
@@ -235,7 +235,7 @@ The map embeds or lazily loads over 20 static datasets:
 |---|---|
 | Intelligence hotspots | `INTEL_HOTSPOTS` |
 | Conflict zones | `CONFLICT_ZONES` |
-| Military bases | `MILITARY_BASES` |
+| Military bases | `MILITARY_BASES` (224 static fallback); primary: `fetchMilitaryBases()` → 125K server-side entries via Redis GEOSEARCH with viewport filtering and server-side clustering |
 | Undersea cables | `UNDERSEA_CABLES` |
 | Nuclear facilities | `NUCLEAR_FACILITIES` |
 | Gamma irradiators | `GAMMA_IRRADIATORS` |
@@ -387,10 +387,14 @@ All calls are forwarded transparently to the underlying renderer:
 
 ### MapPopup
 
-**File:** `src/components/MapPopup.ts` (2 400+ lines)
+**File:** `src/components/MapPopup.ts` (~330 lines)
 
-**Not a class** — a collection of builder functions that generate popup HTML
-for every feature type the map can display.
+Popup dispatch hub that delegates to specialized builder modules in
+`src/components/popups/`. Each popup type has a dedicated builder function
+in its own file (e.g., `military-popups.ts`, `infrastructure-popups.ts`).
+The enriched military base popup now displays `MilitaryBaseEnriched` fields
+including kind, branch, country, and category badges (Air Force, Naval,
+Nuclear, Space, Training).
 
 #### PopupType Union
 
@@ -549,7 +553,7 @@ conflict > hotspot > country > infrastructure > tech
 
 #### Persistence
 
-Recent selections stored in `localStorage['worldmonitor_recent_searches']`
+Recent selections stored in `localStorage['intelhq_recent_searches']`
 (most recent 10).
 
 #### DOM Structure
