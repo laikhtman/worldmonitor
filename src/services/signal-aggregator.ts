@@ -8,7 +8,6 @@ import type {
   InternetOutage,
   MilitaryFlight,
   MilitaryVessel,
-  SocialUnrestEvent,
   AisDisruptionEvent,
 } from '@/types';
 import { TIER1_COUNTRIES } from '@/config/countries';
@@ -17,7 +16,6 @@ export type SignalType =
   | 'internet_outage'
   | 'military_flight'
   | 'military_vessel'
-  | 'protest'
   | 'ais_disruption'
   | 'satellite_fire'        // NASA FIRMS thermal anomalies
   | 'temporal_anomaly'      // Baseline deviation alerts
@@ -181,35 +179,6 @@ class SignalAggregator {
         lon: data.lon,
         severity: data.count >= 5 ? 'high' : data.count >= 2 ? 'medium' : 'low',
         title: `${data.count} naval vessels near region`,
-        timestamp: new Date(),
-      });
-    }
-    this.pruneOld();
-  }
-
-  ingestProtests(events: SocialUnrestEvent[]): void {
-    this.clearSignalType('protest');
-    const countryCounts = new Map<string, { count: number; lat: number; lon: number }>();
-
-    for (const e of events) {
-      const code = normalizeCountryCode(e.country) || this.coordsToCountry(e.lat, e.lon);
-      const existing = countryCounts.get(code);
-      if (existing) {
-        existing.count++;
-      } else {
-        countryCounts.set(code, { count: 1, lat: e.lat, lon: e.lon });
-      }
-    }
-
-    for (const [code, data] of countryCounts) {
-      this.signals.push({
-        type: 'protest',
-        country: code,
-        countryName: getCountryName(code),
-        lat: data.lat,
-        lon: data.lon,
-        severity: data.count >= 10 ? 'high' : data.count >= 5 ? 'medium' : 'low',
-        title: `${data.count} protest events`,
         timestamp: new Date(),
       });
     }
@@ -383,7 +352,6 @@ class SignalAggregator {
           internet_outage: 'internet disruptions',
           military_flight: 'military air activity',
           military_vessel: 'naval presence',
-          protest: 'civil unrest',
           ais_disruption: 'shipping anomalies',
           satellite_fire: 'thermal anomalies',
           temporal_anomaly: 'baseline anomalies',
@@ -438,7 +406,6 @@ class SignalAggregator {
       internet_outage: 0,
       military_flight: 0,
       military_vessel: 0,
-      protest: 0,
       ais_disruption: 0,
       satellite_fire: 0,
       temporal_anomaly: 0,

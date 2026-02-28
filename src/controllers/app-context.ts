@@ -12,7 +12,6 @@ import type {
   PanelConfig,
   MapLayers,
   InternetOutage,
-  SocialUnrestEvent,
   MilitaryFlight,
   MilitaryVessel,
   MilitaryFlightCluster,
@@ -21,7 +20,6 @@ import type {
   ClusteredEvent,
   PredictionMarket,
   MarketData,
-  Earthquake,
 } from '@/types';
 import type {
   MapContainer,
@@ -48,17 +46,12 @@ import type { TVNavigationController } from '@/controllers/tv-navigation';
 
 export interface IntelligenceCache {
   outages?: InternetOutage[];
-  protests?: {
-    events: SocialUnrestEvent[];
-    sources: { acled: number; gdelt: number };
-  };
   military?: {
     flights: MilitaryFlight[];
     flightClusters: MilitaryFlightCluster[];
     vessels: MilitaryVessel[];
     vesselClusters: MilitaryVesselCluster[];
   };
-  earthquakes?: Earthquake[];
 }
 
 /* ------------------------------------------------------------------ */
@@ -66,13 +59,10 @@ export interface IntelligenceCache {
 /* ------------------------------------------------------------------ */
 
 export interface CountryBriefSignals {
-  protests: number;
   militaryFlights: number;
   militaryVessels: number;
   outages: number;
-  earthquakes: number;
   displacementOutflow: number;
-  climateStress: number;
   conflictEvents: number;
   isTier1: boolean;
 }

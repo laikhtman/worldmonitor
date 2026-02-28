@@ -1,5 +1,5 @@
-import type { MarketData, CryptoData } from '@/types';
-import { API_URLS, CRYPTO_MAP } from '@/config';
+import type { MarketData } from '@/types';
+import { API_URLS } from '@/config';
 import { fetchWithProxy } from '@/utils';
 
 interface FinnhubQuote {
@@ -41,20 +41,6 @@ interface YahooFinanceResponse {
       };
     }>;
   };
-}
-
-interface CoinGeckoResponse {
-  [key: string]: {
-    usd: number;
-    usd_24h_change: number;
-  };
-}
-
-interface CoinGeckoMarketItem {
-  id: string;
-  current_price: number;
-  price_change_percentage_24h: number;
-  sparkline_in_7d?: { price: number[] };
 }
 
 // Symbols that need Yahoo Finance (indices and futures not supported by Finnhub free tier)
@@ -193,39 +179,4 @@ export async function fetchStockQuote(
   return result.data[0] || { symbol, name, display, price: null, change: null };
 }
 
-export async function fetchCrypto(): Promise<CryptoData[]> {
-  try {
-    const ids = Object.keys(CRYPTO_MAP).join(',');
-    const marketsUrl = `/api/coingecko?ids=${ids}&vs_currencies=usd&endpoint=markets`;
-    const response = await fetchWithProxy(marketsUrl);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data: CoinGeckoMarketItem[] = await response.json();
 
-    if (!Array.isArray(data)) {
-      const fallback: CoinGeckoResponse = data;
-      return Object.entries(CRYPTO_MAP).map(([id, info]) => ({
-        name: info.name,
-        symbol: info.symbol,
-        price: fallback[id]?.usd ?? 0,
-        change: fallback[id]?.usd_24h_change ?? 0,
-      }));
-    }
-
-    const byId = new Map(data.map(c => [c.id, c]));
-    return Object.entries(CRYPTO_MAP).map(([id, info]) => {
-      const coin = byId.get(id);
-      const prices = coin?.sparkline_in_7d?.price;
-      const sparkline = prices && prices.length > 24 ? prices.slice(-48) : prices;
-      return {
-        name: info.name,
-        symbol: info.symbol,
-        price: coin?.current_price ?? 0,
-        change: coin?.price_change_percentage_24h ?? 0,
-        sparkline,
-      };
-    });
-  } catch (e) {
-    console.error('Failed to fetch crypto:', e);
-    return [];
-  }
-}

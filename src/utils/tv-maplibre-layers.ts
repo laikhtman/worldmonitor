@@ -5,7 +5,7 @@
  * Used on mid-range TV SoCs that can run MapLibre but not deck.gl.
  */
 import type maplibregl from 'maplibre-gl';
-import type { Hotspot, Earthquake } from '@/types';
+import type { Hotspot } from '@/types';
 import { INTEL_HOTSPOTS, CONFLICT_ZONES } from '@/config';
 
 /* ------------------------------------------------------------------ */
@@ -13,7 +13,6 @@ import { INTEL_HOTSPOTS, CONFLICT_ZONES } from '@/config';
 /* ------------------------------------------------------------------ */
 const SRC = {
   HOTSPOTS: 'tv-hotspots',
-  EARTHQUAKES: 'tv-earthquakes',
   CONFLICTS: 'tv-conflicts',
 } as const;
 
@@ -28,30 +27,6 @@ const SRC = {
 export function addTVLiteLayers(map: maplibregl.Map): void {
   addConflictZonesLayer(map);
   addHotspotsLayer(map);
-  addEarthquakesSource(map); // source only — data pushed later
-}
-
-/**
- * Update earthquake data on the map.
- */
-export function updateTVLiteEarthquakes(map: maplibregl.Map, earthquakes: Earthquake[]): void {
-  const source = map.getSource(SRC.EARTHQUAKES) as maplibregl.GeoJSONSource | undefined;
-  if (!source) return;
-  source.setData({
-    type: 'FeatureCollection',
-    features: earthquakes
-      .filter(eq => eq.magnitude >= 3.5)
-      .slice(0, 80)
-      .map(eq => ({
-        type: 'Feature' as const,
-        geometry: { type: 'Point' as const, coordinates: [eq.lon, eq.lat] },
-        properties: {
-          mag: eq.magnitude,
-          place: eq.place || '',
-          depth: eq.depth,
-        },
-      })),
-  });
 }
 
 /**
@@ -80,7 +55,6 @@ export function updateTVLiteHotspots(map: maplibregl.Map, hotspots: Hotspot[]): 
 export function removeTVLiteLayers(map: maplibregl.Map): void {
   const layerIds = [
     'tv-hotspots-circles', 'tv-hotspots-labels',
-    'tv-earthquakes-circles',
     'tv-conflicts-fill', 'tv-conflicts-outline',
   ];
   for (const id of layerIds) {
@@ -195,36 +169,6 @@ function addConflictZonesLayer(map: maplibregl.Map): void {
       'line-color': '#ff4444',
       'line-width': 1,
       'line-opacity': 0.5,
-    },
-  });
-}
-
-function addEarthquakesSource(map: maplibregl.Map): void {
-  map.addSource(SRC.EARTHQUAKES, {
-    type: 'geojson',
-    data: { type: 'FeatureCollection', features: [] },
-  });
-
-  map.addLayer({
-    id: 'tv-earthquakes-circles',
-    type: 'circle',
-    source: SRC.EARTHQUAKES,
-    paint: {
-      'circle-radius': [
-        'interpolate', ['linear'], ['get', 'mag'],
-        3.5, 5,
-        5, 10,
-        7, 18,
-      ],
-      'circle-color': [
-        'interpolate', ['linear'], ['get', 'mag'],
-        3.5, '#ffaa00',
-        5, '#ff6600',
-        7, '#ff0000',
-      ],
-      'circle-opacity': 0.6,
-      'circle-stroke-width': 1,
-      'circle-stroke-color': '#ffffff',
     },
   });
 }

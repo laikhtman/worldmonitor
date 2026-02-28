@@ -571,8 +571,6 @@ export class NewsPanel extends Panel {
   private getLocalizedAssetLabel(type: RelatedAsset['type']): string {
     const keyMap: Record<RelatedAsset['type'], string> = {
       pipeline: 'modals.countryBrief.infra.pipeline',
-      cable: 'modals.countryBrief.infra.cable',
-      datacenter: 'modals.countryBrief.infra.datacenter',
       base: 'modals.countryBrief.infra.base',
       nuclear: 'modals.countryBrief.infra.nuclear',
     };

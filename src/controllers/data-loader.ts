@@ -1,5 +1,5 @@
 import type { AppContext } from './app-context';
-import type { NewsItem, MapLayers, SocialUnrestEvent } from '@/types';
+import type { NewsItem, MapLayers } from '@/types';
 import type { TimeRange } from '@/components';
 import {
   FEEDS,
@@ -10,30 +10,28 @@ import {
   SITE_VARIANT,
 } from '@/config';
 import {
-  fetchCategoryFeeds, getFeedFailures, fetchMultipleStocks, fetchCrypto, fetchPredictions,
-  fetchEarthquakes, fetchWeatherAlerts, fetchFredData, fetchInternetOutages,
-  fetchAisSignals, getAisStatus, fetchCableActivity, fetchProtestEvents,
-  getProtestStatus, fetchFlightDelays, fetchMilitaryFlights, fetchMilitaryVessels,
+  fetchCategoryFeeds, getFeedFailures, fetchMultipleStocks,
+  fetchFredData, fetchInternetOutages,
+  fetchAisSignals, getAisStatus, fetchFlightDelays, fetchMilitaryFlights, fetchMilitaryVessels,
   initMilitaryVesselStream, isMilitaryVesselTrackingConfigured, updateBaseline, calculateDeviation,
   addToSignalHistory, analysisWorker, fetchPizzIntStatus, fetchGdeltTensions,
-  fetchNaturalEvents, fetchRecentAwards, fetchOilAnalytics, fetchCyberThreats, drainTrendingSignals
+  fetchRecentAwards, fetchOilAnalytics, fetchCyberThreats, drainTrendingSignals
 } from '@/services';
 import { clusterNewsHybrid } from '@/services/clustering';
-import { ingestProtests, ingestFlights, ingestVessels, ingestEarthquakes, detectGeoConvergence, geoConvergenceToSignal } from '@/services/geo-convergence';
+import { ingestFlights, ingestVessels, detectGeoConvergence, geoConvergenceToSignal } from '@/services/geo-convergence';
 import { signalAggregator } from '@/services/signal-aggregator';
 import { updateAndCheck } from '@/services/temporal-baseline';
 import { fetchAllFires, flattenFires, computeRegionStats } from '@/services/firms-satellite';
 import { SatelliteFiresPanel } from '@/components/SatelliteFiresPanel';
 import { analyzeFlightsForSurge, surgeAlertToSignal, detectForeignMilitaryPresence, foreignPresenceToSignal, type TheaterPostureSummary } from '@/services/military-surge';
 import { fetchCachedTheaterPosture } from '@/services/cached-theater-posture';
-import { ingestProtestsForCII, ingestMilitaryForCII, ingestNewsForCII, ingestOutagesForCII, ingestConflictsForCII, ingestUcdpForCII, ingestHapiForCII, ingestDisplacementForCII, ingestClimateForCII, isInLearningMode } from '@/services/country-instability';
+import { ingestMilitaryForCII, ingestNewsForCII, ingestOutagesForCII, ingestConflictsForCII, ingestUcdpForCII, ingestHapiForCII, ingestDisplacementForCII, isInLearningMode } from '@/services/country-instability';
 import { dataFreshness } from '@/services/data-freshness';
 import { fetchConflictEvents } from '@/services/conflicts';
 import { fetchUcdpClassifications } from '@/services/ucdp';
 import { fetchHapiSummary } from '@/services/hapi';
-import { fetchUcdpEvents, deduplicateAgainstAcled } from '@/services/ucdp-events';
+import { fetchUcdpEvents } from '@/services/ucdp-events';
 import { fetchUnhcrPopulation } from '@/services/unhcr';
-import { fetchClimateAnomalies } from '@/services/climate';
 import { enrichEventsWithExposure } from '@/services/population-exposure';
 import { getCircuitBreakerCooldownInfo, debounce, deferToIdle } from '@/utils';
 import { isFeatureAvailable } from '@/services/runtime-config';
@@ -43,9 +41,9 @@ import { maybeShowDownloadBanner } from '@/components/DownloadBanner';
 import { mountCommunityWidget } from '@/components/CommunityWidget';
 import { t } from '@/services/i18n';
 import type {
-  MarketPanel, HeatmapPanel, CommoditiesPanel, CryptoPanel, PredictionPanel,
+  MarketPanel, HeatmapPanel, CommoditiesPanel,
   MonitorPanel, EconomicPanel, CIIPanel, StrategicPosturePanel, InsightsPanel,
-  TechReadinessPanel, UcdpEventsPanel, DisplacementPanel, ClimateAnomalyPanel,
+  UcdpEventsPanel, DisplacementPanel,
   PopulationExposurePanel
 } from '@/components';
 
@@ -89,7 +87,7 @@ export class DataLoaderController {
       { name: 'markets', task: runGuarded('markets', () => this.loadMarkets()) },
     ];
 
-    // Load intelligence signals for CII calculation (protests, military, outages)
+    // Load intelligence signals for CII calculation (military, outages, conflict, displacement)
     // Only for geopolitical variant - tech variant doesn't need CII/focal points
     if (SITE_VARIANT === 'full') {
       criticalTasks.push({ name: 'intelligence', task: runGuarded('intelligence', () => this.loadIntelligenceSignals()) });
@@ -111,7 +109,6 @@ export class DataLoaderController {
     // PERF-003: Defer non-critical fetches to idle periods (5s timeout)
     deferToIdle(() => {
       const deferredTasks: Array<{ name: string; task: Promise<void> }> = [
-        { name: 'predictions', task: runGuarded('predictions', () => this.loadPredictions()) },
         { name: 'pizzint', task: runGuarded('pizzint', () => this.loadPizzInt()) },
         { name: 'fred', task: runGuarded('fred', () => this.loadFredData()) },
         { name: 'oil', task: runGuarded('oil', () => this.loadOilAnalytics()) },
@@ -119,18 +116,9 @@ export class DataLoaderController {
       ];
 
       if (SITE_VARIANT === 'full') deferredTasks.push({ name: 'firms', task: runGuarded('firms', () => this.loadFirmsData()) });
-      if (this.ctx.mapLayers.natural) deferredTasks.push({ name: 'natural', task: runGuarded('natural', () => this.loadNatural()) });
-      if (this.ctx.mapLayers.weather) deferredTasks.push({ name: 'weather', task: runGuarded('weather', () => this.loadWeatherAlerts()) });
       if (this.ctx.mapLayers.ais) deferredTasks.push({ name: 'ais', task: runGuarded('ais', () => this.loadAisSignals()) });
-      if (this.ctx.mapLayers.cables) deferredTasks.push({ name: 'cables', task: runGuarded('cables', () => this.loadCableActivity()) });
       if (this.ctx.mapLayers.flights) deferredTasks.push({ name: 'flights', task: runGuarded('flights', () => this.loadFlightDelays()) });
       if (CYBER_LAYER_ENABLED && this.ctx.mapLayers.cyberThreats) deferredTasks.push({ name: 'cyberThreats', task: runGuarded('cyberThreats', () => this.loadCyberThreats()) });
-      if (this.ctx.mapLayers.techEvents || SITE_VARIANT === 'tech') deferredTasks.push({ name: 'techEvents', task: runGuarded('techEvents', () => this.loadTechEvents()) });
-
-      // Tech Readiness panel (tech variant only)
-      if (SITE_VARIANT === 'tech') {
-        deferredTasks.push({ name: 'techReadiness', task: runGuarded('techReadiness', () => (this.ctx.panels['tech-readiness'] as TechReadinessPanel)?.refresh()) });
-      }
 
       Promise.allSettled(deferredTasks.map(t => t.task)).then(deferredResults => {
         deferredResults.forEach((result, idx) => {
@@ -152,14 +140,8 @@ export class DataLoaderController {
     this.ctx.map?.setLayerLoading(layer, true);
     try {
       switch (layer) {
-        case 'natural':
-          await this.loadNatural();
-          break;
         case 'fires':
           await this.loadFirmsData();
-          break;
-        case 'weather':
-          await this.loadWeatherAlerts();
           break;
         case 'outages':
           await this.loadOutages();
@@ -170,26 +152,14 @@ export class DataLoaderController {
         case 'ais':
           await this.loadAisSignals();
           break;
-        case 'cables':
-          await this.loadCableActivity();
-          break;
-        case 'protests':
-          await this.loadProtests();
-          break;
         case 'flights':
           await this.loadFlightDelays();
           break;
         case 'military':
           await this.loadMilitary();
           break;
-        case 'techEvents':
-          console.log('[loadDataForLayer] Loading techEvents...');
-          await this.loadTechEvents();
-          console.log('[loadDataForLayer] techEvents loaded');
-          break;
         case 'ucdpEvents':
         case 'displacement':
-        case 'climate':
           await this.loadIntelligenceSignals();
           break;
       }
@@ -595,160 +565,6 @@ export class DataLoaderController {
     } catch {
       this.ctx.statusPanel?.updateApi('Finnhub', { status: 'error' });
     }
-
-    try {
-      // Crypto
-      const crypto = await fetchCrypto();
-      (this.ctx.panels['crypto'] as CryptoPanel).renderCrypto(crypto);
-      this.ctx.statusPanel?.updateApi('CoinGecko', { status: 'ok' });
-    } catch {
-      this.ctx.statusPanel?.updateApi('CoinGecko', { status: 'error' });
-    }
-  }
-
-  // ----------------------------------------------------------------
-  // 13. loadPredictions
-  // ----------------------------------------------------------------
-  async loadPredictions(): Promise<void> {
-    try {
-      const predictions = await fetchPredictions();
-      this.ctx.latestPredictions = predictions;
-      (this.ctx.panels['polymarket'] as PredictionPanel).renderPredictions(predictions);
-
-      this.ctx.statusPanel?.updateFeed('Polymarket', { status: 'ok', itemCount: predictions.length });
-      this.ctx.statusPanel?.updateApi('Polymarket', { status: 'ok' });
-      dataFreshness.recordUpdate('polymarket', predictions.length);
-
-      // Run correlation analysis in background (fire-and-forget via Web Worker)
-      void this.runCorrelationAnalysis();
-    } catch (error) {
-      this.ctx.statusPanel?.updateFeed('Polymarket', { status: 'error', errorMessage: String(error) });
-      this.ctx.statusPanel?.updateApi('Polymarket', { status: 'error' });
-      dataFreshness.recordError('polymarket', String(error));
-    }
-  }
-
-  // ----------------------------------------------------------------
-  // 14. loadNatural
-  // ----------------------------------------------------------------
-  async loadNatural(): Promise<void> {
-    // Load both USGS earthquakes and NASA EONET natural events in parallel
-    const [earthquakeResult, eonetResult] = await Promise.allSettled([
-      fetchEarthquakes(),
-      fetchNaturalEvents(30),
-    ]);
-
-    // Handle earthquakes (USGS)
-    if (earthquakeResult.status === 'fulfilled') {
-      this.ctx.intelligenceCache.earthquakes = earthquakeResult.value;
-      this.ctx.map?.setEarthquakes(earthquakeResult.value);
-      ingestEarthquakes(earthquakeResult.value);
-      this.ctx.statusPanel?.updateApi('USGS', { status: 'ok' });
-      dataFreshness.recordUpdate('usgs', earthquakeResult.value.length);
-    } else {
-      this.ctx.intelligenceCache.earthquakes = [];
-      this.ctx.map?.setEarthquakes([]);
-      this.ctx.statusPanel?.updateApi('USGS', { status: 'error' });
-      dataFreshness.recordError('usgs', String(earthquakeResult.reason));
-    }
-
-    // Handle natural events (EONET - storms, fires, volcanoes, etc.)
-    if (eonetResult.status === 'fulfilled') {
-      this.ctx.map?.setNaturalEvents(eonetResult.value);
-      this.ctx.statusPanel?.updateFeed('EONET', {
-        status: 'ok',
-        itemCount: eonetResult.value.length,
-      });
-      this.ctx.statusPanel?.updateApi('NASA EONET', { status: 'ok' });
-    } else {
-      this.ctx.map?.setNaturalEvents([]);
-      this.ctx.statusPanel?.updateFeed('EONET', { status: 'error', errorMessage: String(eonetResult.reason) });
-      this.ctx.statusPanel?.updateApi('NASA EONET', { status: 'error' });
-    }
-
-    // Set layer ready based on combined data
-    const hasEarthquakes = earthquakeResult.status === 'fulfilled' && earthquakeResult.value.length > 0;
-    const hasEonet = eonetResult.status === 'fulfilled' && eonetResult.value.length > 0;
-    this.ctx.map?.setLayerReady('natural', hasEarthquakes || hasEonet);
-  }
-
-  // ----------------------------------------------------------------
-  // 15. loadTechEvents
-  // ----------------------------------------------------------------
-  async loadTechEvents(): Promise<void> {
-    console.log('[loadTechEvents] Called. SITE_VARIANT:', SITE_VARIANT, 'techEvents layer:', this.ctx.mapLayers.techEvents);
-    // Only load for tech variant or if techEvents layer is enabled
-    if (SITE_VARIANT !== 'tech' && !this.ctx.mapLayers.techEvents) {
-      console.log('[loadTechEvents] Skipping - not tech variant and layer disabled');
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/tech-events?type=conference&mappable=true&days=90&limit=50');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Unknown error');
-
-      // Transform events for map markers
-      const now = new Date();
-      const mapEvents = data.events.map((e: {
-        id: string;
-        title: string;
-        location: string;
-        coords: { lat: number; lng: number; country: string };
-        startDate: string;
-        endDate: string;
-        url: string | null;
-      }) => ({
-        id: e.id,
-        title: e.title,
-        location: e.location,
-        lat: e.coords.lat,
-        lng: e.coords.lng,
-        country: e.coords.country,
-        startDate: e.startDate,
-        endDate: e.endDate,
-        url: e.url,
-        daysUntil: Math.ceil((new Date(e.startDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
-      }));
-
-      this.ctx.map?.setTechEvents(mapEvents);
-      this.ctx.map?.setLayerReady('techEvents', mapEvents.length > 0);
-      this.ctx.statusPanel?.updateFeed('Tech Events', { status: 'ok', itemCount: mapEvents.length });
-
-      // Register tech events as searchable source
-      if (SITE_VARIANT === 'tech' && this.ctx.searchModal) {
-        this.ctx.searchModal.registerSource('techevent', mapEvents.map((e: { id: string; title: string; location: string; startDate: string }) => ({
-          id: e.id,
-          title: e.title,
-          subtitle: `${e.location} • ${new Date(e.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
-          data: e,
-        })));
-      }
-    } catch (error) {
-      console.error('[App] Failed to load tech events:', error);
-      this.ctx.map?.setTechEvents([]);
-      this.ctx.map?.setLayerReady('techEvents', false);
-      this.ctx.statusPanel?.updateFeed('Tech Events', { status: 'error', errorMessage: String(error) });
-    }
-  }
-
-  // ----------------------------------------------------------------
-  // 16. loadWeatherAlerts
-  // ----------------------------------------------------------------
-  async loadWeatherAlerts(): Promise<void> {
-    try {
-      const alerts = await fetchWeatherAlerts();
-      this.ctx.map?.setWeatherAlerts(alerts);
-      this.ctx.map?.setLayerReady('weather', alerts.length > 0);
-      this.ctx.statusPanel?.updateFeed('Weather', { status: 'ok', itemCount: alerts.length });
-      dataFreshness.recordUpdate('weather', alerts.length);
-    } catch (error) {
-      this.ctx.map?.setLayerReady('weather', false);
-      this.ctx.statusPanel?.updateFeed('Weather', { status: 'error' });
-      dataFreshness.recordError('weather', String(error));
-    }
   }
 
   // ----------------------------------------------------------------
@@ -776,38 +592,6 @@ export class DataLoaderController {
         dataFreshness.recordError('outages', String(error));
       }
     })());
-
-    // Always fetch protests for CII (unrest = core instability metric)
-    // This task is also used by UCDP deduplication, so keep it as a shared promise.
-    const protestsTask = (async (): Promise<SocialUnrestEvent[]> => {
-      try {
-        const protestData = await fetchProtestEvents();
-        this.ctx.intelligenceCache.protests = protestData;
-        ingestProtests(protestData.events);
-        ingestProtestsForCII(protestData.events);
-        signalAggregator.ingestProtests(protestData.events);
-        const protestCount = protestData.sources.acled + protestData.sources.gdelt;
-        if (protestCount > 0) dataFreshness.recordUpdate('acled', protestCount);
-        if (protestData.sources.gdelt > 0) dataFreshness.recordUpdate('gdelt', protestData.sources.gdelt);
-        // Update map only if layer is visible
-        if (this.ctx.mapLayers.protests) {
-          this.ctx.map?.setProtests(protestData.events);
-          this.ctx.map?.setLayerReady('protests', protestData.events.length > 0);
-          const status = getProtestStatus();
-          this.ctx.statusPanel?.updateFeed('Protests', {
-            status: 'ok',
-            itemCount: protestData.events.length,
-            errorMessage: status.acledConfigured === false ? 'ACLED not configured - using GDELT only' : undefined,
-          });
-        }
-        return protestData.events;
-      } catch (error) {
-        console.error('[Intelligence] Protests fetch failed:', error);
-        dataFreshness.recordError('acled', String(error));
-        return [];
-      }
-    })();
-    tasks.push(protestsTask.then(() => undefined));
 
     // Fetch armed conflict events (battles, explosions, violence) for CII
     tasks.push((async () => {
@@ -909,18 +693,12 @@ export class DataLoaderController {
     // Fetch UCDP georeferenced events (battles, one-sided violence, non-state conflict)
     tasks.push((async () => {
       try {
-        const [result, protestEvents] = await Promise.all([
-          fetchUcdpEvents(),
-          protestsTask,
-        ]);
+        const result = await fetchUcdpEvents();
         if (!result.success) {
           dataFreshness.recordError('ucdp_events', 'UCDP events unavailable (retaining prior event state)');
           return;
         }
-        const acledEvents = protestEvents.map(e => ({
-          latitude: e.lat, longitude: e.lon, event_date: e.time.toISOString(), fatalities: e.fatalities ?? 0,
-        }));
-        const events = deduplicateAgainstAcled(result.data, acledEvents);
+        const events = result.data;
         (this.ctx.panels['ucdp-events'] as UcdpEventsPanel)?.setEvents(events);
         if (this.ctx.mapLayers.ucdpEvents) {
           this.ctx.map?.setUcdpEvents(events);
@@ -953,37 +731,12 @@ export class DataLoaderController {
       }
     })());
 
-    // Fetch climate anomalies (temperature/precipitation deviations)
-    tasks.push((async () => {
-      try {
-        const climateResult = await fetchClimateAnomalies();
-        if (!climateResult.ok) {
-          dataFreshness.recordError('climate', 'Climate anomalies unavailable (retaining prior climate state)');
-          return;
-        }
-        const anomalies = climateResult.anomalies;
-        (this.ctx.panels['climate'] as ClimateAnomalyPanel)?.setAnomalies(anomalies);
-        ingestClimateForCII(anomalies);
-        if (this.ctx.mapLayers.climate) {
-          this.ctx.map?.setClimateAnomalies(anomalies);
-        }
-        if (anomalies.length > 0) dataFreshness.recordUpdate('climate', anomalies.length);
-      } catch (error) {
-        console.error('[Intelligence] Climate anomalies fetch failed:', error);
-        dataFreshness.recordError('climate', String(error));
-      }
-    })());
-
     await Promise.allSettled(tasks);
 
     // Fetch population exposure estimates after upstream intelligence loads complete.
-    // This avoids race conditions where UCDP/protest data is still in-flight.
     try {
       const ucdpEvts = (this.ctx.panels['ucdp-events'] as UcdpEventsPanel)?.getEvents?.() || [];
       const events = [
-        ...(this.ctx.intelligenceCache.protests?.events || []).slice(0, 10).map(e => ({
-          id: e.id, lat: e.lat, lon: e.lon, type: 'conflict' as const, name: e.title || 'Protest',
-        })),
         ...ucdpEvts.slice(0, 10).map(e => ({
           id: e.id, lat: e.latitude, lon: e.longitude, type: e.type_of_violence as string, name: `${e.side_a} vs ${e.side_b}`,
         })),
@@ -1136,75 +889,6 @@ export class DataLoaderController {
     };
 
     checkData();
-  }
-
-  // ----------------------------------------------------------------
-  // 22. loadCableActivity
-  // ----------------------------------------------------------------
-  async loadCableActivity(): Promise<void> {
-    try {
-      const activity = await fetchCableActivity();
-      this.ctx.map?.setCableActivity(activity.advisories, activity.repairShips);
-      const itemCount = activity.advisories.length + activity.repairShips.length;
-      this.ctx.statusPanel?.updateFeed('CableOps', { status: 'ok', itemCount });
-    } catch {
-      this.ctx.statusPanel?.updateFeed('CableOps', { status: 'error' });
-    }
-  }
-
-  // ----------------------------------------------------------------
-  // 23. loadProtests
-  // ----------------------------------------------------------------
-  async loadProtests(): Promise<void> {
-    // Use cached data if available (from loadIntelligenceSignals)
-    if (this.ctx.intelligenceCache.protests) {
-      const protestData = this.ctx.intelligenceCache.protests;
-      this.ctx.map?.setProtests(protestData.events);
-      this.ctx.map?.setLayerReady('protests', protestData.events.length > 0);
-      const status = getProtestStatus();
-      this.ctx.statusPanel?.updateFeed('Protests', {
-        status: 'ok',
-        itemCount: protestData.events.length,
-        errorMessage: status.acledConfigured === false ? 'ACLED not configured - using GDELT only' : undefined,
-      });
-      if (status.acledConfigured === true) {
-        this.ctx.statusPanel?.updateApi('ACLED', { status: 'ok' });
-      } else if (status.acledConfigured === null) {
-        this.ctx.statusPanel?.updateApi('ACLED', { status: 'warning' });
-      }
-      this.ctx.statusPanel?.updateApi('GDELT Doc', { status: 'ok' });
-      return;
-    }
-    try {
-      const protestData = await fetchProtestEvents();
-      this.ctx.intelligenceCache.protests = protestData;
-      this.ctx.map?.setProtests(protestData.events);
-      this.ctx.map?.setLayerReady('protests', protestData.events.length > 0);
-      ingestProtests(protestData.events);
-      ingestProtestsForCII(protestData.events);
-      signalAggregator.ingestProtests(protestData.events);
-      const protestCount = protestData.sources.acled + protestData.sources.gdelt;
-      if (protestCount > 0) dataFreshness.recordUpdate('acled', protestCount);
-      if (protestData.sources.gdelt > 0) dataFreshness.recordUpdate('gdelt', protestData.sources.gdelt);
-      (this.ctx.panels['cii'] as CIIPanel)?.refresh();
-      const status = getProtestStatus();
-      this.ctx.statusPanel?.updateFeed('Protests', {
-        status: 'ok',
-        itemCount: protestData.events.length,
-        errorMessage: status.acledConfigured === false ? 'ACLED not configured - using GDELT only' : undefined,
-      });
-      if (status.acledConfigured === true) {
-        this.ctx.statusPanel?.updateApi('ACLED', { status: 'ok' });
-      } else if (status.acledConfigured === null) {
-        this.ctx.statusPanel?.updateApi('ACLED', { status: 'warning' });
-      }
-      this.ctx.statusPanel?.updateApi('GDELT Doc', { status: 'ok' });
-    } catch (error) {
-      this.ctx.map?.setLayerReady('protests', false);
-      this.ctx.statusPanel?.updateFeed('Protests', { status: 'error', errorMessage: String(error) });
-      this.ctx.statusPanel?.updateApi('ACLED', { status: 'error' });
-      this.ctx.statusPanel?.updateApi('GDELT Doc', { status: 'error' });
-    }
   }
 
   // ----------------------------------------------------------------

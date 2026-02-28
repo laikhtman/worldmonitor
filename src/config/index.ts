@@ -1,8 +1,6 @@
 // Configuration exports
-// For variant-specific builds, set VITE_VARIANT environment variable
-// VITE_VARIANT=tech → tech.intelhq.io (tech-focused)
-// VITE_VARIANT=full → intelhq.io (geopolitical)
-// VITE_VARIANT=finance → finance.intelhq.io (markets/trading)
+// VITE_VARIANT=full → intelhq.io (default)
+// VITE_VARIANT=tv → webOS TV
 
 export { SITE_VARIANT } from './variant';
 
@@ -16,13 +14,10 @@ export {
 } from './variants/base';
 
 // Market data (shared)
-export { SECTORS, COMMODITIES, MARKET_SYMBOLS, CRYPTO_MAP } from './markets';
+export { SECTORS, COMMODITIES, MARKET_SYMBOLS } from './markets';
 
 // Geo data (shared base)
-export { UNDERSEA_CABLES, MAP_URLS } from './geo';
-
-// AI Datacenters (shared)
-export { AI_DATA_CENTERS } from './ai-datacenters';
+export { MAP_URLS } from './geo';
 
 // Feeds configuration (shared functions, variant-specific data)
 export {
@@ -67,7 +62,6 @@ export {
   ECONOMIC_CENTERS,
   SANCTIONED_COUNTRIES,
   SPACEPORTS,
-  CRITICAL_MINERALS,
 } from './geo';
 
 export { GAMMA_IRRADIATORS } from './irradiators';
@@ -81,39 +75,7 @@ export {
   type EntityEntry,
 } from './entities';
 
-// Tech variant - these are included in tech builds
-export { TECH_COMPANIES } from './tech-companies';
-export { AI_RESEARCH_LABS } from './ai-research-labs';
-export { STARTUP_ECOSYSTEMS } from './startup-ecosystems';
-export {
-  AI_REGULATIONS,
-  REGULATORY_ACTIONS,
-  COUNTRY_REGULATION_PROFILES,
-  getUpcomingDeadlines,
-  getRecentActions,
-} from './ai-regulations';
-export {
-  STARTUP_HUBS,
-  ACCELERATORS,
-  TECH_HQS,
-  CLOUD_REGIONS,
-  type StartupHub,
-  type Accelerator,
-  type TechHQ,
-  type CloudRegion,
-} from './tech-geo';
 
-// Finance variant - these are included in finance builds
-export {
-  STOCK_EXCHANGES,
-  FINANCIAL_CENTERS,
-  CENTRAL_BANKS,
-  COMMODITY_HUBS,
-  type StockExchange,
-  type FinancialCenter,
-  type CentralBank,
-  type CommodityHub,
-} from './finance-geo';
 
 // Gulf FDI investment database
 export { GULF_INVESTMENTS } from './gulf-fdi';

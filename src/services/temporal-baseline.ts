@@ -5,7 +5,6 @@
 export type TemporalEventType =
   | 'military_flights'
   | 'vessels'
-  | 'protests'
   | 'news'
   | 'ais_gaps'
   | 'satellite_fires';
@@ -25,7 +24,6 @@ const BASELINE_API = '/api/temporal-baseline';
 const TYPE_LABELS: Record<TemporalEventType, string> = {
   military_flights: 'Military flights',
   vessels: 'Naval vessels',
-  protests: 'Protests',
   news: 'News velocity',
   ais_gaps: 'Dark ship activity',
   satellite_fires: 'Satellite fire detections',

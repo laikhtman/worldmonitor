@@ -10,27 +10,20 @@ import type {
   MapLayers,
   Hotspot,
   NewsItem,
-  Earthquake,
   InternetOutage,
   RelatedAsset,
   AssetType,
   AisDisruptionEvent,
   AisDensityZone,
-  CableAdvisory,
-  RepairShip,
-  SocialUnrestEvent,
   AirportDelayAlert,
   MilitaryFlight,
   MilitaryVessel,
   MilitaryFlightCluster,
   MilitaryVesselCluster,
-  NaturalEvent,
   UcdpGeoEvent,
   DisplacementFlow,
-  ClimateAnomaly,
   CyberThreat,
 } from '@/types';
-import type { WeatherAlert } from '@/services/weather';
 
 export type TimeRange = '1h' | '6h' | '24h' | '48h' | '7d' | 'all';
 export type MapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania';
@@ -41,19 +34,6 @@ export interface MapContainerState {
   view: MapView;
   layers: MapLayers;
   timeRange: TimeRange;
-}
-
-interface TechEventMarker {
-  id: string;
-  title: string;
-  location: string;
-  lat: number;
-  lng: number;
-  country: string;
-  startDate: string;
-  endDate: string;
-  url: string | null;
-  daysUntil: number;
 }
 
 /**
@@ -184,22 +164,6 @@ export class MapContainer {
   }
 
   // Data setters
-  public setEarthquakes(earthquakes: Earthquake[]): void {
-    if (this.useDeckGL) {
-      this.deckGLMap?.setEarthquakes(earthquakes);
-    } else {
-      this.svgMap?.setEarthquakes(earthquakes);
-    }
-  }
-
-  public setWeatherAlerts(alerts: WeatherAlert[]): void {
-    if (this.useDeckGL) {
-      this.deckGLMap?.setWeatherAlerts(alerts);
-    } else {
-      this.svgMap?.setWeatherAlerts(alerts);
-    }
-  }
-
   public setOutages(outages: InternetOutage[]): void {
     if (this.useDeckGL) {
       this.deckGLMap?.setOutages(outages);
@@ -213,22 +177,6 @@ export class MapContainer {
       this.deckGLMap?.setAisData(disruptions, density);
     } else {
       this.svgMap?.setAisData(disruptions, density);
-    }
-  }
-
-  public setCableActivity(advisories: CableAdvisory[], repairShips: RepairShip[]): void {
-    if (this.useDeckGL) {
-      this.deckGLMap?.setCableActivity(advisories, repairShips);
-    } else {
-      this.svgMap?.setCableActivity(advisories, repairShips);
-    }
-  }
-
-  public setProtests(events: SocialUnrestEvent[]): void {
-    if (this.useDeckGL) {
-      this.deckGLMap?.setProtests(events);
-    } else {
-      this.svgMap?.setProtests(events);
     }
   }
 
@@ -256,27 +204,11 @@ export class MapContainer {
     }
   }
 
-  public setNaturalEvents(events: NaturalEvent[]): void {
-    if (this.useDeckGL) {
-      this.deckGLMap?.setNaturalEvents(events);
-    } else {
-      this.svgMap?.setNaturalEvents(events);
-    }
-  }
-
   public setFires(fires: Array<{ lat: number; lon: number; brightness: number; frp: number; confidence: number; region: string; acq_date: string; daynight: string }>): void {
     if (this.useDeckGL) {
       this.deckGLMap?.setFires(fires);
     } else {
       this.svgMap?.setFires(fires);
-    }
-  }
-
-  public setTechEvents(events: TechEventMarker[]): void {
-    if (this.useDeckGL) {
-      this.deckGLMap?.setTechEvents(events);
-    } else {
-      this.svgMap?.setTechEvents(events);
     }
   }
 
@@ -289,12 +221,6 @@ export class MapContainer {
   public setDisplacementFlows(flows: DisplacementFlow[]): void {
     if (this.useDeckGL) {
       this.deckGLMap?.setDisplacementFlows(flows);
-    }
-  }
-
-  public setClimateAnomalies(anomalies: ClimateAnomaly[]): void {
-    if (this.useDeckGL) {
-      this.deckGLMap?.setClimateAnomalies(anomalies);
     }
   }
 
@@ -473,22 +399,6 @@ export class MapContainer {
       this.deckGLMap?.triggerPipelineClick(id);
     } else {
       this.svgMap?.triggerPipelineClick(id);
-    }
-  }
-
-  public triggerCableClick(id: string): void {
-    if (this.useDeckGL) {
-      this.deckGLMap?.triggerCableClick(id);
-    } else {
-      this.svgMap?.triggerCableClick(id);
-    }
-  }
-
-  public triggerDatacenterClick(id: string): void {
-    if (this.useDeckGL) {
-      this.deckGLMap?.triggerDatacenterClick(id);
-    } else {
-      this.svgMap?.triggerDatacenterClick(id);
     }
   }
 

@@ -1,5 +1,4 @@
 import type { TechHQ } from '@/config/tech-geo';
-import type { AIDataCenter, SocialUnrestEvent } from '@/types';
 
 export interface TechEventPopupData {
   id: string;
@@ -77,27 +76,4 @@ export interface CommodityHubPopupData {
   type: string;
   commodities?: string[];
   description?: string;
-}
-
-export interface ProtestClusterData {
-  items: SocialUnrestEvent[];
-  country: string;
-  count?: number;
-  riotCount?: number;
-  highSeverityCount?: number;
-  verifiedCount?: number;
-  totalFatalities?: number;
-  sampled?: boolean;
-}
-
-export interface DatacenterClusterData {
-  items: AIDataCenter[];
-  region: string;
-  country: string;
-  count?: number;
-  totalChips?: number;
-  totalPowerMW?: number;
-  existingCount?: number;
-  plannedCount?: number;
-  sampled?: boolean;
 }

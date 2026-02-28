@@ -33,3 +33,5 @@ scripts/data/pizzint-processed.json
 scripts/data/osm-military-processed.json
 scripts/data/military-bases-final.json
 scripts/data/dedup-dropped-pairs.json
+# Deployment docs contain production server IPs and credentials references
+docs/webos/deployment.md

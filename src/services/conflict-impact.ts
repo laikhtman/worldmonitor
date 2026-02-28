@@ -1,11 +1,10 @@
-import type { UcdpGeoEvent, CountryDisplacement, ClimateAnomaly, PopulationExposure } from '@/types';
+import type { UcdpGeoEvent, CountryDisplacement, PopulationExposure } from '@/types';
 
 export interface ConflictImpactLink {
   country: string;
   conflictEvents: number;
   totalDeaths: number;
   displacementOutflow: number;
-  climateAnomaly: ClimateAnomaly | null;
   populationExposed: number;
   combinedSeverity: number;
 }
@@ -13,7 +12,6 @@ export interface ConflictImpactLink {
 export function correlateConflictImpact(
   ucdpEvents: UcdpGeoEvent[],
   displacementData: CountryDisplacement[],
-  anomalies: ClimateAnomaly[],
   exposures: PopulationExposure[],
 ): ConflictImpactLink[] {
   const byCountry = new Map<string, { events: number; deaths: number }>();
@@ -44,17 +42,10 @@ export function correlateConflictImpact(
     const displacement = displacementMap.get(country);
     const displacementOutflow = displacement ? displacement.refugees + displacement.asylumSeekers : 0;
 
-    const climateAnomaly = anomalies.find(a => {
-      const zoneLower = a.zone.toLowerCase();
-      const countryLower = country.toLowerCase();
-      return zoneLower.includes(countryLower) || countryLower.includes(zoneLower);
-    }) || null;
-
     const exposed = exposureByCountry.get(country) || 0;
 
     const conflictScore = Math.min(40, events * 2 + Math.sqrt(deaths) * 3);
     const displacementScore = Math.min(30, displacementOutflow > 1_000_000 ? 30 : displacementOutflow > 100_000 ? 15 : 0);
-    const climateScore = climateAnomaly?.severity === 'extreme' ? 20 : climateAnomaly?.severity === 'moderate' ? 10 : 0;
     const popScore = Math.min(10, exposed > 1_000_000 ? 10 : exposed > 100_000 ? 5 : 0);
 
     links.push({
@@ -62,9 +53,8 @@ export function correlateConflictImpact(
       conflictEvents: events,
       totalDeaths: deaths,
       displacementOutflow,
-      climateAnomaly,
       populationExposed: exposed,
-      combinedSeverity: Math.round(conflictScore + displacementScore + climateScore + popScore),
+      combinedSeverity: Math.round(conflictScore + displacementScore + popScore),
     });
   }
 

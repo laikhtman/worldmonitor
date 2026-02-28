@@ -27,17 +27,13 @@ const tvMul = IS_TV ? TV_FEATURES.refreshMultiplier : 1;
 export interface RefreshCallbacks {
   loadNews: () => Promise<void>;
   loadMarkets: () => Promise<void>;
-  loadPredictions: () => Promise<void>;
   loadPizzInt: () => Promise<void>;
-  loadNatural: () => Promise<void>;
-  loadWeatherAlerts: () => Promise<void>;
   loadFredData: () => Promise<void>;
   loadOilAnalytics: () => Promise<void>;
   loadGovernmentSpending: () => Promise<void>;
   loadIntelligenceSignals: () => Promise<void>;
   loadFirmsData: () => Promise<void>;
   loadAisSignals: () => Promise<void>;
-  loadCableActivity: () => Promise<void>;
   loadFlightDelays: () => Promise<void>;
   loadCyberThreats: () => Promise<void>;
 }
@@ -123,15 +119,11 @@ export class RefreshScheduler {
    * Wire all periodic data refreshes using the supplied callbacks.
    */
   setupRefreshIntervals(cb: RefreshCallbacks): void {
-    // Always refresh news, markets, predictions, pizzint
+    // Always refresh news, markets, pizzint
     this.scheduleRefresh('news', () => cb.loadNews(), REFRESH_INTERVALS.feeds * tvMul);
     this.scheduleRefresh('markets', () => cb.loadMarkets(), REFRESH_INTERVALS.markets * tvMul);
-    this.scheduleRefresh('predictions', () => cb.loadPredictions(), REFRESH_INTERVALS.predictions * tvMul);
     this.scheduleRefresh('pizzint', () => cb.loadPizzInt(), 10 * 60 * 1000 * tvMul);
 
-    // Only refresh layer data if layer is enabled
-    this.scheduleRefresh('natural', () => cb.loadNatural(), 5 * 60 * 1000 * tvMul, () => this.ctx.mapLayers.natural);
-    this.scheduleRefresh('weather', () => cb.loadWeatherAlerts(), 10 * 60 * 1000 * tvMul, () => this.ctx.mapLayers.weather);
     this.scheduleRefresh('fred', () => cb.loadFredData(), 30 * 60 * 1000 * tvMul);
     this.scheduleRefresh('oil', () => cb.loadOilAnalytics(), 30 * 60 * 1000 * tvMul);
     this.scheduleRefresh('spending', () => cb.loadGovernmentSpending(), 60 * 60 * 1000 * tvMul);
@@ -147,7 +139,6 @@ export class RefreshScheduler {
     // Non-intelligence layer refreshes only
     this.scheduleRefresh('firms', () => cb.loadFirmsData(), 30 * 60 * 1000 * tvMul);
     this.scheduleRefresh('ais', () => cb.loadAisSignals(), REFRESH_INTERVALS.ais * tvMul, () => this.ctx.mapLayers.ais);
-    this.scheduleRefresh('cables', () => cb.loadCableActivity(), 30 * 60 * 1000 * tvMul, () => this.ctx.mapLayers.cables);
     this.scheduleRefresh('flights', () => cb.loadFlightDelays(), 10 * 60 * 1000 * tvMul, () => this.ctx.mapLayers.flights);
     this.scheduleRefresh('cyberThreats', () => {
       this.ctx.cyberThreatsCache = null;

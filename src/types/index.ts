@@ -58,7 +58,7 @@ export interface ClusteredEvent {
   lang?: string;
 }
 
-export type AssetType = 'pipeline' | 'cable' | 'datacenter' | 'base' | 'nuclear';
+export type AssetType = 'pipeline' | 'base' | 'nuclear';
 
 export interface RelatedAsset {
   id: string;
@@ -298,19 +298,7 @@ export interface UnhcrSummary {
   topFlows: DisplacementFlow[];
 }
 
-// Climate Anomaly Data (Open-Meteo / ERA5)
-export type AnomalySeverity = 'normal' | 'moderate' | 'extreme';
 
-export interface ClimateAnomaly {
-  zone: string;
-  lat: number;
-  lon: number;
-  tempDelta: number;
-  precipDelta: number;
-  severity: AnomalySeverity;
-  type: 'warm' | 'cold' | 'wet' | 'dry' | 'mixed';
-  period: string;
-}
 
 // WorldPop Population Exposure
 export interface CountryPopulation {
@@ -367,61 +355,7 @@ export interface MilitaryBaseEnriched extends MilitaryBase {
   catTraining?: boolean;
 }
 
-export interface CableLandingPoint {
-  country: string;       // ISO code
-  countryName: string;
-  city?: string;
-  lat: number;
-  lon: number;
-}
 
-export interface CountryCapacity {
-  country: string;       // ISO code
-  capacityShare: number; // 0-1, what % of country's int'l capacity
-  isRedundant: boolean;  // Has alternative routes
-}
-
-export interface UnderseaCable {
-  id: string;
-  name: string;
-  points: [number, number][];
-  major?: boolean;
-  // Enhanced fields for cascade analysis
-  landingPoints?: CableLandingPoint[];
-  countriesServed?: CountryCapacity[];
-  capacityTbps?: number;
-  rfsYear?: number;      // Ready for service year
-  owners?: string[];
-}
-
-export type CableAdvisorySeverity = 'fault' | 'degraded';
-
-export interface CableAdvisory {
-  id: string;
-  cableId: string;
-  title: string;
-  severity: CableAdvisorySeverity;
-  description: string;
-  reported: Date;
-  lat: number;
-  lon: number;
-  impact: string;
-  repairEta?: string;
-}
-
-export type RepairShipStatus = 'enroute' | 'on-station';
-
-export interface RepairShip {
-  id: string;
-  name: string;
-  cableId: string;
-  status: RepairShipStatus;
-  lat: number;
-  lon: number;
-  eta: string;
-  operator?: string;
-  note?: string;
-}
 
 export interface ShippingChokepoint {
   id: string;
@@ -498,16 +432,7 @@ export interface Pipeline {
   alternatives?: string[];       // Pipeline IDs that could substitute
 }
 
-export interface Earthquake {
-  id: string;
-  place: string;
-  magnitude: number;
-  lat: number;
-  lon: number;
-  depth: number;
-  time: Date;
-  url: string;
-}
+
 
 export interface Monitor {
   id: string;
@@ -527,60 +452,26 @@ export interface PanelConfig {
 export interface MapLayers {
   conflicts: boolean;
   bases: boolean;
-  cables: boolean;
   pipelines: boolean;
   hotspots: boolean;
   ais: boolean;
   nuclear: boolean;
   irradiators: boolean;
   sanctions: boolean;
-  weather: boolean;
   economic: boolean;
   waterways: boolean;
   outages: boolean;
   cyberThreats: boolean;
-  datacenters: boolean;
-  protests: boolean;
   flights: boolean;
   military: boolean;
-  natural: boolean;
   spaceports: boolean;
-  minerals: boolean;
   fires: boolean;
   // Data source layers
   ucdpEvents: boolean;
   displacement: boolean;
-  climate: boolean;
-  // Tech variant layers
-  startupHubs: boolean;
-  cloudRegions: boolean;
-  accelerators: boolean;
-  techHQs: boolean;
-  techEvents: boolean;
-  // Finance variant layers
-  stockExchanges: boolean;
-  financialCenters: boolean;
-  centralBanks: boolean;
-  commodityHubs: boolean;
-  // Gulf FDI layers
-  gulfInvestments: boolean;
 }
 
-export interface AIDataCenter {
-  id: string;
-  name: string;
-  owner: string;
-  country: string;
-  lat: number;
-  lon: number;
-  status: 'existing' | 'planned' | 'decommissioned';
-  chipType: string;
-  chipCount: number;
-  powerMW?: number;
-  h100Equivalent?: number;
-  sector?: string;
-  note?: string;
-}
+
 
 export interface InternetOutage {
   id: string;
@@ -623,17 +514,7 @@ export interface Spaceport {
   launches: 'High' | 'Medium' | 'Low';
 }
 
-export interface CriticalMineralProject {
-  id: string;
-  name: string;
-  lat: number;
-  lon: number;
-  mineral: string;
-  country: string;
-  operator: string;
-  status: 'producing' | 'development' | 'exploration';
-  significance: string;
-}
+
 
 export interface PredictionMarket {
   title: string;
@@ -654,47 +535,6 @@ export interface AppState {
 }
 
 export type FeedCategory = 'politics' | 'tech' | 'finance' | 'gov' | 'intel';
-
-// Social Unrest / Protest Types
-export type ProtestSeverity = 'low' | 'medium' | 'high';
-export type ProtestSource = 'acled' | 'gdelt' | 'rss';
-export type ProtestEventType = 'protest' | 'riot' | 'strike' | 'demonstration' | 'civil_unrest';
-
-export interface SocialUnrestEvent {
-  id: string;
-  title: string;
-  summary?: string;
-  eventType: ProtestEventType;
-  city?: string;
-  country: string;
-  region?: string;
-  lat: number;
-  lon: number;
-  time: Date;
-  severity: ProtestSeverity;
-  fatalities?: number;
-  sources: string[];
-  sourceType: ProtestSource;
-  tags?: string[];
-  actors?: string[];
-  relatedHotspots?: string[];
-  confidence: 'high' | 'medium' | 'low';
-  validated: boolean;
-  imageUrl?: string;
-  sentiment?: 'angry' | 'peaceful' | 'mixed';
-}
-
-export interface ProtestCluster {
-  id: string;
-  country: string;
-  region?: string;
-  eventCount: number;
-  events: SocialUnrestEvent[];
-  severity: ProtestSeverity;
-  startDate: Date;
-  endDate: Date;
-  primaryCause?: string;
-}
 
 // Flight Delay Types
 export type FlightDelaySource = 'faa' | 'eurocontrol' | 'computed';
@@ -923,7 +763,6 @@ export type NaturalEventCategory =
   | 'severeStorms'
   | 'wildfires'
   | 'volcanoes'
-  | 'earthquakes'
   | 'floods'
   | 'landslides'
   | 'drought'
@@ -951,7 +790,7 @@ export interface NaturalEvent {
 }
 
 // Infrastructure Cascade Types
-export type InfrastructureNodeType = 'cable' | 'pipeline' | 'port' | 'chokepoint' | 'country' | 'route';
+export type InfrastructureNodeType = 'pipeline' | 'port' | 'chokepoint' | 'country' | 'route';
 
 export interface InfrastructureNode {
   id: string;
@@ -965,7 +804,6 @@ export type DependencyType =
   | 'serves'              // Infrastructure serves country
   | 'terminates_at'       // Pipeline terminates at port
   | 'transits_through'    // Route transits chokepoint
-  | 'lands_at'            // Cable lands at country
   | 'depends_on'          // Port depends on pipeline
   | 'shares_risk'         // Assets share vulnerability
   | 'alternative_to'      // Provides redundancy
@@ -1189,7 +1027,6 @@ export type GulfInvestmentSector =
   | 'ports'
   | 'pipelines'
   | 'energy'
-  | 'datacenters'
   | 'airports'
   | 'railways'
   | 'telecoms'
@@ -1244,23 +1081,6 @@ export interface GulfInvestment {
   tags?: string[];
 }
 
-export interface MapProtestCluster {
-  id: string;
-  lat: number;
-  lon: number;
-  count: number;
-  items: SocialUnrestEvent[];
-  country: string;
-  maxSeverity: 'low' | 'medium' | 'high';
-  hasRiot: boolean;
-  latestRiotEventTimeMs?: number;
-  totalFatalities: number;
-  riotCount?: number;
-  highSeverityCount?: number;
-  verifiedCount?: number;
-  sampled?: boolean;
-}
-
 export interface MapTechHQCluster {
   id: string;
   lat: number;
@@ -1289,18 +1109,4 @@ export interface MapTechEventCluster {
   sampled?: boolean;
 }
 
-export interface MapDatacenterCluster {
-  id: string;
-  lat: number;
-  lon: number;
-  count: number;
-  items: AIDataCenter[];
-  region: string;
-  country: string;
-  totalChips: number;
-  totalPowerMW: number;
-  majorityExisting: boolean;
-  existingCount?: number;
-  plannedCount?: number;
-  sampled?: boolean;
-}
+

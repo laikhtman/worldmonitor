@@ -5,15 +5,14 @@ import { t } from '@/services/i18n';
 
 export interface TimelineEvent {
   timestamp: number;
-  lane: 'protest' | 'conflict' | 'natural' | 'military';
+  lane: 'conflict' | 'natural' | 'military';
   label: string;
   severity?: 'low' | 'medium' | 'high' | 'critical';
 }
 
-const LANES: TimelineEvent['lane'][] = ['protest', 'conflict', 'natural', 'military'];
+const LANES: TimelineEvent['lane'][] = ['conflict', 'natural', 'military'];
 
 const LANE_COLORS: Record<TimelineEvent['lane'], string> = {
-  protest: '#ffaa00',
   conflict: '#ff4444',
   natural: '#b478ff',
   military: '#64b4ff',
@@ -155,7 +154,6 @@ export class CountryTimeline {
     xAxisG.select('.domain').attr('stroke', getCSSColor('--border'));
 
     const laneLabels: Record<string, string> = {
-      protest: 'Protest',
       conflict: 'Conflict',
       natural: 'Natural',
       military: 'Military',

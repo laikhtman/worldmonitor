@@ -1,9 +1,9 @@
-import type { SocialUnrestEvent, MilitaryFlight, MilitaryVessel, Earthquake } from '@/types';
+import type { MilitaryFlight, MilitaryVessel } from '@/types';
 import { generateSignalId, GEO_CONVERGENCE_THRESHOLD, GEO_CONVERGENCE_WINDOW_MS, GEO_CONVERGENCE_SCORING, GEO_CONVERGENCE_PROXIMITY_KM } from '@/utils/analysis-constants';
 import type { CorrelationSignalCore } from './analysis-core';
 import { INTEL_HOTSPOTS, CONFLICT_ZONES, STRATEGIC_WATERWAYS } from '@/config/geo';
 
-export type GeoEventType = 'protest' | 'military_flight' | 'military_vessel' | 'earthquake';
+export type GeoEventType = 'military_flight' | 'military_vessel';
 
 interface GeoCell {
   id: string;
@@ -61,12 +61,6 @@ function pruneOldEvents(): void {
   }
 }
 
-export function ingestProtests(events: SocialUnrestEvent[]): void {
-  for (const e of events) {
-    ingestGeoEvent(e.lat, e.lon, 'protest', e.time);
-  }
-}
-
 export function ingestFlights(flights: MilitaryFlight[]): void {
   for (const f of flights) {
     ingestGeoEvent(f.lat, f.lon, 'military_flight', f.lastSeen);
@@ -76,12 +70,6 @@ export function ingestFlights(flights: MilitaryFlight[]): void {
 export function ingestVessels(vessels: MilitaryVessel[]): void {
   for (const v of vessels) {
     ingestGeoEvent(v.lat, v.lon, 'military_vessel', v.lastAisUpdate);
-  }
-}
-
-export function ingestEarthquakes(quakes: Earthquake[]): void {
-  for (const q of quakes) {
-    ingestGeoEvent(q.lat, q.lon, 'earthquake', q.time);
   }
 }
 
@@ -120,10 +108,8 @@ export function detectGeoConvergence(seenAlerts: Set<string>): GeoConvergenceAle
 }
 
 const TYPE_LABELS: Record<GeoEventType, string> = {
-  protest: 'protests',
   military_flight: 'military flights',
   military_vessel: 'naval vessels',
-  earthquake: 'seismic activity',
 };
 
 // Haversine distance in km
@@ -214,10 +200,8 @@ export function debugInjectTestEvents(): void {
   const now = new Date();
   const testLat = 25.5;
   const testLon = 121.5;
-  ingestGeoEvent(testLat, testLon, 'protest', now);
   ingestGeoEvent(testLat, testLon, 'military_flight', now);
   ingestGeoEvent(testLat, testLon, 'military_vessel', now);
-  ingestGeoEvent(testLat + 0.3, testLon + 0.2, 'earthquake', now);
   console.log('[GeoConvergence] Injected 4 test events at Taiwan Strait region');
 }
 

@@ -31,8 +31,7 @@ import {
   MarketPanel,
   HeatmapPanel,
   CommoditiesPanel,
-  CryptoPanel,
-  PredictionPanel,
+
   MonitorPanel,
   PlaybackControl,
   EconomicPanel,
@@ -40,21 +39,16 @@ import {
   LiveNewsPanel,
   LiveWebcamsPanel,
   CIIPanel,
-  CascadePanel,
   StrategicRiskPanel,
   StrategicPosturePanel,
   IntelligenceGapBadge,
-  TechEventsPanel,
   ServiceStatusPanel,
   RuntimeConfigPanel,
   InsightsPanel,
-  TechReadinessPanel,
   MacroSignalsPanel,
   ETFFlowsPanel,
-  StablecoinPanel,
   UcdpEventsPanel,
   DisplacementPanel,
-  ClimateAnomalyPanel,
   PopulationExposurePanel,
   InvestmentsPanel,
 } from '@/components';
@@ -120,17 +114,6 @@ export class PanelManager {
 
     const events = snapshot.events as ClusteredEvent[];
     this.ctx.latestClusters = events;
-
-    const predictions = snapshot.predictions.map((p, i) => ({
-      id: `snap-${i}`,
-      title: p.title,
-      yesPrice: p.yesPrice,
-      noPrice: 1 - p.yesPrice,
-      volume24h: 0,
-      liquidity: 0,
-    }));
-    this.ctx.latestPredictions = predictions;
-    (this.ctx.panels['polymarket'] as PredictionPanel).renderPredictions(predictions);
 
     this.ctx.map?.setHotspotLevels(snapshot.hotspotLevels);
   }
@@ -364,9 +347,6 @@ export class PanelManager {
     const commoditiesPanel = new CommoditiesPanel();
     this.ctx.panels['commodities'] = commoditiesPanel;
 
-    const predictionPanel = new PredictionPanel();
-    this.ctx.panels['polymarket'] = predictionPanel;
-
     const govPanel = new NewsPanel('gov', t('panels.gov'));
     this.attachRelatedAssetHandlers(govPanel);
     this.ctx.newsPanels['gov'] = govPanel;
@@ -376,9 +356,6 @@ export class PanelManager {
     this.attachRelatedAssetHandlers(intelPanel);
     this.ctx.newsPanels['intel'] = intelPanel;
     this.ctx.panels['intel'] = intelPanel;
-
-    const cryptoPanel = new CryptoPanel();
-    this.ctx.panels['crypto'] = cryptoPanel;
 
     const middleeastPanel = new NewsPanel('middleeast', t('panels.middleeast'));
     this.attachRelatedAssetHandlers(middleeastPanel);
@@ -522,9 +499,6 @@ export class PanelManager {
       });
       this.ctx.panels['cii'] = ciiPanel;
 
-      const cascadePanel = new CascadePanel();
-      this.ctx.panels['cascade'] = cascadePanel;
-
       const satelliteFiresPanel = new SatelliteFiresPanel();
       this.ctx.panels['satellite-fires'] = satelliteFiresPanel;
 
@@ -556,12 +530,6 @@ export class PanelManager {
       });
       this.ctx.panels['displacement'] = displacementPanel;
 
-      const climatePanel = new ClimateAnomalyPanel();
-      climatePanel.setZoneClickHandler((lat, lon) => {
-        this.ctx.map?.setCenter(lat, lon, 4);
-      });
-      this.ctx.panels['climate'] = climatePanel;
-
       const populationExposurePanel = new PopulationExposurePanel();
       this.ctx.panels['population-exposure'] = populationExposurePanel;
     }
@@ -569,7 +537,7 @@ export class PanelManager {
     // GCC Investments Panel (finance variant)
     if (SITE_VARIANT === 'finance') {
       const investmentsPanel = new InvestmentsPanel((inv) => {
-        focusInvestmentOnMap(this.ctx.map, this.ctx.mapLayers, inv.lat, inv.lon);
+        focusInvestmentOnMap(this.ctx.map, inv.lat, inv.lon);
       });
       this.ctx.panels['gcc-investments'] = investmentsPanel;
     }
@@ -580,9 +548,6 @@ export class PanelManager {
     const liveWebcamsPanel = new LiveWebcamsPanel();
     this.ctx.panels['live-webcams'] = liveWebcamsPanel;
 
-    // Tech Events Panel (tech variant only - but create for all to allow toggling)
-    this.ctx.panels['events'] = new TechEventsPanel('events');
-
     // Service Status Panel (primarily for tech variant)
     const serviceStatusPanel = new ServiceStatusPanel();
     this.ctx.panels['service-status'] = serviceStatusPanel;
@@ -592,14 +557,9 @@ export class PanelManager {
       this.ctx.panels['runtime-config'] = runtimeConfigPanel;
     }
 
-    // Tech Readiness Panel (tech variant only - World Bank tech indicators)
-    const techReadinessPanel = new TechReadinessPanel();
-    this.ctx.panels['tech-readiness'] = techReadinessPanel;
-
-    // Crypto & Market Intelligence Panels
+    // Market Intelligence Panels
     this.ctx.panels['macro-signals'] = new MacroSignalsPanel();
     this.ctx.panels['etf-flows'] = new ETFFlowsPanel();
-    this.ctx.panels['stablecoins'] = new StablecoinPanel();
 
     // AI Insights Panel (desktop only - hides itself on mobile)
     const insightsPanel = new InsightsPanel();
@@ -743,18 +703,6 @@ export class PanelManager {
         this.ctx.mapLayers.pipelines = true;
         saveToStorage(STORAGE_KEYS.mapLayers, this.ctx.mapLayers);
         this.ctx.map.triggerPipelineClick(asset.id);
-        break;
-      case 'cable':
-        this.ctx.map.enableLayer('cables');
-        this.ctx.mapLayers.cables = true;
-        saveToStorage(STORAGE_KEYS.mapLayers, this.ctx.mapLayers);
-        this.ctx.map.triggerCableClick(asset.id);
-        break;
-      case 'datacenter':
-        this.ctx.map.enableLayer('datacenters');
-        this.ctx.mapLayers.datacenters = true;
-        saveToStorage(STORAGE_KEYS.mapLayers, this.ctx.mapLayers);
-        this.ctx.map.triggerDatacenterClick(asset.id);
         break;
       case 'base':
         this.ctx.map.enableLayer('bases');

@@ -17,7 +17,6 @@ const SIGNAL_TYPE_LABELS: Record<SignalType, string> = {
   internet_outage: 'internet outage',
   military_flight: 'military flights',
   military_vessel: 'naval vessels',
-  protest: 'protests',
   ais_disruption: 'shipping disruption',
   satellite_fire: 'satellite fires',
   temporal_anomaly: 'anomaly detection',
@@ -27,7 +26,6 @@ const SIGNAL_TYPE_ICONS: Record<SignalType, string> = {
   internet_outage: '🌐',
   military_flight: '✈️',
   military_vessel: '⚓',
-  protest: '📢',
   ais_disruption: '🚢',
   satellite_fire: '🔥',
   temporal_anomaly: '📊',
@@ -266,7 +264,6 @@ class FocalPointDetector {
       const lower = h.title.toLowerCase();
       return (signals.signalTypes.has('military_flight') && /military|troops|forces|army|air force/.test(lower)) ||
              (signals.signalTypes.has('military_vessel') && /navy|naval|ships|fleet|carrier/.test(lower)) ||
-             (signals.signalTypes.has('protest') && /protest|demonstrat|unrest|riot/.test(lower)) ||
              (signals.signalTypes.has('internet_outage') && /internet|blackout|outage|connectivity/.test(lower));
     })) {
       bonus += 5;
