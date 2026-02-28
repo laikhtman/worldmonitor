@@ -62,7 +62,16 @@ import { getAlertsNearLocation } from '@/services/geo-convergence';
 import { getCountriesGeoJson, getCountryAtCoordinates } from '@/services/country-geometry';
 
 export type TimeRange = '1h' | '6h' | '24h' | '48h' | '7d' | 'all';
-export type DeckMapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania';
+export type DeckMapView = 
+  | 'global' 
+  | 'centcom' 
+  | 'levant' 
+  | 'israel'
+  | 'iran' 
+  | 'gulf' 
+  | 'red_sea' 
+  | 'usa' 
+  | 'europe';
 type MapInteractionMode = 'flat' | '3d';
 
 export interface CountryClickPayload {
@@ -84,16 +93,34 @@ interface HotspotWithBreaking extends Hotspot {
   hasBreaking?: boolean;
 }
 
-// View presets with longitude, latitude, zoom
+// View presets with longitude, latitude, zoom - Tactical theaters focused on Middle East conflict zones
 const VIEW_PRESETS: Record<DeckMapView, { longitude: number; latitude: number; zoom: number }> = {
-  global: { longitude: 0, latitude: 20, zoom: 1.5 },
-  america: { longitude: -95, latitude: 38, zoom: 3 },
-  mena: { longitude: 45, latitude: 28, zoom: 3.5 },
-  eu: { longitude: 15, latitude: 50, zoom: 3.5 },
-  asia: { longitude: 105, latitude: 35, zoom: 3 },
-  latam: { longitude: -60, latitude: -15, zoom: 3 },
-  africa: { longitude: 20, latitude: 5, zoom: 3 },
-  oceania: { longitude: 135, latitude: -25, zoom: 3.5 },
+  // Broader overview shifted towards the Middle East
+  global: { longitude: 45, latitude: 30, zoom: 2 },
+  
+  // Broader Middle East overview (US CENTCOM AOR)
+  centcom: { longitude: 45, latitude: 28, zoom: 3.5 },
+  
+  // Tight zoom on Israel, Lebanon, Syria, and Gaza (Immediate kinetic zone)
+  levant: { longitude: 35.2, latitude: 32.5, zoom: 6.5 },
+  
+  // Ultra-tight zoom on Israeli territory only (Oref Siren auto-trigger view)
+  israel: { longitude: 34.85, latitude: 31.4, zoom: 7.2 },
+  
+  // Full coverage of Iran (Tehran, Isfahan, Natanz, and missile bases)
+  iran: { longitude: 54.0, latitude: 32.0, zoom: 4.5 },
+  
+  // Saudi Arabia, UAE, Qatar, and the Strait of Hormuz
+  gulf: { longitude: 51.5, latitude: 25.0, zoom: 5.0 },
+  
+  // Yemen, Bab el-Mandeb strait, and Red Sea shipping lanes
+  red_sea: { longitude: 42.5, latitude: 15.5, zoom: 5.2 },
+  
+  // Washington D.C. / Pentagon (For PizzINT and US policy tracking)
+  usa: { longitude: -77.0, latitude: 38.9, zoom: 4.5 },
+  
+  // Eastern Europe / NATO flank (Keep as secondary watch area)
+  europe: { longitude: 20, latitude: 48, zoom: 3.5 },
 };
 
 const MAP_INTERACTION_MODE: MapInteractionMode =
@@ -1518,13 +1545,14 @@ export class DeckGLMap {
       <div class="view-selector">
         <select class="view-select">
           <option value="global">${t('components.deckgl.views.global')}</option>
-          <option value="america">${t('components.deckgl.views.americas')}</option>
-          <option value="mena">${t('components.deckgl.views.mena')}</option>
-          <option value="eu">${t('components.deckgl.views.europe')}</option>
-          <option value="asia">${t('components.deckgl.views.asia')}</option>
-          <option value="latam">${t('components.deckgl.views.latam')}</option>
-          <option value="africa">${t('components.deckgl.views.africa')}</option>
-          <option value="oceania">${t('components.deckgl.views.oceania')}</option>
+          <option value="centcom">${t('components.deckgl.views.centcom')}</option>
+          <option value="levant">${t('components.deckgl.views.levant')}</option>
+          <option value="israel">${t('components.deckgl.views.israel')}</option>
+          <option value="iran">${t('components.deckgl.views.iran')}</option>
+          <option value="gulf">${t('components.deckgl.views.gulf')}</option>
+          <option value="red_sea">${t('components.deckgl.views.red_sea')}</option>
+          <option value="usa">${t('components.deckgl.views.usa')}</option>
+          <option value="europe">${t('components.deckgl.views.europe')}</option>
         </select>
       </div>
     `;

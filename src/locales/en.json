@@ -646,13 +646,14 @@
       "timeAll": "All",
       "views": {
         "global": "Global",
-        "americas": "Americas",
-        "mena": "MENA",
-        "europe": "Europe",
-        "asia": "Asia",
-        "latam": "Latin America",
-        "africa": "Africa",
-        "oceania": "Oceania"
+        "centcom": "CENTCOM AOR",
+        "levant": "Levant (Israel/Syria/Lebanon)",
+        "israel": "Israel (Red Alerts)",
+        "iran": "Iran Theater",
+        "gulf": "Persian Gulf",
+        "red_sea": "Red Sea / Yemen",
+        "usa": "USA (Pentagon)",
+        "europe": "Europe (NATO)"
       },
       "layers": {
         "startupHubs": "Startup Hubs",

@@ -15,6 +15,7 @@ export const LAYER_TO_SOURCE: Partial<Record<keyof MapLayers, DataSourceId[]>> =
   displacement: ['unhcr'],
 };
 import { SITE_VARIANT } from './variant';
+import { ESCALATION_PANELS, ESCALATION_MAP_LAYERS, ESCALATION_MOBILE_MAP_LAYERS } from './variants/escalation';
 
 // ============================================
 // FULL VARIANT (Geopolitical)
@@ -135,9 +136,20 @@ const TV_MAP_LAYERS: MapLayers = {
 // ============================================
 // VARIANT-AWARE EXPORTS
 // ============================================
-export const DEFAULT_PANELS = SITE_VARIANT === 'tv' ? TV_PANELS : FULL_PANELS;
-export const DEFAULT_MAP_LAYERS = SITE_VARIANT === 'tv' ? TV_MAP_LAYERS : FULL_MAP_LAYERS;
-export const MOBILE_DEFAULT_MAP_LAYERS = SITE_VARIANT === 'tv' ? TV_MAP_LAYERS : FULL_MOBILE_MAP_LAYERS;
+export const DEFAULT_PANELS = 
+  SITE_VARIANT === 'tv' ? TV_PANELS :
+  SITE_VARIANT === 'escalation' ? ESCALATION_PANELS :
+  FULL_PANELS;
+
+export const DEFAULT_MAP_LAYERS = 
+  SITE_VARIANT === 'tv' ? TV_MAP_LAYERS :
+  SITE_VARIANT === 'escalation' ? ESCALATION_MAP_LAYERS :
+  FULL_MAP_LAYERS;
+
+export const MOBILE_DEFAULT_MAP_LAYERS = 
+  SITE_VARIANT === 'tv' ? TV_MAP_LAYERS :
+  SITE_VARIANT === 'escalation' ? ESCALATION_MOBILE_MAP_LAYERS :
+  FULL_MOBILE_MAP_LAYERS;
 
 // Monitor palette — fixed category colors persisted to localStorage (not theme-dependent)
 export const MONITOR_COLORS = [
