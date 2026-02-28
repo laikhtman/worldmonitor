@@ -420,7 +420,7 @@ The app supports dark/light themes. On TV:
 
 ```typescript
 // Force dark theme on TV unless explicitly changed
-if (IS_TV && !localStorage.getItem('worldmonitor-theme')) {
+if (IS_TV && !localStorage.getItem('intelhq-theme')) {
   setTheme('dark');
 }
 ```

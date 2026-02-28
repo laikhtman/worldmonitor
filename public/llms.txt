@@ -1,8 +1,8 @@
-# World Monitor
+# IntelHQ
 
 > Real-time global intelligence dashboard — AI-powered news aggregation, geopolitical monitoring, and infrastructure tracking in a unified situational awareness interface.
 
-World Monitor is an open-source (AGPL-3.0) intelligence platform that aggregates 150+ news feeds, 35+ interactive map layers, and multiple AI models into a single dashboard. It runs as a web app, installable PWA, and native desktop application (Tauri) for macOS, Windows, and Linux.
+IntelHQ is an open-source (AGPL-3.0) intelligence platform that aggregates 150+ news feeds, 35+ interactive map layers, and multiple AI models into a single dashboard. It runs as a web app, installable PWA, and native desktop application (Tauri) for macOS, Windows, and Linux.
 
 A single codebase produces three specialized variants — geopolitical, technology, and finance — each with distinct feeds, panels, map layers, and branding. The tri-variant architecture uses build-time selection via the VITE_VARIANT environment variable, with runtime switching available via the header bar.
 
@@ -10,15 +10,15 @@ The project is built with TypeScript, Vite, MapLibre GL JS, deck.gl, D3.js, and 
 
 ## Live Instances
 
-- [World Monitor](https://worldmonitor.app): Geopolitics, military, conflicts, infrastructure
-- [Tech Monitor](https://tech.worldmonitor.app): Startups, AI/ML, cloud, cybersecurity
-- [Finance Monitor](https://finance.worldmonitor.app): Global markets, trading, central banks, Gulf FDI
+- [IntelHQ](https://intelhq.io): Geopolitics, military, conflicts, infrastructure
+- [Tech Monitor](https://tech.intelhq.io): Startups, AI/ML, cloud, cybersecurity
+- [Finance Monitor](https://finance.intelhq.io): Global markets, trading, central banks, Gulf FDI
 
 ## Documentation
 
-- [README](https://github.com/koala73/worldmonitor/blob/main/README.md): Full project documentation with architecture details
-- [Full Documentation](https://github.com/koala73/worldmonitor/blob/main/docs/DOCUMENTATION.md): Detailed feature documentation, data layers, and panel reference
-- [Extended LLM Documentation](https://worldmonitor.app/llms-full.txt): Comprehensive version of this file with all data layers, components, and data sources
+- [README](https://github.com/laikhtman/IntelHQ/blob/main/README.md): Full project documentation with architecture details
+- [Full Documentation](https://github.com/laikhtman/IntelHQ/blob/main/docs/DOCUMENTATION.md): Detailed feature documentation, data layers, and panel reference
+- [Extended LLM Documentation](https://intelhq.io/llms-full.txt): Comprehensive version of this file with all data layers, components, and data sources
 
 ## Key Features
 
@@ -40,10 +40,10 @@ The project is built with TypeScript, Vite, MapLibre GL JS, deck.gl, D3.js, and 
 
 ## Desktop App
 
-- [Windows Installer](https://worldmonitor.app/api/download?platform=windows-exe): Windows .exe installer
-- [macOS Apple Silicon](https://worldmonitor.app/api/download?platform=macos-arm64): macOS ARM64 build
-- [macOS Intel](https://worldmonitor.app/api/download?platform=macos-x64): macOS x64 build
-- [Linux AppImage](https://worldmonitor.app/api/download?platform=linux-appimage): Linux .AppImage
+- [Windows Installer](https://intelhq.io/api/download?platform=windows-exe): Windows .exe installer
+- [macOS Apple Silicon](https://intelhq.io/api/download?platform=macos-arm64): macOS ARM64 build
+- [macOS Intel](https://intelhq.io/api/download?platform=macos-x64): macOS x64 build
+- [Linux AppImage](https://intelhq.io/api/download?platform=linux-appimage): Linux .AppImage
 
 ## Tech Stack
 
@@ -57,6 +57,6 @@ The project is built with TypeScript, Vite, MapLibre GL JS, deck.gl, D3.js, and 
 
 ## Optional
 
-- [Source Code](https://github.com/koala73/worldmonitor): GitHub repository (AGPL-3.0)
-- [Releases](https://github.com/koala73/worldmonitor/releases): All desktop releases for macOS, Windows, and Linux
-- [Issues](https://github.com/koala73/worldmonitor/issues): Bug reports and feature requests
+- [Source Code](https://github.com/laikhtman/IntelHQ): GitHub repository (AGPL-3.0)
+- [Releases](https://github.com/laikhtman/IntelHQ/releases): All desktop releases for macOS, Windows, and Linux
+- [Issues](https://github.com/laikhtman/IntelHQ/issues): Bug reports and feature requests

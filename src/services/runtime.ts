@@ -213,10 +213,10 @@ export function installRuntimeFetchPatch(): void {
       try {
         const { getSecretState, secretsReady } = await import('@/services/runtime-config');
         await Promise.race([secretsReady, new Promise<void>(r => setTimeout(r, 2000))]);
-        const wmKey = getSecretState('WORLDMONITOR_API_KEY' as import('@/services/runtime-config').RuntimeSecretKey);
+        const wmKey = getSecretState('INTELHQ_API_KEY' as import('@/services/runtime-config').RuntimeSecretKey);
         if (!wmKey.present || !wmKey.valid) {
           allowCloudFallback = false;
-          if (debug) console.log(`[fetch] cloud fallback blocked — no WorldMonitor API key`);
+          if (debug) console.log(`[fetch] cloud fallback blocked — no IntelHQ API key`);
         }
       } catch {
         allowCloudFallback = false;
@@ -232,9 +232,9 @@ export function installRuntimeFetchPatch(): void {
       const cloudHeaders = new Headers(init?.headers);
       if (/^\/api\/[^/]+\/v1\//.test(target)) {
         const { getRuntimeConfigSnapshot } = await import('@/services/runtime-config');
-        const wmKeyValue = getRuntimeConfigSnapshot().secrets['WORLDMONITOR_API_KEY']?.value;
+        const wmKeyValue = getRuntimeConfigSnapshot().secrets['INTELHQ_API_KEY']?.value;
         if (wmKeyValue) {
-          cloudHeaders.set('X-WorldMonitor-Key', wmKeyValue);
+          cloudHeaders.set('X-IntelHQ-Key', wmKeyValue);
         }
       }
       return nativeFetch(cloudUrl, { ...init, headers: cloudHeaders });

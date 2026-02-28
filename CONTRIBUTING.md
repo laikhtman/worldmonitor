@@ -1,6 +1,6 @@
-# Contributing to World Monitor
+# Contributing to IntelHQ
 
-Thank you for your interest in contributing to **World Monitor** — an open-source geospatial intelligence dashboard built with TypeScript, MapLibre GL JS, deck.gl, and Tauri 2.
+Thank you for your interest in contributing to **IntelHQ** — an open-source geospatial intelligence dashboard built with TypeScript, MapLibre GL JS, deck.gl, and Tauri 2.
 
 This guide covers code style, branching, commit conventions, PR process, and step-by-step instructions for common contribution tasks.
 
@@ -29,8 +29,8 @@ This guide covers code style, branching, commit conventions, PR process, and ste
 
 ```bash
 # Clone the repository
-git clone https://github.com/koala73/worldmonitor.git
-cd worldmonitor
+git clone https://github.com/laikhtman/IntelHQ.git
+cd IntelHQ
 
 # Install dependencies
 npm install
@@ -47,13 +47,13 @@ npm run test:e2e
 
 ### Application Variants
 
-World Monitor ships in three variants. Every change must be validated against all three:
+IntelHQ ships in three variants. Every change must be validated against all three:
 
 | Variant   | URL                          | Build Command            |
 | --------- | ---------------------------- | ------------------------ |
-| **Full**  | `worldmonitor.app`           | `npm run build:full`     |
-| **Tech**  | `tech.worldmonitor.app`      | `npm run build:tech`     |
-| **Finance** | `finance.worldmonitor.app` | `npm run build:finance`  |
+| **Full**  | `intelhq.io`           | `npm run build:full`     |
+| **Tech**  | `tech.intelhq.io`      | `npm run build:tech`     |
+| **Finance** | `finance.intelhq.io` | `npm run build:finance`  |
 
 ---
 
@@ -264,7 +264,7 @@ When opening a PR, include:
 
 ## How to Add a New Panel
 
-Panels are the primary UI unit in World Monitor. Follow these steps to add a new one:
+Panels are the primary UI unit in IntelHQ. Follow these steps to add a new one:
 
 ### Step 1: Define the TypeScript Interface
 
@@ -584,7 +584,7 @@ Add popup content rendering in `src/components/MapPopup.ts` for when users click
 
 ## How to Add a New Locale
 
-World Monitor supports 14 locales. Currently supported:
+IntelHQ supports 14 locales. Currently supported:
 
 `en` · `fr` · `de` · `es` · `it` · `pt` · `nl` · `sv` · `pl` · `ru` · `ar` · `zh` · `ja` · `he`
 
@@ -628,7 +628,7 @@ Use the circuit breaker for any unreliable external data source.
 
 ### Caching Strategy
 
-World Monitor uses a multi-layer caching approach:
+IntelHQ uses a multi-layer caching approach:
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -683,7 +683,7 @@ Never use `.innerHTML` with raw, unsanitized input.
 ## Project Structure Overview
 
 ```
-worldmonitor/
+intelhq/
 ├── api/                    # 60+ Vercel Edge Functions
 │   ├── _cors.js            # Shared CORS handler
 │   ├── _upstash-cache.js   # Redis caching utility
@@ -719,4 +719,4 @@ worldmonitor/
 
 ## Questions?
 
-If you're unsure about anything, feel free to [open an issue](https://github.com/koala73/worldmonitor/issues) or start a discussion. We're happy to help you get started.
+If you're unsure about anything, feel free to [open an issue](https://github.com/laikhtman/IntelHQ/issues) or start a discussion. We're happy to help you get started.

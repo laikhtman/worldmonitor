@@ -76,9 +76,9 @@ export default function handler(req, res) {
     ${Array.from({length: 16}, (_, i) => `<line x1="0" y1="${i*40}" x2="1200" y2="${i*40}" stroke="#fff" stroke-width="1"/>`).join('\n    ')}
   </g>
 
-  <!-- WORLDMONITOR brand -->
+  <!-- INTELHQ brand -->
   <text x="60" y="56" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" fill="${levelColor}" letter-spacing="6"
-    >WORLDMONITOR</text>
+    >INTELHQ</text>
 
   <!-- Status pill -->
   <rect x="290" y="38" width="${levelLabel.length * 9 + 24}" height="26" rx="13" fill="${levelColor}" opacity="0.15"/>
@@ -200,7 +200,7 @@ export default function handler(req, res) {
     >W</text>
 
   <text x="130" y="538" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#ddd" letter-spacing="3"
-    >WORLDMONITOR</text>
+    >INTELHQ</text>
   <text x="130" y="562" font-family="system-ui, sans-serif" font-size="15" fill="#777"
     >Real-time global intelligence monitoring</text>
 

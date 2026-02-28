@@ -1,8 +1,8 @@
-# World Monitor — API Reference
+# IntelHQ — API Reference
 
-> Comprehensive reference for all Vercel Edge Function endpoints powering the World Monitor intelligence dashboard.
+> Comprehensive reference for all Vercel Edge Function endpoints powering the IntelHQ intelligence dashboard.
 
-**Base URL**: All endpoints are relative to `/api/` (e.g., `https://worldmonitor.app/api/earthquakes`).
+**Base URL**: All endpoints are relative to `/api/` (e.g., `https://intelhq.io/api/earthquakes`).
 
 ---
 
@@ -58,6 +58,7 @@
 | `GET` | `/api/ais-snapshot` | `WS_RELAY_URL` | 3-tier 4–8 s | — | Military |
 | `GET` | `/api/theater-posture` | None | 3-tier 5 min–7 d | — | Military |
 | `GET` | `/api/cyber-threats` | `ABUSEIPDB_API_KEY` (opt.) | 600 s | 20 req/min | Military |
+| `GET` | `/api/{domain}/v1/list-military-bases` | API key (non-browser) | 300 s (medium tier) | 60 req/min (Redis) | Military |
 | `GET` | `/api/earthquakes` | None | CDN 300 s | — | Natural Events |
 | `GET` | `/api/firms-fires` | `NASA_FIRMS_API_KEY` | 600 s | — | Natural Events |
 | `GET` | `/api/climate-anomalies` | None | 21 600 s (6 h) | 15 req/min | Natural Events |
@@ -94,7 +95,7 @@
 
 ## Overview
 
-World Monitor exposes **60+ serverless endpoints** deployed as **Vercel Edge Functions** (unless noted otherwise). Every endpoint:
+IntelHQ exposes **60+ serverless endpoints** deployed as **Vercel Edge Functions** (unless noted otherwise). Every endpoint:
 
 1. Applies **CORS middleware** — only whitelisted origins may call the API.
 2. Optionally applies **IP-based rate limiting** via a sliding-window algorithm.
@@ -135,8 +136,8 @@ Eight regex patterns control access:
 
 | # | Pattern | Matches |
 |---|---------|---------|
-| 1 | `worldmonitor\.app$` | `https://worldmonitor.app` |
-| 2 | `\.worldmonitor\.app$` | `https://*.worldmonitor.app` |
+| 1 | `intelhq\.io$` | `https://intelhq.io` |
+| 2 | `\.intelhq\.io$` | `https://*.intelhq.io` |
 | 3 | `\.vercel\.app$` | Vercel preview deploys |
 | 4 | `localhost(:\d+)?$` | `http://localhost:*` |
 | 5 | `127\.0\.0\.1(:\d+)?$` | IPv4 loopback |
@@ -964,7 +965,7 @@ interface PredictionMarket {
 
 ### Military & Security
 
-Four endpoints covering aviation tracking, vessel tracking, theater readiness, and cyber threat intelligence.
+Five endpoints covering aviation tracking, vessel tracking, theater readiness, military base geospatial queries, and cyber threat intelligence.
 
 ---
 
@@ -1142,6 +1143,81 @@ interface CyberThreat {
   longitude: number;
   confidence: number;     // 0–100
   tags: string[];
+}
+```
+
+---
+
+#### `GET /api/{domain}/v1/list-military-bases`
+
+Server-side geospatial query against 125K+ military bases stored in Redis GEO
+sorted sets. Returns bases and clusters within the requested bounding box,
+filtered and clustered according to zoom level.
+
+**Route:** `api/[domain]/v1/[rpc].ts` (RPC gateway) — resolves to
+`server/worldmonitor/military/v1/list-military-bases.ts`.
+
+**Query Parameters**
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `swLat` | `number` | **(required)** | South-west latitude |
+| `swLon` | `number` | **(required)** | South-west longitude |
+| `neLat` | `number` | **(required)** | North-east latitude |
+| `neLon` | `number` | **(required)** | North-east longitude |
+| `zoom` | `number` | **(required)** | Map zoom level (affects clustering) |
+| `type` | `string` | `""` | Filter by base type (e.g., `us-nato`, `china`) |
+| `kind` | `string` | `""` | Filter by base kind |
+| `country` | `string` | `""` | Filter by host country ISO-2 |
+
+**Auth & Rate Limiting**
+
+| Mechanism | Details |
+|-----------|---------|
+| API key | Required for non-browser clients |
+| Redis rate limiter | `@upstash/ratelimit` sliding window, 60 req/min per IP |
+
+**Caching**
+
+| Layer | TTL |
+|-------|-----|
+| CDN (edge) | `s-maxage=300` (medium tier) |
+| SWR | `stale-while-revalidate=600` |
+| Browser | `max-age=60` |
+
+**Response**
+
+```typescript
+interface ListMilitaryBasesResponse {
+  bases: MilitaryBaseEntry[];
+  clusters: MilitaryBaseCluster[];
+  totalInView: number;
+  truncated: boolean;
+}
+
+interface MilitaryBaseEntry {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  type: string;
+  countryIso2: string;
+  branch: string;
+  status: string;
+  kind: string;
+  tier: number;
+  catAirforce: boolean;
+  catNaval: boolean;
+  catNuclear: boolean;
+  catSpace: boolean;
+  catTraining: boolean;
+}
+
+interface MilitaryBaseCluster {
+  lat: number;
+  lon: number;
+  count: number;
+  label: string;
 }
 ```
 
@@ -2249,6 +2325,22 @@ The default rate limiter configuration (from `_ip-rate-limit.js`):
 | Max tracked IPs | 10 000 |
 | Cleanup interval | 5 minutes |
 
+#### Redis-Backed Rate Limiting (RPC Gateway)
+
+The RPC gateway (`api/[domain]/v1/[rpc].ts`) uses a separate Redis-backed rate
+limiter via `@upstash/ratelimit` (sliding-window algorithm, 60 req/min per IP).
+This runs on top of the standard in-memory rate limiter and is enforced for all
+RPC endpoints including `list-military-bases`. Rate limit headers
+(`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`) are
+attached to every response via `drainResponseHeaders()`.
+
+| Parameter | Value |
+|-----------|-------|
+| Requests per window | 60 |
+| Window duration | 60 seconds |
+| Max tracked IPs | 10 000 |
+| Cleanup interval | 5 minutes |
+
 ### Per-Endpoint Overrides
 
 | Endpoint | Limit | Window |
@@ -2278,7 +2370,7 @@ Content-Type: application/json
 
 ## Caching Architecture
 
-World Monitor uses a **multi-tier caching strategy** to minimize upstream API calls, reduce latency, and stay within third-party rate limits.
+IntelHQ uses a **multi-tier caching strategy** to minimize upstream API calls, reduce latency, and stay within third-party rate limits.
 
 ### Tier Overview
 
@@ -2334,6 +2426,19 @@ World Monitor uses a **multi-tier caching strategy** to minimize upstream API ca
 | `summary:{hash}` | `summary:e5f6g7h8` | Shared across groq + openrouter |
 | `baseline:{key}` | `baseline:earthquake-rate` | Temporal baselines |
 
+### Edge Cache Tiers (RPC Gateway)
+
+The RPC gateway assigns each RPC a named cache tier that controls CDN and
+browser TTLs:
+
+| Tier | CDN (`s-maxage`) | SWR | Browser (`max-age`) | RPCs |
+|------|-----------------|-----|---------------------|------|
+| `fast` | 30 s | 60 s | 15 s | (real-time RPCs) |
+| `medium` | 300 s | 600 s | 60 s | `list-military-bases` |
+| `slow` | 3 600 s | 7 200 s | 300 s | (heavy/rare RPCs) |
+| `static` | 86 400 s | 172 800 s | 3 600 s | (reference data) |
+| `no-store` | — | — | — | (debug/telemetry) |
+
 ### Cache Telemetry
 
 The `_cache-telemetry.js` module records HIT/MISS/STALE per endpoint, accessible via `GET /api/cache-telemetry`. This provides per-instance visibility into cache performance:
@@ -2352,7 +2457,7 @@ The `_cache-telemetry.js` module records HIT/MISS/STALE per endpoint, accessible
 | 8–15 s | Real-time | `ais-snapshot`, `opensky`, `wingbits/flights` |
 | 60 s | 1 min | `finnhub`, `yahoo-finance`, `service-status` |
 | 120 s | 2 min | `coingecko`, `stablecoin-markets`, `pizzint/*` |
-| 300 s | 5 min | `gdelt-doc`, `gdelt-geo`, `rss-proxy`, `hackernews`, `polymarket`, `theater-posture:fresh` |
+| 300 s | 5 min | `gdelt-doc`, `gdelt-geo`, `rss-proxy`, `hackernews`, `polymarket`, `theater-posture:fresh`, `list-military-bases` (medium tier) |
 | 600 s | 10 min | `acled`, `acled-conflict`, `firms-fires`, `cyber-threats`, `cloudflare-outages`, `risk-scores`, `version` |
 | 900 s | 15 min | `etf-flows` |
 | 3 600 s | 1 h | `nga-warnings`, `stock-index`, `fred-data`, `groq-summarize`, `openrouter-summarize`, `github-trending`, `arxiv`, `eia/*` |
@@ -2382,8 +2487,8 @@ Complete list of environment variables used across all endpoints:
 | `HDX_APP_IDENTIFIER` | `hapi` (optional) | HDX HAPI app identifier |
 | `NASA_FIRMS_API_KEY` | `firms-fires` | NASA FIRMS fire data API key |
 | `OPENROUTER_API_KEY` | `openrouter-summarize` | OpenRouter API key |
-| `UPSTASH_REDIS_REST_URL` | `_upstash-cache` (cloud mode) | Upstash Redis REST endpoint |
-| `UPSTASH_REDIS_REST_TOKEN` | `_upstash-cache` (cloud mode) | Upstash Redis REST token |
+| `UPSTASH_REDIS_REST_URL` | `_upstash-cache` (cloud mode), RPC rate limiter, military bases GEO store | Upstash Redis REST endpoint |
+| `UPSTASH_REDIS_REST_TOKEN` | `_upstash-cache` (cloud mode), RPC rate limiter, military bases GEO store | Upstash Redis REST token |
 | `WINGBITS_API_KEY` | `wingbits/*` | Wingbits aircraft data API key |
 | `WS_RELAY_URL` | `ais-snapshot` | AIS WebSocket relay URL |
 | `SIDECAR` | `_upstash-cache` (sidecar mode) | Set to `"true"` for local disk-backed cache |

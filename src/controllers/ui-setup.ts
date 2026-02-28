@@ -121,7 +121,7 @@ export class UISetupController {
           const variant = link.dataset.variant;
           if (variant && variant !== SITE_VARIANT) {
             e.preventDefault();
-            localStorage.setItem('worldmonitor-variant', variant);
+            localStorage.setItem('intelhq-variant', variant);
             window.location.reload();
           }
         });

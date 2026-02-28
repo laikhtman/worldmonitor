@@ -1,4 +1,4 @@
-# webOS TV Compatibility Plan — IntelHQ / World Monitor
+# webOS TV Compatibility Plan — IntelHQ
 
 > **Status**: Planning  
 > **Target**: LG webOS Smart TVs (webOS 4.0+, 2018 and later)  

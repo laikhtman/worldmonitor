@@ -1,6 +1,6 @@
 # External APIs Catalog
 
-> Comprehensive reference for every external API consumed by World Monitor.
+> Comprehensive reference for every external API consumed by IntelHQ.
 > Last updated: 2026-02-19
 
 ---
@@ -27,7 +27,7 @@
 
 ## 1. Overview
 
-World Monitor integrates **38 distinct external API sources** (plus ~150 RSS feed
+IntelHQ integrates **38 distinct external API sources** (plus ~150 RSS feed
 domains) to provide a unified real-time intelligence dashboard across geopolitical,
 financial, military, environmental, humanitarian, and technology domains.
 
@@ -909,7 +909,7 @@ graph TD
 
 ## 5. Degradation Matrix
 
-How World Monitor behaves when each external API is unavailable:
+How IntelHQ behaves when each external API is unavailable:
 
 | # | API | Cache TTL | Behavior When Down | User Impact | Severity |
 |---|---|---|---|---|---|
@@ -985,7 +985,7 @@ How World Monitor behaves when each external API is unavailable:
 | Wingbits commercial tier | Varies (contact vendor) |
 | Cloudflare Radar | Included with Enterprise plan |
 | All other APIs | **$0** (free tiers) |
-| Upstash Redis (caching) | Free tier / ~$10/mo for production |
+| Upstash Redis (caching + GEO data store + rate limiting) | Free tier / ~$10/mo for production |
 | Vercel (hosting + edge functions) | Free tier / Pro ~$20/mo |
 
 > **Total API cost for free-tier operation: $0/month** (excluding Wingbits and
@@ -1027,8 +1027,8 @@ HDX_APP_IDENTIFIER=           # HDX HAPI (optional, higher rate limit)
 EIA_API_KEY=                  # Energy Information Administration
 
 # ── Caching (infrastructure, not external API) ──────
-UPSTASH_REDIS_REST_URL=       # Upstash Redis cache URL
-UPSTASH_REDIS_REST_TOKEN=     # Upstash Redis cache token
+UPSTASH_REDIS_REST_URL=       # Upstash Redis: cache + military bases GEO store + RPC rate limiting
+UPSTASH_REDIS_REST_TOKEN=     # Upstash Redis: cache + military bases GEO store + RPC rate limiting
 ```
 
 **Minimum viable setup** (core features work): `ACLED_ACCESS_TOKEN`, `ACLED_EMAIL`,

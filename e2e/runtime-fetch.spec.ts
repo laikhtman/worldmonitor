@@ -116,7 +116,7 @@ test.describe('desktop runtime routing guardrails', () => {
       delete globalWindow.__wmFetchPatched;
 
       // Set a valid WM API key so cloud fallback is allowed
-      await runtimeConfig.setSecretValue('WORLDMONITOR_API_KEY' as import('/src/services/runtime-config.ts').RuntimeSecretKey, 'wm_test_key_1234567890abcdef');
+      await runtimeConfig.setSecretValue('INTELHQ_API_KEY' as import('/src/services/runtime-config.ts').RuntimeSecretKey, 'wm_test_key_1234567890abcdef');
 
       try {
         runtime.installRuntimeFetchPatch();
@@ -142,7 +142,7 @@ test.describe('desktop runtime routing guardrails', () => {
         } else {
           globalWindow.__TAURI__ = previousTauri;
         }
-        await runtimeConfig.setSecretValue('WORLDMONITOR_API_KEY' as import('/src/services/runtime-config.ts').RuntimeSecretKey, '');
+        await runtimeConfig.setSecretValue('INTELHQ_API_KEY' as import('/src/services/runtime-config.ts').RuntimeSecretKey, '');
       }
     });
 
@@ -239,7 +239,7 @@ test.describe('desktop runtime routing guardrails', () => {
         __TAURI__?: { core?: { invoke?: (command: string) => Promise<unknown> } };
       };
       const previousTauri = globalWindow.__TAURI__;
-      const releaseUrl = 'https://github.com/koala73/worldmonitor/releases/latest';
+      const releaseUrl = 'https://github.com/laikhtman/IntelHQ/releases/latest';
 
       const appProto = App.prototype as unknown as {
         resolveUpdateDownloadUrl: (releaseUrl: string) => Promise<string>;
@@ -288,7 +288,7 @@ test.describe('desktop runtime routing guardrails', () => {
 
     expect(result.macArm).toBe('https://intelhq.io/api/download?platform=macos-arm64');
     expect(result.windowsX64).toBe('https://intelhq.io/api/download?platform=windows-exe');
-    expect(result.linuxFallback).toBe('https://github.com/koala73/worldmonitor/releases/latest');
+    expect(result.linuxFallback).toBe('https://github.com/laikhtman/IntelHQ/releases/latest');
   });
 
   test('loadMarkets keeps Yahoo-backed data when Finnhub is skipped', async ({ page }) => {
@@ -495,7 +495,7 @@ test.describe('desktop runtime routing guardrails', () => {
     expect(result.hasIso3Field).toBe(false);
   });
 
-  test('cloud fallback blocked without WorldMonitor API key', async ({ page }) => {
+  test('cloud fallback blocked without IntelHQ API key', async ({ page }) => {
     await page.goto('/tests/runtime-harness.html');
 
     const result = await page.evaluate(async () => {
@@ -523,7 +523,7 @@ test.describe('desktop runtime routing guardrails', () => {
         if (url.includes('127.0.0.1:46123/api/fred-data')) {
           throw new Error('ECONNREFUSED');
         }
-        if (url.includes('worldmonitor.app/api/fred-data')) {
+        if (url.includes('intelhq.io/api/fred-data')) {
           return responseJson({ observations: [{ value: '999' }] }, 200);
         }
         return responseJson({ ok: true }, 200);
@@ -543,7 +543,7 @@ test.describe('desktop runtime routing guardrails', () => {
           fetchError = err instanceof Error ? err.message : String(err);
         }
 
-        const cloudCalls = calls.filter(u => u.includes('worldmonitor.app'));
+        const cloudCalls = calls.filter(u => u.includes('intelhq.io'));
 
         return {
           fetchError,
@@ -566,7 +566,7 @@ test.describe('desktop runtime routing guardrails', () => {
     expect(result.localCalls).toBeGreaterThan(0);
   });
 
-  test('cloud fallback allowed with valid WorldMonitor API key', async ({ page }) => {
+  test('cloud fallback allowed with valid IntelHQ API key', async ({ page }) => {
     await page.goto('/tests/runtime-harness.html');
 
     const result = await page.evaluate(async () => {
@@ -593,16 +593,16 @@ test.describe('desktop runtime routing guardrails', () => {
 
         calls.push(url);
 
-        if (url.includes('worldmonitor.app') && init?.headers) {
+        if (url.includes('intelhq.io') && init?.headers) {
           const h = new Headers(init.headers);
-          const wmKey = h.get('X-WorldMonitor-Key');
-          if (wmKey) capturedHeaders['X-WorldMonitor-Key'] = wmKey;
+          const wmKey = h.get('X-IntelHQ-Key');
+          if (wmKey) capturedHeaders['X-IntelHQ-Key'] = wmKey;
         }
 
         if (url.includes('127.0.0.1:46123/api/market/v1/test')) {
           throw new Error('ECONNREFUSED');
         }
-        if (url.includes('worldmonitor.app/api/market/v1/test')) {
+        if (url.includes('intelhq.io/api/market/v1/test')) {
           return responseJson({ quotes: [] }, 200);
         }
         return responseJson({ ok: true }, 200);
@@ -613,7 +613,7 @@ test.describe('desktop runtime routing guardrails', () => {
       delete globalWindow.__wmFetchPatched;
 
       const testKey = 'wm_test_key_1234567890abcdef';
-      await runtimeConfig.setSecretValue('WORLDMONITOR_API_KEY' as import('/src/services/runtime-config.ts').RuntimeSecretKey, testKey);
+      await runtimeConfig.setSecretValue('INTELHQ_API_KEY' as import('/src/services/runtime-config.ts').RuntimeSecretKey, testKey);
 
       try {
         runtime.installRuntimeFetchPatch();
@@ -624,8 +624,8 @@ test.describe('desktop runtime routing guardrails', () => {
         return {
           status: response.status,
           hasQuotes: Array.isArray(body.quotes),
-          cloudCalls: calls.filter(u => u.includes('worldmonitor.app')).length,
-          wmKeyHeader: capturedHeaders['X-WorldMonitor-Key'] || null,
+          cloudCalls: calls.filter(u => u.includes('intelhq.io')).length,
+          wmKeyHeader: capturedHeaders['X-IntelHQ-Key'] || null,
         };
       } finally {
         window.fetch = originalFetch;
@@ -635,7 +635,7 @@ test.describe('desktop runtime routing guardrails', () => {
         } else {
           globalWindow.__TAURI__ = previousTauri;
         }
-        await runtimeConfig.setSecretValue('WORLDMONITOR_API_KEY' as import('/src/services/runtime-config.ts').RuntimeSecretKey, '');
+        await runtimeConfig.setSecretValue('INTELHQ_API_KEY' as import('/src/services/runtime-config.ts').RuntimeSecretKey, '');
       }
     });
 

@@ -1,6 +1,6 @@
 # Desktop Runtime Configuration Schema
 
-World Monitor desktop now uses a runtime configuration schema with per-feature toggles and secret-backed credentials.
+IntelHQ desktop now uses a runtime configuration schema with per-feature toggles and secret-backed credentials.
 
 ## Secret keys
 
@@ -26,7 +26,7 @@ The desktop vault schema (Rust `SUPPORTED_SECRET_KEYS`) supports the following 2
 - `AISSTREAM_API_KEY`
 - `OLLAMA_API_URL`
 - `OLLAMA_MODEL`
-- `WORLDMONITOR_API_KEY` — gates cloud fallback access (min 16 chars)
+| `INTELHQ_API_KEY` — gates cloud fallback access (min 16 chars)
 
 Note: `UC_DP_KEY` exists in the TypeScript `RuntimeSecretKey` union but is not in the desktop Rust keychain or sidecar.
 
@@ -42,7 +42,7 @@ Each feature includes:
 
 ## Desktop secret storage
 
-Desktop builds persist secrets in OS credential storage through Tauri command bindings backed by Rust `keyring` entries (`world-monitor` service namespace).
+Desktop builds persist secrets in OS credential storage through Tauri command bindings backed by Rust `keyring` entries (`intelhq` service namespace).
 
 Secrets are **not stored in plaintext files** by the frontend.
 
@@ -57,4 +57,4 @@ If required secrets are missing/disabled:
 - NASA FIRMS: satellite fire detection returns empty state.
 - Wingbits: flight enrichment disabled, heuristic-only flight classification remains.
 - AIS / OpenSky relay: live tracking features are disabled cleanly.
-- WorldMonitor API key: cloud fallback is blocked; desktop operates local-only.
+- IntelHQ API key: cloud fallback is blocked; desktop operates local-only.

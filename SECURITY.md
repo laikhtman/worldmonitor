@@ -11,9 +11,9 @@
 
 **Please do NOT open public issues for security vulnerabilities.**
 
-If you discover a security vulnerability in World Monitor, please report it through one of the following channels:
+If you discover a security vulnerability in IntelHQ, please report it through one of the following channels:
 
-1. **GitHub Security Advisories** (preferred): Open a [private security advisory](https://github.com/koala73/worldmonitor/security/advisories/new) on this repository.
+1. **GitHub Security Advisories** (preferred): Open a [private security advisory](https://github.com/laikhtman/IntelHQ/security/advisories/new) on this repository.
 2. **Email**: Contact the maintainer, Elie Habib, directly via his GitHub profile.
 
 ### What to Include
@@ -40,21 +40,21 @@ If you discover a security vulnerability in World Monitor, please report it thro
 - PWA and Service Worker behavior
 
 **Out of scope:**
-- Vulnerabilities in third-party APIs consumed by World Monitor
+- Vulnerabilities in third-party APIs consumed by IntelHQ
 - Denial-of-service attacks against upstream API providers
 - Issues in dependencies that have already been reported upstream
 
 ## Security Architecture
 
-World Monitor employs a defense-in-depth approach across its web, API, and desktop layers.
+IntelHQ employs a defense-in-depth approach across its web, API, and desktop layers.
 
 ### CORS Origin Allowlist
 
 API endpoints enforce a strict CORS origin allowlist (implemented in `api/_cors.js`). Only the following origins are permitted:
 
-- `worldmonitor.app`
-- `tech.worldmonitor.app`
-- `finance.worldmonitor.app`
+- `intelhq.io`
+- `tech.intelhq.io`
+- `finance.intelhq.io`
 - `localhost:*` (development only)
 
 All other cross-origin requests are rejected.

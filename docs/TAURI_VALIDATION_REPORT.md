@@ -2,7 +2,7 @@
 
 ## Scope
 
-Validated desktop build readiness for the World Monitor Tauri app by checking frontend compilation, TypeScript integrity, and Tauri/Rust build execution.
+Validated desktop build readiness for the IntelHQ Tauri app by checking frontend compilation, TypeScript integrity, and Tauri/Rust build execution.
 
 ## Preflight checks before desktop validation
 

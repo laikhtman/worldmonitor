@@ -55,7 +55,7 @@ export type { CountryBriefSignals } from '@/controllers/app-context';
 export class App implements AppContext {
   public container: HTMLElement;
   public readonly PANEL_ORDER_KEY = 'panel-order';
-  public readonly PANEL_SPANS_KEY = 'worldmonitor-panel-spans';
+  public readonly PANEL_SPANS_KEY = 'intelhq-panel-spans';
   public map: MapContainer | null = null;
   public panels: Record<string, Panel> = {};
   public newsPanels: Record<string, NewsPanel> = {};
@@ -131,13 +131,13 @@ export class App implements AppContext {
     const defaultLayers = this.isMobile ? MOBILE_DEFAULT_MAP_LAYERS : DEFAULT_MAP_LAYERS;
 
     // Check if variant changed - reset all settings to variant defaults
-    const storedVariant = localStorage.getItem('worldmonitor-variant');
+    const storedVariant = localStorage.getItem('intelhq-variant');
     const currentVariant = SITE_VARIANT;
     console.log(`[App] Variant check: stored="${storedVariant}", current="${currentVariant}"`);
     if (storedVariant !== currentVariant) {
       // Variant changed - use defaults for new variant, clear old settings
       console.log('[App] Variant changed - resetting to defaults');
-      localStorage.setItem('worldmonitor-variant', currentVariant);
+      localStorage.setItem('intelhq-variant', currentVariant);
       localStorage.removeItem(STORAGE_KEYS.mapLayers);
       localStorage.removeItem(STORAGE_KEYS.panels);
       localStorage.removeItem(this.PANEL_ORDER_KEY);
@@ -154,7 +154,7 @@ export class App implements AppContext {
 
       // One-time migration: reorder panels for existing users (v1.9 panel layout)
       // Puts live-news, insights, strategic-posture, cii, strategic-risk at the top
-      const PANEL_ORDER_MIGRATION_KEY = 'worldmonitor-panel-order-v1.9';
+      const PANEL_ORDER_MIGRATION_KEY = 'intelhq-panel-order-v1.9';
       if (!localStorage.getItem(PANEL_ORDER_MIGRATION_KEY)) {
         const savedOrder = localStorage.getItem(this.PANEL_ORDER_KEY);
         if (savedOrder) {
@@ -181,7 +181,7 @@ export class App implements AppContext {
 
       // Tech variant migration: move insights to top (after live-news)
       if (currentVariant === 'tech') {
-        const TECH_INSIGHTS_MIGRATION_KEY = 'worldmonitor-tech-insights-top-v1';
+        const TECH_INSIGHTS_MIGRATION_KEY = 'intelhq-tech-insights-top-v1';
         if (!localStorage.getItem(TECH_INSIGHTS_MIGRATION_KEY)) {
           const savedOrder = localStorage.getItem(this.PANEL_ORDER_KEY);
           if (savedOrder) {
@@ -207,7 +207,7 @@ export class App implements AppContext {
 
     // One-time migration: clear stale panel ordering and sizing state that can
     // leave non-draggable gaps in mixed-size layouts on wide screens.
-    const LAYOUT_RESET_MIGRATION_KEY = 'worldmonitor-layout-reset-v2.5';
+    const LAYOUT_RESET_MIGRATION_KEY = 'intelhq-layout-reset-v2.5';
     if (!localStorage.getItem(LAYOUT_RESET_MIGRATION_KEY)) {
       const hadSavedOrder = !!localStorage.getItem(this.PANEL_ORDER_KEY);
       const hadSavedSpans = !!localStorage.getItem(this.PANEL_SPANS_KEY);

@@ -1,4 +1,4 @@
-# Services Documentation — World Monitor
+# Services Documentation — IntelHQ
 
 > Reference for all service modules in `src/services/`.
 > Last updated: 2026-02-19
@@ -66,6 +66,7 @@
    - [military-flights](#military-flights)
    - [military-surge](#military-surge)
    - [military-vessels](#military-vessels)
+   - [military-bases](#military-bases)
    - [flights](#flights)
 7. [Infrastructure](#infrastructure)
    - [infrastructure-cascade](#infrastructure-cascade)
@@ -123,7 +124,7 @@ modules (no DI framework) and are wired together manually in `src/App.ts`.
 | Data Ingestion | 27 |
 | ML / AI | 6 |
 | Geospatial | 6 |
-| Military | 4 |
+| Military | 5 |
 | Infrastructure | 5 |
 | Platform | 9 |
 | Content | 7 |
@@ -977,6 +978,32 @@ region into `MilitaryVesselCluster[]`.
 |---|---|
 | `initVesselTracking()` | Starts AIS callback and begins tracking. |
 | `fetchMilitaryVessels()` | Returns `{ vessels: MilitaryVessel[]; clusters: MilitaryVesselCluster[] }`. |
+
+---
+
+### military-bases
+
+**File:** `src/services/military-bases.ts`
+
+Viewport-driven military base fetching from the server-side `ListMilitaryBases`
+RPC. Queries 125K+ bases stored in Redis GEO sorted sets, returning only the
+bases visible in the current map viewport. Uses bbox quantization to snap
+viewport bounds to a grid (step size varies by zoom: 5° at z<5, 1° at z≤7,
+0.5° at z>7) to maximize cache hits and avoid redundant fetches. Deduplicates
+concurrent requests via a pending-fetch guard.
+
+The server performs clustering at low zoom levels, returning
+`MilitaryBaseCluster[]` alongside individual `MilitaryBaseEnriched[]` entries.
+
+| Symbol | Description |
+|---|---|
+| `fetchMilitaryBases(swLat, swLon, neLat, neLon, zoom, filters?)` | Returns `{ bases: MilitaryBaseEnriched[]; clusters: MilitaryBaseCluster[]; totalInView; truncated }`. |
+| `entryToEnriched(entry)` | Maps a server `MilitaryBaseEntry` to the client `MilitaryBaseEnriched` type. |
+| `quantizeBbox(swLat, swLon, neLat, neLon, zoom)` | Snaps bbox to zoom-dependent grid for cache-friendly keys. |
+
+**Cache:** Client-side: in-memory last-result dedup by quantized bbox + zoom.
+Server-side: edge cache tier `medium` (300 s CDN TTL). Redis-backed rate
+limit: 60 req/min per IP.
 
 ---
 

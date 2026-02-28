@@ -86,7 +86,7 @@ const ALLOWED_ENV_KEYS = new Set([
   'OTX_API_KEY', 'ABUSEIPDB_API_KEY', 'WINGBITS_API_KEY', 'WS_RELAY_URL',
   'VITE_OPENSKY_RELAY_URL', 'OPENSKY_CLIENT_ID', 'OPENSKY_CLIENT_SECRET',
   'AISSTREAM_API_KEY', 'VITE_WS_RELAY_URL', 'FINNHUB_API_KEY', 'NASA_FIRMS_API_KEY',
-  'OREF_PROXY_URL', 'OLLAMA_API_URL', 'OLLAMA_MODEL', 'WORLDMONITOR_API_KEY',
+  'OREF_PROXY_URL', 'OLLAMA_API_URL', 'OLLAMA_MODEL', 'INTELHQ_API_KEY',
 ]);
 
 function json(data, status = 200, extraHeaders = {}) {
@@ -370,7 +370,7 @@ const SIDECAR_ALLOWED_ORIGINS = [
   /^https?:\/\/localhost(:\d+)?$/,
   /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
   /^https:\/\/tauri\.localhost(:\d+)?$/,
-  /^https:\/\/(.*\.)?worldmonitor\.app$/,
+  /^https:\/\/(.*\.)?intelhq\.io$/,
 ];
 
 function getSidecarCorsOrigin(req) {
@@ -722,11 +722,11 @@ async function dispatch(requestUrl, req, routes, context) {
         req.on('end', () => resolve(Buffer.concat(chunks).toString()));
         req.on('error', reject);
       });
-      const response = await fetchWithTimeout('https://worldmonitor.app/api/register-interest', {
+      const response = await fetchWithTimeout('https://intelhq.io/api/register-interest', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Origin': 'https://worldmonitor.app',
+          'Origin': 'https://intelhq.io',
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         },
         body,

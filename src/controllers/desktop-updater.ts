@@ -100,7 +100,7 @@ export class DesktopUpdater {
       }
       const releaseUrl = typeof data.url === 'string' && data.url
         ? data.url
-        : 'https://github.com/laikhtman/worldmonitor/releases/latest';
+        : 'https://github.com/laikhtman/IntelHQ/releases/latest';
       this.logUpdaterOutcome('update_available', { current, remote, dismissed: false });
       await this.showUpdateBadge(remote, releaseUrl);
     } catch (error) {

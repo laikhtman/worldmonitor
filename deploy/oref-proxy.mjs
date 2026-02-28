@@ -27,7 +27,7 @@ function fetchUpstream(url) {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json',
                 'Accept-Language': 'he-IL,he;q=0.9,en;q=0.8',
-                'User-Agent': 'Mozilla/5.0 (compatible; WorldMonitor/1.0)',
+                'User-Agent': 'Mozilla/5.0 (compatible; IntelHQ/1.0)',
             },
             timeout: 8000,
         }, (res) => {
